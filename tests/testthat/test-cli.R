@@ -1,0 +1,119 @@
+make_cli_layers <- function() {
+  phu_poly <- sf::st_polygon(list(rbind(
+    c(-80, 44), c(-79, 44), c(-79, 43), c(-80, 43), c(-80, 44)
+  )))
+  phu <- sf::st_sf(
+    PHU_ID = 1,
+    PHU_NAME_ENG = "Test Health Unit A",
+    geometry = sf::st_sfc(phu_poly, crs = 4326)
+  )
+  attr(phu, "source_name") <- "MOH Public Health Unit Boundary"
+  attr(phu, "source_url") <- "https://example.com/phu"
+  attr(phu, "retrieved_at") <- as.POSIXct("2026-07-08 00:00:00", tz = "UTC")
+
+  health_region <- sf::st_sf(
+    OH_REGION_ID = 10,
+    ENGLISH_NAME = "Test Health Region",
+    geometry = sf::st_sfc(phu_poly, crs = 4326)
+  )
+  attr(health_region, "source_name") <- "Ontario Health Region"
+  attr(health_region, "source_url") <- "https://example.com/health-region"
+  attr(health_region, "retrieved_at") <- as.POSIXct("2026-07-08 00:00:00", tz = "UTC")
+
+  municipal_poly <- sf::st_polygon(list(rbind(
+    c(-79.8, 43.8), c(-79.2, 43.8), c(-79.2, 43.2), c(-79.8, 43.2), c(-79.8, 43.8)
+  )))
+  municipal_upper <- sf::st_sf(
+    MUNID = 100,
+    MUNICIPAL_NAME = "Test Upper Municipality",
+    geometry = sf::st_sfc(municipal_poly, crs = 4326)
+  )
+  attr(municipal_upper, "source_name") <- "Municipal Bnd Upper And Dist"
+  attr(municipal_upper, "source_url") <- "https://example.com/municipal-upper"
+
+  municipal_lower <- sf::st_sf(
+    MUNID = 200,
+    MUNICIPAL_NAME = "Test Lower Municipality",
+    geometry = sf::st_sfc(municipal_poly, crs = 4326)
+  )
+  attr(municipal_lower, "source_name") <- "Municipal Bnd Lower And Single"
+  attr(municipal_lower, "source_url") <- "https://example.com/municipal-lower"
+
+  service_locations <- sf::st_as_sf(
+    data.frame(
+      MOH_SERVICE_PROVIDER_IDENT = 300,
+      ENGLISH_NAME = "Test Clinic",
+      lon = -79.5,
+      lat = 43.5
+    ),
+    coords = c("lon", "lat"),
+    crs = 4326
+  )
+  attr(service_locations, "source_name") <- "MOH Service Location"
+  attr(service_locations, "source_url") <- "https://example.com/service-locations"
+
+  list(
+    phu_boundaries = phu,
+    ontario_health_regions = health_region,
+    municipal_upper = municipal_upper,
+    municipal_lower = municipal_lower,
+    moh_service_locations = service_locations
+  )
+}
+
+test_that("retrieve_by_source_id errors clearly on unknown ids", {
+  expect_error(
+    retrieve_by_source_id("bogus_id"),
+    "Unknown source_id 'bogus_id'.*Valid source ids are"
+  )
+})
+
+test_that("cross_crosswalk stamps one from-to pair with registry ids", {
+  layers <- make_cli_layers()
+  testthat::local_mocked_bindings(
+    retrieve_layers = function(source_ids) layers[source_ids],
+    .package = "ONgeoR"
+  )
+
+  crosswalk <- cross_crosswalk("municipal_upper", "phu_boundaries")
+
+  expect_equal(nrow(crosswalk), 1)
+  expect_equal(crosswalk$from_source_id, "municipal_upper")
+  expect_equal(crosswalk$to_source_id, "phu_boundaries")
+  expect_equal(crosswalk$match_method, "intersects")
+})
+
+test_that("cross_crosswalk includes all 2x2 source id pairs", {
+  layers <- make_cli_layers()
+  testthat::local_mocked_bindings(
+    retrieve_layers = function(source_ids) layers[source_ids],
+    .package = "ONgeoR"
+  )
+
+  crosswalk <- cross_crosswalk(
+    c("municipal_upper", "municipal_lower"),
+    c("phu_boundaries", "ontario_health_regions")
+  )
+
+  pair_keys <- paste(crosswalk$from_source_id, crosswalk$to_source_id, sep = "->")
+  expect_equal(nrow(crosswalk), 4)
+  expect_setequal(pair_keys, c(
+    "municipal_upper->phu_boundaries",
+    "municipal_lower->phu_boundaries",
+    "municipal_upper->ontario_health_regions",
+    "municipal_lower->ontario_health_regions"
+  ))
+})
+
+test_that("map_crosswalk returns a leaflet htmlwidget for mixed layer types", {
+  layers <- make_cli_layers()
+
+  map <- map_crosswalk(
+    layers,
+    from_ids = "moh_service_locations",
+    to_ids = "phu_boundaries"
+  )
+
+  expect_s3_class(map, "leaflet")
+  expect_s3_class(map, "htmlwidget")
+})

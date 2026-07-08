@@ -32,10 +32,14 @@ retrieve_phu <- function(simplify = FALSE) {
 #' Retrieves Ontario Health Region boundaries from the LIO Open Data REST
 #' service (`LIO_Open09/52`).
 #'
-#' @param simplify Logical. If `TRUE`, requests generalized geometry from the
-#'   service. Defaults to `FALSE` for the same reason as [retrieve_phu()]:
-#'   this layer is small (6 features) and full-precision geometry avoids
-#'   border distortion between adjacent regions.
+#' @param simplify Logical. If `TRUE` (the default), requests generalized
+#'   geometry from the service. Unlike [retrieve_phu()], this layer's
+#'   full-precision geometry is unreliable to fetch: these 6 regions are
+#'   province-scale with much more complex boundaries than the 34 PHUs, and
+#'   the LIO ArcGIS service intermittently fails ("Could not access any
+#'   server machines") on the unsimplified request for this specific layer.
+#'   Set to `FALSE` if you need full precision and are prepared to retry on
+#'   failure.
 #'
 #' @return An `sf` object of Ontario Health Region boundary polygons, with
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
@@ -46,7 +50,7 @@ retrieve_phu <- function(simplify = FALSE) {
 #' }
 #'
 #' @export
-retrieve_health_region <- function(simplify = FALSE) {
+retrieve_health_region <- function(simplify = TRUE) {
   fetch_lio_sf(
     service_layer = "LIO_Open09/52",
     source_name = "Ontario Health Region",

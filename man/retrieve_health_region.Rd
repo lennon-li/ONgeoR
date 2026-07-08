@@ -4,13 +4,17 @@
 \alias{retrieve_health_region}
 \title{Retrieve Ontario Health Region boundaries}
 \usage{
-retrieve_health_region(simplify = FALSE)
+retrieve_health_region(simplify = TRUE)
 }
 \arguments{
-\item{simplify}{Logical. If \code{TRUE}, requests generalized geometry from the
-service. Defaults to \code{FALSE} for the same reason as \code{\link[=retrieve_phu]{retrieve_phu()}}:
-this layer is small (6 features) and full-precision geometry avoids
-border distortion between adjacent regions.}
+\item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
+geometry from the service. Unlike \code{\link[=retrieve_phu]{retrieve_phu()}}, this layer's
+full-precision geometry is unreliable to fetch: these 6 regions are
+province-scale with much more complex boundaries than the 34 PHUs, and
+the LIO ArcGIS service intermittently fails ("Could not access any
+server machines") on the unsimplified request for this specific layer.
+Set to \code{FALSE} if you need full precision and are prepared to retry on
+failure.}
 }
 \value{
 An \code{sf} object of Ontario Health Region boundary polygons, with

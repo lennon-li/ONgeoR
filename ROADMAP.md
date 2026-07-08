@@ -1,118 +1,133 @@
 # ONgeoR Roadmap
 
-This document describes the phased delivery plan for the ONgeoR package. The guiding principle: start small and demonstrate the core loop on real Ontario data, then grow the source registry and linking functions as verified sources accumulate.
+## Current Status: API Validation Phase
 
-## Current Status: Pre-v0.1 (Repository Bootstrapped)
+**Goal:** Prove that we can retrieve Ontario geospatial data from the LIO REST API, perform spatial joins, and build auditable crosswalk tables.
 
-- [x] Repository created
-- [x] README written
-- [x] Full vision plan captured (`projects/ongeor/FULL_PLAN.md`)
-- [x] Reconnaissance brief drafted for data-source inventory
-- [ ] GeoHub / LIO REST API inventory complete (in progress)
-- [ ] Source URLs verified for at least one real dataset
+### What We Know
+- ✅ LIO REST API is accessible (no auth required)
+- ✅ PHU boundaries retrievable via `resultRecordCount=2000` parameter
+- ✅ GeoJSON format works with httr2 + jsonlite
+- ✅ Layer metadata: `maxRecordCount: 2000`, pagination supported
+- ⚠️ Geometry data is truncated in GeoJSON responses (simplification needed)
+- ⚠️ Need to test: sf conversion, spatial joins, CRS handling
 
----
-
-## v0.1 — MVP
-
-**Goal:** An installable R package that demonstrates the core loop (registry → retrieve → link → crosswalk → map) on real Ontario data from the LIO REST API.
-
-### Package skeleton
-- [ ] `DESCRIPTION`, `NAMESPACE`, `LICENSE`, `.Rbuildignore`
-- [ ] R 4.1+ minimum (to match sf / modern tidyverse)
-- [ ] Imports: `sf`, `dplyr`, `tibble`, `yaml`, `cli`, `httr2`, `ggplot2`, `rlang`
-
-### Source registry
-- [ ] `inst/sources/sources.yml` with ≥3 verified LIO Open Data layers:
-    - `phu_boundaries` → LIO_Open09 / layer 44 (MOH Public Health Unit Boundary)
-    - `ontario_health_regions` → LIO_Open09 / layer 52 (Ontario Health Region)
-    - `municipal_boundaries` → LIO_Open03 / layers 13 + 14
-    - `airports` → LIO_Open05 / layers 0, 1
-- [ ] `list_sources()` — print available sources with type, geography, status
-- [ ] `get_source(id)` — return metadata for one source as a list/tibble
-- [ ] `validate_source_registry()` — assert required fields exist on every entry
-
-### Data retrieval
-- [ ] `retrieve_source(id)` — general fetcher that reads YAML, hits the ArcGIS REST endpoint with `f=geojson`, caches under `tools::R_user_dir("ongeor", "cache")`, returns `sf`
-- [ ] Per-source cache keying by layer URL + retrieval timestamp
-- [ ] Error handling: HTTP failures, empty results, non-FeatureLayer responses
-
-### Spatial linking
-- [ ] `point_to_polygon(points, polygons, lon, lat, crs)` — generic point-in-polygon join
-- [ ] `point_to_phu(points, ...)` — convenience wrapper over `point_to_polygon` with PHU layer
-- [ ] `polygon_to_polygon(from, to, method)` — intersect / contains / within for boundary layers (municipality → PHU, etc.)
-- [ ] `nearest_facility(points, facilities, n, max_distance_km)` — `sf::st_nearest_feature` with distance calculation
-- [ ] `build_crosswalk(from, to, method)` — auditable link table with standard output schema:
-    - `input_id, input_name, input_type, input_source`
-    - `target_id, target_name, target_type, target_source`
-    - `match_method, match_distance_km, match_confidence`
-    - `source_url, source_date, retrieved_at, ongeor_version`
-
-### Mapping
-- [ ] `map_boundaries(boundaries, fill, title)` — ggplot2 + sf plot of one or more boundary layers
-
-### Tests
-- [ ] `testthat` suite using **synthetic data only** (no real geodata in tests)
-- [ ] Source registry loads + validates required fields
-- [ ] Point-in-polygon join returns correct polygon for synthetic points
-- [ ] Nearest-facility returns correct row + distance
-- [ ] Crosswalk output has the required schema columns
-
-### Documentation
-- [ ] README (exists) with positioning, install, quickstart
-- [ ] `roxygen2` documentation on every exported function
-- [ ] `devtools::check()` passes with 0 errors, 0 warnings
-
-### Success criteria
-`devtools::check()` clean, source registry validates, synthetic point → PHU join works, crosswalk output schema matches spec, zero real geodata bundled.
+### What We Need to Validate
+- Can we convert ArcGIS GeoJSON to sf objects?
+- Does `sf::st_join()` work on the retrieved geometries?
+- Can we build a crosswalk table with full provenance?
 
 ---
 
-## v0.2 — Broaden Sources and Linking Functions
+## Phase 1: Spatial Join Proof-of-Concept (Current)
 
-- [ ] Add more LIO layers to registry (environmental health, schools, child care if present on LIO)
-- [ ] `retrieve_boundary()` and `retrieve_facilities()` as typed wrappers
-- [ ] `facility_to_phu()`, `facility_to_region()`, `facilities_within()` (radius search)
-- [ ] Resolver stubs: `resolve_postal()` that requires a user-supplied source (PCCF etc.) — explicit `stop()` until a licensed source is provided
-- [ ] Additional map functions: `map_facilities()`, `map_crosswalk()`, `map_nearest()`
-- [ ] Three vignettes: `getting-started`, `adding-data-sources`, `building-crosswalks`
-- [ ] GitHub issue templates: `data-source-request.yml`, `bug_report.yml`, `feature_request.yml`
-- [ ] Full facility group taxonomy (`healthcare`, `congregate_living`, `education_childcare`, `transportation`, `environmental_health`, `community_services`)
+**Deliverable:** R script that demonstrates end-to-end workflow
 
----
+```
+retrieve PHU boundaries → convert to sf → 
+create test points → spatial join → 
+output table with provenance
+```
 
-## v0.3 — Resolvers and Community Sources
+**Test scenario:**
+- 3 synthetic points (Toronto, Ottawa, Thunder Bay)
+- Retrieve all 34 PHU boundaries
+- Join points to PHUs
+- Output: point_id, point_name, lon, lat, phu_id, phu_name_en, retrieved_at
 
-- [ ] `resolve_location()`, `resolve_facility()`, `resolve_airport()`, `resolve_terminal()`
-- [ ] User-supplied postal code source integration (PCCF workflow)
-- [ ] `add_source_template()` — scaffolds a new YAML entry for contributor PRs
-- [ ] Community-contributed sources from GitHub issue templates
-- [ ] Optional interactive maps (`leaflet`, `mapview`) behind `Suggests`
+**Success criteria:**
+- [ ] Script runs in < 10 seconds
+- [ ] All 3 points correctly assigned to their PHUs
+- [ ] Output includes full provenance (source_url, retrieved_at)
+- [ ] No CRS errors or geometry conversion failures
 
----
-
-## v1.0 — Production Readiness
-
-- [ ] `pkgdown` documentation site
-- [ ] GitHub Actions R-CMD-check workflow (ubuntu, macos, windows)
-- [ ] `cran-comments.md` and CRAN submission prep (if desired)
-- [ ] Performance evaluation: large boundary layers, `data.table` / `arrow` backends
-- [ ] Integration layer for `cancensus` (census geographies) and `tidytransit` (GTFS)
+**Files:**
+- `test_spatial_join.R` — main script
+- `test_lio_api.R` — API connectivity test
+- `test_lio_count.R` — pagination/count validation
 
 ---
 
-## Non-Goals (Explicit)
+## Phase 2: Package Skeleton (After Phase 1 Validates)
 
-- Bundling boundary files or facility datasets inside the package
-- Hosting or mirroring licensed data (PCCF, proprietary facility lists)
-- Replacing authoritative sources — ONgeoR retrieves from them, it does not supersede them
-- Real-time data feeds — sources are snapshot-retrievable, not streaming
+**Goal:** Minimal R package structure with working examples
+
+### Deliverables
+- [ ] `DESCRIPTION`, `NAMESPACE`, `LICENSE`, `README.md`
+- [ ] `R/retrieve.R` — `retrieve_phu_boundaries()` function
+- [ ] `R/link.R` — `points_to_phu()` function
+- [ ] `R/crosswalk.R` — `build_crosswalk()` function
+- [ ] `inst/extdata/` — example data (3 test points as CSV)
+- [ ] `tests/testthat/` — unit tests for each function
+- [ ] `man/` — roxygen2 documentation
+
+### Dependencies
+```
+Imports: sf, httr2, jsonlite, dplyr
+Suggests: testthat, knitr, rmarkdown
+```
+
+### Functions
+```r
+retrieve_phu_boundaries() -> sf object
+points_to_phu(points_sf, phu_sf) -> joined tibble
+build_crosswalk(from_sf, to_sf) -> provenance tibble
+```
 
 ---
 
-## Constraints (Always)
+## Phase 3: Expand Source Coverage
 
-- No unverified source URLs in the registry — placeholders are fine, lying URLs are not
-- No bundled data larger than a few KB (synthetic test fixtures only)
-- Every function that touches external data must attach retrieval metadata to its output
-- `devtools::check()` stays clean at every version
+**Goal:** Add more Ontario datasets to the source registry
+
+### Target Layers
+- [ ] Health Unit boundaries (done in Phase 1)
+- [ ] Municipal boundaries (LIO_Open03)
+- [ ] Postal code boundaries (if available)
+- [ ] Hospitals/health facilities (if available)
+
+### Source Registry
+- `inst/extdata/sources.yaml` — metadata for each source
+- Each entry: name, url, description, license, last_updated, retrieval_function
+
+---
+
+## Phase 4: User Interface
+
+**Goal:** Make the package user-friendly
+
+### Deliverables
+- [ ] Vignettes: quickstart, examples, troubleshooting
+- [ ] Error messages with actionable guidance
+- [ ] Progress indicators for long retrievals
+- [ ] Caching strategy (avoid re-downloading)
+
+---
+
+## Future (Post-MVP)
+
+### Additional Features
+- Interactive maps (leaflet)
+- Batch processing for large datasets
+- Custom CRS support
+- Export to multiple formats (CSV, GeoJSON, Shapefile)
+
+### Additional Data Sources
+- Ontario Health regions
+- Census subdivisions (Statistics Canada)
+- Transit routes (if public API available)
+- Environmental data (air quality, water quality)
+
+---
+
+## Known Issues / Open Questions
+
+1. **Geometry truncation:** LIO API returns simplified geometries. Need to verify this is acceptable for spatial joins.
+
+2. **CRS handling:** ArcGIS uses WKID 102100 (Web Mercator). Need to confirm sf can reproject to WGS84 (EPSG:4326).
+
+3. **Pagination:** maxRecordCount is 2000. Need to test if any layer exceeds this and implement pagination.
+
+4. **Rate limiting:** Unknown if LIO API has rate limits. Need to test with multiple concurrent requests.
+
+5. **Data freshness:** Unknown how often LIO updates these layers. Need to add `last_updated` field to source registry.

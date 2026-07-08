@@ -1,0 +1,28 @@
+# ONgeoR .gitignore
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+inst/doc
+
+# Package build
+*.tar.gz
+*.Rcheck/
+*.o
+*.so
+*.dll
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local

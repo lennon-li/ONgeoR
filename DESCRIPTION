@@ -1,0 +1,29 @@
+Package: ONgeoR
+Title: Resolve Ontario Locations to Public Health Geography
+Version: 0.1.0
+Authors@R:
+    person("Lennon", "Li", email = "lennon.li@example.com", role = c("aut", "cre"))
+Description: Provides a reproducible framework for retrieving Ontario
+    geospatial boundaries and facility locations from authoritative external
+    sources (such as the Ontario GeoHub LIO REST services), linking points
+    and polygons to public-health geography (Public Health Units, Ontario
+    Health Regions), and building auditable crosswalk tables with full
+    source provenance. ONgeoR does not bundle geospatial data; all data is
+    retrieved at runtime from external sources.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    httr2,
+    rlang,
+    sf,
+    tibble,
+    yaml
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+URL: https://github.com/lennon-li/ONgeoR
+BugReports: https://github.com/lennon-li/ONgeoR/issues
+Config/roxygen2/version: 8.0.0

@@ -16,13 +16,14 @@ Public health analysts, epidemiologists, and health-system planners in Ontario f
 
 ONgeoR provides a standardized, reproducible framework for these tasks without bundling large geospatial datasets that become stale or require constant maintenance.
 
-## What ONgeoR Does
+## What ONgeoR Does (v0.1)
 
-- Provides a source registry with metadata for Ontario geospatial datasets
-- Retrieves data from authoritative external sources (Ontario GeoHub, Statistics Canada, etc.)
-- Performs spatial linking operations (point-in-polygon, nearest-facility lookup)
+- Provides a source registry with metadata for Tier 1 Ontario GeoHub (LIO) datasets
+- Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, and MOH service locations at runtime
+- Performs spatial linking operations (point-in-polygon, polygon-in-polygon)
 - Generates auditable crosswalk tables with full provenance metadata
-- Creates simple boundary and facility maps using ggplot2 + sf
+
+See [ROADMAP.md](ROADMAP.md) for planned nearest-facility lookups, maps, and additional sources.
 
 ## What ONgeoR Does Not Do
 
@@ -36,7 +37,7 @@ ONgeoR provides a standardized, reproducible framework for these tasks without b
 1. **External data, not bundled** — all data is retrieved from authoritative sources at runtime
 2. **Source metadata tracking** — every retrieval records source URL, date, and license
 3. **Reproducible workflows** — crosswalks include full provenance (source, date, retrieval timestamp)
-4. **Lightweight dependencies** — minimal package footprint (sf, dplyr, httr2, yaml, ggplot2)
+4. **Lightweight dependencies** — minimal package footprint (sf, httr2, yaml, tibble, rlang)
 5. **Community-extensible** — users can suggest new data sources via GitHub issues
 
 ## Installation
@@ -58,22 +59,23 @@ list_sources()
 # Get metadata for a specific source
 get_source("phu_boundaries")
 
-# Retrieve PHU boundaries from Ontario GeoHub
-phu <- retrieve_boundary("phu_boundaries")
+# Retrieve PHU boundaries from the Ontario GeoHub (LIO) REST service
+phu <- retrieve_phu()
 
 # Create sample points (e.g., hospitals)
 points <- data.frame(
-  id = 1:3,
-  lon = c(-79.38, -75.70, -80.50),
-  lat = c(43.65, 46.45, 43.53)
+  point_name = c("Toronto", "Ottawa", "Thunder Bay"),
+  lon = c(-79.3832, -75.6972, -89.6306),
+  lat = c(43.6532, 45.4215, 48.3822)
 )
 
 # Link points to Public Health Units
-result <- point_to_phu(points, phu)
+result <- points_to_phu(points, phu)
 print(result)
 
-# Build a crosswalk table
-crosswalk <- build_crosswalk(points, phu, method = "within")
+# Build a crosswalk table between two polygon layers
+municipal <- retrieve_municipal("upper")
+crosswalk <- build_crosswalk(municipal, phu, method = "intersects")
 ```
 
 ## Data Sources

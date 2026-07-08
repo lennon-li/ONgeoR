@@ -1,0 +1,45 @@
+sources:
+  phu_boundaries:
+    name: "MOH Public Health Unit Boundary"
+    service_layer: "LIO_Open09/44"
+    geography_type: "boundary"
+    feature_count: 34
+    key_fields: ["PHU_ID", "PHU_NAME_ENG", "PHU_NAME_FR"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/44"
+
+  ontario_health_regions:
+    name: "Ontario Health Region"
+    service_layer: "LIO_Open09/52"
+    geography_type: "boundary"
+    feature_count: 6
+    key_fields: ["OH_REGION_ID", "ENGLISH_NAME", "FRENCH_NAME"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/52"
+
+  municipal_upper:
+    name: "Municipal Bnd Upper And Dist"
+    service_layer: "LIO_Open03/13"
+    geography_type: "boundary"
+    feature_count: 98
+    key_fields: ["MUNID", "MUNICIPAL_NAME", "MUNICIPAL_TYPE"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open03/MapServer/13"
+
+  municipal_lower:
+    name: "Municipal Bnd Lower And Single"
+    service_layer: "LIO_Open03/14"
+    geography_type: "boundary"
+    feature_count: 685
+    key_fields: ["MUNID", "MUNICIPAL_NAME", "MUNICIPAL_TYPE", "UPPER_TIER_MUNICIPALITY"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open03/MapServer/14"
+
+  moh_service_locations:
+    name: "MOH Service Location"
+    service_layer: "LIO_Open09/26"
+    geography_type: "facility"
+    feature_count: 11625
+    key_fields: ["MOH_SERVICE_PROVIDER_IDENT", "SERVICE_TYPE", "ENGLISH_NAME", "POSTAL_CODE"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/26"

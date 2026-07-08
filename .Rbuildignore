@@ -1,0 +1,13 @@
+^ONgeoR\.Rproj$
+^\.Rproj\.user$
+^README\.Rmd$
+^ROADMAP\.md$
+^LICENSE\.md$
+^\.github$
+^test_lio_api\.R$
+^test_lio_count\.R$
+^test_spatial_join\.R$
+^geohub-inventory\.csv$
+^geohub-inventory\.md$
+^geohub-inventory\.html$
+^\.claude$

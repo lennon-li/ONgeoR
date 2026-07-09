@@ -1,79 +1,92 @@
-#' Resolve airport records from an identifier or name
+#' Resolve records from a layer by an identifier or name
 #'
-#' Looks up one or more airport records from the airport layer returned by
-#' [retrieve_airport()]. Identifier lookups match `AIRPORT_IDENT` exactly,
-#' ignoring case. Name lookups match `NAME` by case-insensitive substring.
+#' Attribute lookup (not a spatial operation): given one or more query values,
+#' return the matching record(s) from a layer. By default matches an id column
+#' exactly or a name column by substring; either can be overridden.
 #'
+#' @param layer An `sf` object or `data.frame` with attribute columns.
 #' @param query A character vector of one or more values to look up.
-#' @param by Character. Either `"ident"` to match `AIRPORT_IDENT` exactly,
-#'   ignoring case, or `"name"` to match `NAME` by case-insensitive substring.
-#'   Defaults to `"ident"`.
-#' @param airports An `sf` object of airport boundaries, as returned by
-#'   [retrieve_airport()]. If `NULL` (the default), airport boundaries are
-#'   retrieved automatically.
+#' @param by Character. `"ident"` (default) uses the layer's id column with
+#'   exact matching; `"name"` uses the name column with substring matching.
+#'   The columns are auto-detected. Ignored when `column` is supplied.
+#' @param column Character or `NULL`. Overrides the column to match against.
+#' @param match Character or `NULL`. `"exact"` or `"substring"`. If `NULL`
+#'   (default), derived from `by` (`ident` -> exact, `name` -> substring).
 #'
-#' @return A [tibble::tibble()] with a `query` column, all matching airport
-#'   attribute columns, and `source_url` / `retrieved_at` provenance columns.
-#'   Query values with no match return one row with `NA` airport attributes.
+#' @return A [tibble::tibble()] with a `query` column, the layer's non-geometry
+#'   columns for matches, and `source_url` / `retrieved_at` provenance. A query
+#'   with no match yields one row with `NA` data columns; a single combined
+#'   warning lists all unmatched query values.
 #'
 #' @examples
 #' if (interactive()) {
-#'   airport <- resolve_airport("CYYZ")
-#'   toronto_airports <- resolve_airport("toronto", by = "name")
+#'   airports <- retrieve_airport()
+#'   resolve(airports, "CYYZ")
+#'   resolve(airports, "toronto", by = "name")
 #' }
 #'
 #' @export
-resolve_airport <- function(query, by = c("ident", "name"), airports = NULL) {
+resolve <- function(layer, query,
+                    by = c("ident", "name"), column = NULL, match = NULL) {
   by <- match.arg(by)
 
   if (!is.character(query)) {
     rlang::abort("`query` must be a character vector.")
   }
 
-  if (is.null(airports)) {
-    airports <- retrieve_airport()
+  layer_data <- if (inherits(layer, "sf")) {
+    tibble::as_tibble(sf::st_drop_geometry(layer))
+  } else {
+    tibble::as_tibble(layer)
   }
 
-  airport_data <- tibble::as_tibble(sf::st_drop_geometry(airports))
+  if (is.null(column)) {
+    column <- if (by == "ident") guess_id_col(layer) else guess_name_col(layer)
+  }
+  if (is.null(match)) {
+    match <- if (by == "name") "substring" else "exact"
+  }
+  match <- rlang::arg_match(match, c("exact", "substring"))
+
+  if (!column %in% colnames(layer_data)) {
+    rlang::abort(sprintf("column `%s` not found in `layer`.", column))
+  }
+
+  values <- as.character(layer_data[[column]])
   unmatched <- character()
 
   results <- lapply(query, function(q) {
-    if (by == "ident") {
-      q_lower <- tolower(q)
-      matches <- which(
-        !is.na(q_lower) &
-          !is.na(airport_data$AIRPORT_IDENT) &
-          tolower(airport_data$AIRPORT_IDENT) == q_lower
-      )
-    } else {
+    if (is.na(q)) {
       matches <- integer()
-      if (!is.na(q)) {
-        matches <- which(grepl(q, airport_data$NAME, ignore.case = TRUE, fixed = FALSE))
-      }
+    } else if (match == "exact") {
+      matches <- which(!is.na(values) & tolower(values) == tolower(q))
+    } else {
+      matches <- which(grepl(q, values, ignore.case = TRUE))
     }
 
     if (length(matches) == 0) {
       unmatched <<- c(unmatched, q)
-      matched <- airport_data[NA_integer_, , drop = FALSE]
+      matched <- layer_data[NA_integer_, , drop = FALSE]
     } else {
-      matched <- airport_data[matches, , drop = FALSE]
+      matched <- layer_data[matches, , drop = FALSE]
     }
-
     tibble::add_column(matched, query = rep(q, nrow(matched)), .before = 1)
   })
 
   if (length(results) == 0) {
-    result <- tibble::add_column(airport_data[0, , drop = FALSE], query = character(), .before = 1)
+    result <- tibble::add_column(
+      layer_data[0, , drop = FALSE], query = character(), .before = 1
+    )
   } else {
     result <- do.call(rbind, results)
   }
 
-  result$source_url <- attr(airports, "source_url")
-  result$retrieved_at <- attr(airports, "retrieved_at")
+  result$source_url <- provenance_attr(layer, "source_url")
+  result$retrieved_at <- provenance_attr(layer, "retrieved_at")
 
   if (length(unmatched) > 0) {
     rlang::warn(
-      paste0("resolve_airport(): no match found for: ", paste(unmatched, collapse = ", "))
+      paste0("resolve(): no match found for: ", paste(unmatched, collapse = ", "))
     )
   }
 

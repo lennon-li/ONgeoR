@@ -165,19 +165,26 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
 #' @param x An `sf` object or `data.frame`.
 #'
 #' @return Character scalar: the guessed id column name. Falls back to the
-#'   first non-geometry column if no `*ID` column is found.
+#'   first non-geometry column if no `*ID`/`*IDENT` column is found.
 #' @keywords internal
 #' @noRd
 generic_lio_fields <- c("OGF_ID", "OBJECTID")
 
+# Matches identifier columns ending in "ID" (e.g. PHU_ID, MUNID) or "IDENT"
+# (e.g. AIRPORT_IDENT, MOH_SERVICE_PROVIDER_IDENT). The "IDENT" case matters:
+# several LIO layers name their domain identifier `*_IDENT`, which a bare
+# `ID$` pattern misses -- leaving only the generic `OGF_ID` to match, which is
+# the wrong column to resolve against.
+id_col_pattern <- "ID(ENT)?$"
+
 guess_id_col <- function(x) {
   cols <- setdiff(colnames(x), attr(x, "sf_column"))
   candidates <- setdiff(cols, generic_lio_fields)
-  id_cols <- candidates[grepl("ID$", candidates, ignore.case = TRUE)]
+  id_cols <- candidates[grepl(id_col_pattern, candidates, ignore.case = TRUE)]
   if (length(id_cols) > 0) {
     return(id_cols[1])
   }
-  id_cols <- cols[grepl("ID$", cols, ignore.case = TRUE)]
+  id_cols <- cols[grepl(id_col_pattern, cols, ignore.case = TRUE)]
   if (length(id_cols) > 0) {
     return(id_cols[1])
   }

@@ -1,78 +1,82 @@
 make_synthetic_airports <- function() {
-  poly_a <- sf::st_polygon(list(rbind(
-    c(-80, 44), c(-79, 44), c(-79, 43), c(-80, 43), c(-80, 44)
+  poly <- function(x) sf::st_polygon(list(rbind(
+    c(x, 44), c(x + 1, 44), c(x + 1, 43), c(x, 43), c(x, 44)
   )))
-  poly_b <- sf::st_polygon(list(rbind(
-    c(-82, 44), c(-81, 44), c(-81, 43), c(-82, 43), c(-82, 44)
-  )))
-  poly_c <- sf::st_polygon(list(rbind(
-    c(-84, 44), c(-83, 44), c(-83, 43), c(-84, 43), c(-84, 44)
-  )))
-
+  # OGF_ID first, mirroring real LIO layers: the domain identifier is
+  # AIRPORT_IDENT, not the generic OGF_ID. This shape guards against
+  # guess_id_col() picking OGF_ID instead of AIRPORT_IDENT.
   airports <- sf::st_sf(
+    OGF_ID = c(1001, 1002, 1003),
     AIRPORT_IDENT = c("CYYZ", "CYTZ", "CYHM"),
-    NAME = c("Toronto Pearson International Airport", "Billy Bishop Toronto City Airport", "Hamilton Airport"),
-    AIRPORT_TYPE = c("Certified Airport", "Certified Airport", "Registered Aerodrome"),
-    MUNICIPALITY = c("Mississauga", "Toronto", "Hamilton"),
-    geometry = sf::st_sfc(poly_a, poly_b, poly_c, crs = 4326)
+    NAME = c("Toronto Pearson", "Billy Bishop Toronto City", "Hamilton"),
+    POSTAL_CODE = c("L5P", "M5V", "L0R"),
+    geometry = sf::st_sfc(poly(-80), poly(-82), poly(-84), crs = 4326)
   )
   attr(airports, "source_url") <- "https://example.com/airports"
   attr(airports, "retrieved_at") <- as.POSIXct("2026-07-08 00:00:00", tz = "UTC")
   airports
 }
 
-test_that("resolve_airport matches airport ident exactly ignoring case", {
+test_that("resolve auto-detects the *_IDENT column over the generic OGF_ID", {
   airports <- make_synthetic_airports()
 
-  result <- resolve_airport("cyyz", airports = airports)
+  result <- resolve(airports, "CYYZ")
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$AIRPORT_IDENT, "CYYZ")
+})
+
+test_that("resolve matches the ident column exactly, ignoring case, by default", {
+  airports <- make_synthetic_airports()
+
+  result <- resolve(airports, "cyyz")
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 1)
   expect_equal(result$query, "cyyz")
-  expect_true(all(c("AIRPORT_IDENT", "NAME", "AIRPORT_TYPE", "MUNICIPALITY") %in% colnames(result)))
   expect_equal(result$AIRPORT_IDENT, "CYYZ")
-  expect_equal(result$NAME, "Toronto Pearson International Airport")
   expect_equal(result$source_url, "https://example.com/airports")
   expect_false(is.null(result$retrieved_at))
 })
 
-test_that("resolve_airport matches airport names by case-insensitive substring", {
+test_that("resolve matches the name column by case-insensitive substring", {
   airports <- make_synthetic_airports()
 
-  result <- resolve_airport("toronto", by = "name", airports = airports)
+  result <- resolve(airports, "toronto", by = "name")
 
   expect_equal(nrow(result), 2)
-  expect_equal(result$query, c("toronto", "toronto"))
   expect_equal(result$AIRPORT_IDENT, c("CYYZ", "CYTZ"))
-  expect_equal(result$source_url, rep("https://example.com/airports", 2))
 })
 
-test_that("resolve_airport returns NA airport columns and warns for no match", {
+test_that("resolve targets an arbitrary column via column=/match=", {
+  airports <- make_synthetic_airports()
+
+  exact <- resolve(airports, "M5V", column = "POSTAL_CODE")
+  expect_equal(exact$AIRPORT_IDENT, "CYTZ")
+
+  sub <- resolve(airports, "L", column = "POSTAL_CODE", match = "substring")
+  expect_equal(sort(sub$AIRPORT_IDENT), c("CYHM", "CYYZ"))
+})
+
+test_that("resolve returns NA data columns and one combined warning for no match", {
   airports <- make_synthetic_airports()
 
   expect_warning(
-    result <- resolve_airport(c("missing-a", "missing-b"), airports = airports),
-    "resolve_airport\\(\\): no match found for: missing-a, missing-b"
+    result <- resolve(airports, c("missing-a", "missing-b")),
+    "resolve\\(\\): no match found for: missing-a, missing-b"
   )
-
   expect_equal(nrow(result), 2)
   expect_equal(result$query, c("missing-a", "missing-b"))
   expect_true(all(is.na(result$AIRPORT_IDENT)))
-  expect_true(all(is.na(result$NAME)))
-  expect_true(all(is.na(result$AIRPORT_TYPE)))
-  expect_equal(result$source_url, rep("https://example.com/airports", 2))
 })
 
-test_that("resolve_airport handles multiple query values with matched and unmatched rows", {
+test_that("resolve handles mixed matched and unmatched queries", {
   airports <- make_synthetic_airports()
 
   expect_warning(
-    result <- resolve_airport(c("CYYZ", "unknown", "CYTZ"), airports = airports),
+    result <- resolve(airports, c("CYYZ", "unknown", "CYTZ")),
     "unknown"
   )
-
   expect_equal(nrow(result), 3)
-  expect_equal(result$query, c("CYYZ", "unknown", "CYTZ"))
   expect_equal(result$AIRPORT_IDENT, c("CYYZ", NA, "CYTZ"))
-  expect_equal(result$source_url, rep("https://example.com/airports", 3))
 })

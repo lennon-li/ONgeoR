@@ -39,6 +39,24 @@ make_cli_layers <- function() {
   attr(municipal_lower, "source_name") <- "Municipal Bnd Lower And Single"
   attr(municipal_lower, "source_url") <- "https://example.com/municipal-lower"
 
+  airport <- sf::st_sf(
+    AIRPORT_IDENT = "ABC",
+    NAME = "Test Airport",
+    AIRPORT_TYPE = "Registered Aerodrome",
+    geometry = sf::st_sfc(municipal_poly, crs = 4326)
+  )
+  attr(airport, "source_name") <- "Airport Official"
+  attr(airport, "source_url") <- "https://example.com/airport"
+
+  waste_site <- sf::st_sf(
+    SITE_NAME = "Test Waste Site",
+    PRIMARY_CLASSIFICATION = "Landfill",
+    STATUS = "Open",
+    geometry = sf::st_sfc(municipal_poly, crs = 4326)
+  )
+  attr(waste_site, "source_name") <- "Waste Management Site"
+  attr(waste_site, "source_url") <- "https://example.com/waste-site"
+
   service_locations <- sf::st_as_sf(
     data.frame(
       MOH_SERVICE_PROVIDER_IDENT = 300,
@@ -57,6 +75,8 @@ make_cli_layers <- function() {
     ontario_health_regions = health_region,
     municipal_upper = municipal_upper,
     municipal_lower = municipal_lower,
+    airport_official = airport,
+    waste_management_site = waste_site,
     moh_service_locations = service_locations
   )
 }
@@ -81,6 +101,21 @@ test_that("cross_crosswalk stamps one from-to pair with registry ids", {
   expect_equal(crosswalk$from_source_id, "municipal_upper")
   expect_equal(crosswalk$to_source_id, "phu_boundaries")
   expect_equal(crosswalk$match_method, "intersects")
+})
+
+test_that("retrieve_by_source_id dispatches new registry ids", {
+  layers <- make_cli_layers()
+  testthat::local_mocked_bindings(
+    retrieve_airport = function(refresh = FALSE) layers$airport_official,
+    retrieve_waste_management = function(refresh = FALSE) layers$waste_management_site,
+    .package = "ONgeoR"
+  )
+
+  airport <- retrieve_by_source_id("airport_official")
+  waste_site <- retrieve_by_source_id("waste_management_site")
+
+  expect_equal(attr(airport, "source_name"), "Airport Official")
+  expect_equal(attr(waste_site, "source_name"), "Waste Management Site")
 })
 
 test_that("cross_crosswalk includes all 2x2 source id pairs", {
@@ -116,4 +151,15 @@ test_that("map_crosswalk returns a leaflet htmlwidget for mixed layer types", {
 
   expect_s3_class(map, "leaflet")
   expect_s3_class(map, "htmlwidget")
+})
+
+test_that("render_reproducer_script includes new registry retrieve calls", {
+  script <- render_reproducer_script(
+    from_ids = "airport_official",
+    to_ids = "waste_management_site",
+    output_dir = tempfile("ongeor-output-")
+  )
+
+  expect_match(script, "airport_official = retrieve_airport()", fixed = TRUE)
+  expect_match(script, "waste_management_site = retrieve_waste_management()", fixed = TRUE)
 })

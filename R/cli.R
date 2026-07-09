@@ -16,6 +16,8 @@ retrieve_by_source_id <- function(source_id, refresh = FALSE) {
     ontario_health_regions = retrieve_health_region(refresh = refresh),
     municipal_upper = retrieve_municipal("upper", refresh = refresh),
     municipal_lower = retrieve_municipal("lower", refresh = refresh),
+    airport_official = retrieve_airport(refresh = refresh),
+    waste_management_site = retrieve_waste_management(refresh = refresh),
     moh_service_locations = retrieve_moh_service_locations(refresh = refresh),
     {
       valid_ids <- list_sources()$source_id
@@ -218,6 +220,8 @@ source_retrieve_call <- function(source_id) {
     ontario_health_regions = "retrieve_health_region()",
     municipal_upper = "retrieve_municipal(\"upper\")",
     municipal_lower = "retrieve_municipal(\"lower\")",
+    airport_official = "retrieve_airport()",
+    waste_management_site = "retrieve_waste_management()",
     moh_service_locations = "retrieve_moh_service_locations()",
     {
       valid_ids <- list_sources()$source_id

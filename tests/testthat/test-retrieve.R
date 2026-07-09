@@ -14,6 +14,20 @@ synthetic_health_region_geojson <- paste0(
   "]}"
 )
 
+synthetic_airport_geojson <- paste0(
+  '{"type":"FeatureCollection","features":[',
+  '{"type":"Feature","properties":{"AIRPORT_IDENT":"ABC","NAME":"Test Airport","AIRPORT_TYPE":"Registered Aerodrome"},',
+  '"geometry":{"type":"Polygon","coordinates":[[[-80,44],[-79,44],[-79,43],[-80,43],[-80,44]]]}}',
+  "]}"
+)
+
+synthetic_waste_site_geojson <- paste0(
+  '{"type":"FeatureCollection","features":[',
+  '{"type":"Feature","properties":{"SITE_NAME":"Test Waste Site","PRIMARY_CLASSIFICATION":"Landfill","STATUS":"Open"},',
+  '"geometry":{"type":"Polygon","coordinates":[[[-82,44],[-81,44],[-81,43],[-82,43],[-82,44]]]}}',
+  "]}"
+)
+
 mock_geojson_response <- function(body) {
   function(req) {
     httr2::response(
@@ -80,4 +94,40 @@ test_that("retrieve_municipal dispatches to the correct tier layer", {
   expect_s3_class(municipal, "sf")
   expect_equal(attr(municipal, "source_name"), "Municipal Bnd Upper And Dist")
   expect_match(attr(municipal, "source_url"), "LIO_Open03/MapServer/13")
+})
+
+test_that("retrieve_airport returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  airport <- httr2::with_mocked_responses(
+    mock_geojson_response(synthetic_airport_geojson),
+    retrieve_airport()
+  )
+
+  expect_s3_class(airport, "sf")
+  expect_equal(nrow(airport), 1)
+  expect_true(all(c("AIRPORT_IDENT", "NAME", "AIRPORT_TYPE") %in% colnames(airport)))
+  expect_false(is.null(attr(airport, "source_url")))
+  expect_false(is.null(attr(airport, "retrieved_at")))
+  expect_equal(attr(airport, "source_name"), "Airport Official")
+  expect_match(attr(airport, "source_url"), "LIO_Open05/MapServer/0")
+})
+
+test_that("retrieve_waste_management returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  waste_site <- httr2::with_mocked_responses(
+    mock_geojson_response(synthetic_waste_site_geojson),
+    retrieve_waste_management()
+  )
+
+  expect_s3_class(waste_site, "sf")
+  expect_equal(nrow(waste_site), 1)
+  expect_true(all(c("SITE_NAME", "PRIMARY_CLASSIFICATION", "STATUS") %in% colnames(waste_site)))
+  expect_false(is.null(attr(waste_site, "source_url")))
+  expect_false(is.null(attr(waste_site, "retrieved_at")))
+  expect_equal(attr(waste_site, "source_name"), "Waste Management Site")
+  expect_match(attr(waste_site, "source_url"), "LIO_Open08/MapServer/9")
 })

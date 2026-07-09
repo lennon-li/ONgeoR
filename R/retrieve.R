@@ -108,6 +108,74 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
   }
 }
 
+#' Retrieve airport boundaries
+#'
+#' Retrieves official airport boundaries from the LIO Open Data REST service
+#' (`LIO_Open05/0`).
+#'
+#' @param simplify Logical. If `TRUE`, requests generalized geometry from the
+#'   service (`maxAllowableOffset = 10`). Defaults to `FALSE`: confirmed live
+#'   that the simplified request returns corrupted geometry for this layer
+#'   (`GEOMETRYCOLLECTION` instead of polygons, for all 403 features) rather
+#'   than valid generalized boundaries -- the same class of distortion
+#'   documented for [retrieve_phu()], caught here by live-testing rather than
+#'   assumed from feature count. Do not flip this default without re-testing
+#'   live.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
+#'
+#' @return An `sf` object of airport boundary polygons, with `source_url`,
+#'   `source_name`, and `retrieved_at` attributes attached.
+#'
+#' @examples
+#' if (interactive()) {
+#'   airports <- retrieve_airport()
+#' }
+#'
+#' @export
+retrieve_airport <- function(simplify = FALSE, refresh = FALSE) {
+  fetch_lio_sf(
+    service_layer = "LIO_Open05/0",
+    source_name = "Airport Official",
+    simplify = simplify,
+    refresh = refresh
+  )
+}
+
+#' Retrieve waste management site boundaries
+#'
+#' Retrieves waste management site boundaries from the LIO Open Data REST
+#' service (`LIO_Open08/9`).
+#'
+#' @param simplify Logical. If `TRUE`, requests generalized geometry from the
+#'   service (`maxAllowableOffset = 10`). Defaults to `FALSE`: confirmed live
+#'   that the simplified request returns corrupted geometry for this layer
+#'   (`GEOMETRYCOLLECTION` instead of polygons, for all 813 features) rather
+#'   than valid generalized boundaries -- the same class of distortion
+#'   documented for [retrieve_phu()], caught here by live-testing rather than
+#'   assumed from feature count. Do not flip this default without re-testing
+#'   live.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
+#'
+#' @return An `sf` object of waste management site boundary polygons, with
+#'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
+#'
+#' @examples
+#' if (interactive()) {
+#'   waste_sites <- retrieve_waste_management()
+#' }
+#'
+#' @export
+retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE) {
+  fetch_lio_sf(
+    service_layer = "LIO_Open08/9",
+    source_name = "Waste Management Site",
+    simplify = simplify,
+    refresh = refresh
+  )
+}
+
 #' Retrieve MOH service locations
 #'
 #' Retrieves Ministry of Health service location points (hospitals, clinics,

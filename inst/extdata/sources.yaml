@@ -35,6 +35,24 @@ sources:
     license: "Open Government Licence – Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open03/MapServer/14"
 
+  airport_official:
+    name: "Airport Official"
+    service_layer: "LIO_Open05/0"
+    geography_type: "boundary"
+    feature_count: 403
+    key_fields: ["AIRPORT_IDENT", "NAME", "AIRPORT_TYPE"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open05/MapServer/0"
+
+  waste_management_site:
+    name: "Waste Management Site"
+    service_layer: "LIO_Open08/9"
+    geography_type: "boundary"
+    feature_count: 813
+    key_fields: ["SITE_NAME", "PRIMARY_CLASSIFICATION", "STATUS"]
+    license: "Open Government Licence – Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open08/MapServer/9"
+
   moh_service_locations:
     name: "MOH Service Location"
     service_layer: "LIO_Open09/26"

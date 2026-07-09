@@ -1,10 +1,12 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
+refresh <- "--refresh" %in% args
+args <- setdiff(args, "--refresh")
 
 if (!length(args) %in% c(2, 3)) {
   cat(
-    "Usage: Rscript inst/cli/ongeor.R <from_ids> <to_ids> [output_dir]\n",
+    "Usage: Rscript inst/cli/ongeor.R <from_ids> <to_ids> [output_dir] [--refresh]\n",
     file = stderr()
   )
   quit(status = 1)
@@ -47,8 +49,8 @@ output_dir <- if (length(args) >= 3) {
 }
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
-layers <- retrieve_layers(unique(c(from_ids, to_ids)))
-cw <- cross_crosswalk(from_ids, to_ids)
+layers <- retrieve_layers(unique(c(from_ids, to_ids)), refresh = refresh)
+cw <- cross_crosswalk(from_ids, to_ids, refresh = refresh)
 map <- map_crosswalk(layers, from_ids, to_ids)
 
 crosswalk_path <- file.path(output_dir, "crosswalk.csv")
@@ -61,6 +63,7 @@ writeLines(render_reproducer_script(from_ids, to_ids, output_dir), reproduce_pat
 
 cat(sprintf("from-to pairs: %d\n", length(from_ids) * length(to_ids)))
 cat(sprintf("crosswalk rows: %d\n", nrow(cw)))
+cat(sprintf("cache: %s\n", if (refresh) "bypassed (--refresh)" else "used if available"))
 cat(sprintf("crosswalk: %s\n", crosswalk_path))
 cat(sprintf("map: %s\n", map_path))
 cat(sprintf("reproducer: %s\n", reproduce_path))

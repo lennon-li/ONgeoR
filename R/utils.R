@@ -42,13 +42,30 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
 #' @param where Character. SQL-style filter expression.
 #' @param simplify Logical. Whether to request generalized geometry.
 #' @param result_record_count Integer. Maximum number of records to request.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API, overwriting the cache entry. Defaults to `FALSE`.
 #'
 #' @return An `sf` object with `source_url`, `source_name`, and `retrieved_at`
 #'   attributes attached.
 #' @keywords internal
 #' @noRd
 fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
-                          simplify = TRUE, result_record_count = 2000) {
+                         simplify = TRUE, result_record_count = 2000,
+                         refresh = FALSE) {
+  key <- cache_key(
+    source_name = source_name,
+    service_layer = service_layer,
+    where = where,
+    simplify = simplify,
+    result_record_count = result_record_count
+  )
+  if (!refresh) {
+    cached <- cache_read(key)
+    if (!is.null(cached)) {
+      return(cached)
+    }
+  }
+
   url <- lio_query_url(
     service_layer = service_layer,
     where = where,
@@ -68,6 +85,18 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
   attr(sf_obj, "source_url") <- url
   attr(sf_obj, "source_name") <- source_name
   attr(sf_obj, "retrieved_at") <- Sys.time()
+
+  cache_write(
+    key,
+    sf_obj,
+    meta = list(
+      source_name = source_name,
+      source_url = url,
+      where = where,
+      simplify = simplify,
+      retrieved_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+    )
+  )
 
   sf_obj
 }

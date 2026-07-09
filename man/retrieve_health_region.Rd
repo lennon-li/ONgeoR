@@ -4,7 +4,7 @@
 \alias{retrieve_health_region}
 \title{Retrieve Ontario Health Region boundaries}
 \usage{
-retrieve_health_region(simplify = TRUE)
+retrieve_health_region(simplify = TRUE, refresh = FALSE)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
@@ -15,6 +15,9 @@ the LIO ArcGIS service intermittently fails ("Could not access any
 server machines") on the unsimplified request for this specific layer.
 Set to \code{FALSE} if you need full precision and are prepared to retry on
 failure.}
+
+\item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
+from the live API. Defaults to \code{FALSE}.}
 }
 \value{
 An \code{sf} object of Ontario Health Region boundary polygons, with

@@ -4,7 +4,11 @@
 \alias{retrieve_municipal}
 \title{Retrieve municipal boundaries}
 \usage{
-retrieve_municipal(tier = c("upper", "lower"), simplify = TRUE)
+retrieve_municipal(
+  tier = c("upper", "lower"),
+  simplify = TRUE,
+  refresh = FALSE
+)
 }
 \arguments{
 \item{tier}{Character. Either \code{"upper"} (upper-tier and district
@@ -13,6 +17,9 @@ municipalities). Defaults to \code{"upper"}.}
 
 \item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
 geometry from the service.}
+
+\item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
+from the live API. Defaults to \code{FALSE}.}
 }
 \value{
 An \code{sf} object of municipal boundary polygons, with \code{source_url},

@@ -9,6 +9,8 @@
 #'   borders between adjacent units, which can misassign points near a
 #'   boundary. This layer is small (34 features) and fast to fetch at full
 #'   precision, so simplification is opt-in rather than default.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
 #'
 #' @return An `sf` object of PHU boundary polygons, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached for provenance.
@@ -19,11 +21,12 @@
 #' }
 #'
 #' @export
-retrieve_phu <- function(simplify = FALSE) {
+retrieve_phu <- function(simplify = FALSE, refresh = FALSE) {
   fetch_lio_sf(
     service_layer = "LIO_Open09/44",
     source_name = "MOH Public Health Unit Boundary",
-    simplify = simplify
+    simplify = simplify,
+    refresh = refresh
   )
 }
 
@@ -40,6 +43,8 @@ retrieve_phu <- function(simplify = FALSE) {
 #'   server machines") on the unsimplified request for this specific layer.
 #'   Set to `FALSE` if you need full precision and are prepared to retry on
 #'   failure.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
 #'
 #' @return An `sf` object of Ontario Health Region boundary polygons, with
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
@@ -50,11 +55,12 @@ retrieve_phu <- function(simplify = FALSE) {
 #' }
 #'
 #' @export
-retrieve_health_region <- function(simplify = TRUE) {
+retrieve_health_region <- function(simplify = TRUE, refresh = FALSE) {
   fetch_lio_sf(
     service_layer = "LIO_Open09/52",
     source_name = "Ontario Health Region",
-    simplify = simplify
+    simplify = simplify,
+    refresh = refresh
   )
 }
 
@@ -69,6 +75,8 @@ retrieve_health_region <- function(simplify = TRUE) {
 #'   municipalities). Defaults to `"upper"`.
 #' @param simplify Logical. If `TRUE` (the default), requests generalized
 #'   geometry from the service.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
 #'
 #' @return An `sf` object of municipal boundary polygons, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached.
@@ -79,20 +87,23 @@ retrieve_health_region <- function(simplify = TRUE) {
 #' }
 #'
 #' @export
-retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE) {
+retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
+                               refresh = FALSE) {
   tier <- match.arg(tier)
 
   if (tier == "upper") {
     fetch_lio_sf(
       service_layer = "LIO_Open03/13",
       source_name = "Municipal Bnd Upper And Dist",
-      simplify = simplify
+      simplify = simplify,
+      refresh = refresh
     )
   } else {
     fetch_lio_sf(
       service_layer = "LIO_Open03/14",
       source_name = "Municipal Bnd Lower And Single",
-      simplify = simplify
+      simplify = simplify,
+      refresh = refresh
     )
   }
 }
@@ -111,6 +122,8 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE) {
 #' @param service_type Character or `NULL`. If supplied, filters results to
 #'   rows where `SERVICE_TYPE` equals this value. If `NULL` (the default),
 #'   no filter is applied.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
 #'
 #' @return An `sf` object of MOH service location points, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached.
@@ -121,7 +134,8 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE) {
 #' }
 #'
 #' @export
-retrieve_moh_service_locations <- function(service_type = NULL) {
+retrieve_moh_service_locations <- function(service_type = NULL,
+                                           refresh = FALSE) {
   where <- "1=1"
   if (!is.null(service_type)) {
     where <- sprintf("SERVICE_TYPE = '%s'", service_type)
@@ -131,6 +145,7 @@ retrieve_moh_service_locations <- function(service_type = NULL) {
     service_layer = "LIO_Open09/26",
     source_name = "MOH Service Location",
     where = where,
-    simplify = FALSE
+    simplify = FALSE,
+    refresh = refresh
   )
 }

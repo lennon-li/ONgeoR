@@ -24,7 +24,21 @@ mock_geojson_response <- function(body) {
   }
 }
 
+use_temp_cache <- function() {
+  cache_dir <- tempfile("ongeor-cache-")
+  dir.create(cache_dir, recursive = TRUE)
+  testthat::local_mocked_bindings(
+    ongeor_cache_dir = function() cache_dir,
+    .package = "ONgeoR",
+    .env = parent.frame()
+  )
+  cache_dir
+}
+
 test_that("retrieve_phu returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
   phu <- httr2::with_mocked_responses(
     mock_geojson_response(synthetic_phu_geojson),
     retrieve_phu()
@@ -39,6 +53,9 @@ test_that("retrieve_phu returns an sf object with provenance attributes", {
 })
 
 test_that("retrieve_health_region returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
   health_region <- httr2::with_mocked_responses(
     mock_geojson_response(synthetic_health_region_geojson),
     retrieve_health_region()
@@ -52,6 +69,9 @@ test_that("retrieve_health_region returns an sf object with provenance attribute
 })
 
 test_that("retrieve_municipal dispatches to the correct tier layer", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
   municipal <- httr2::with_mocked_responses(
     mock_geojson_response(synthetic_phu_geojson),
     retrieve_municipal("upper")

@@ -4,7 +4,7 @@
 \alias{retrieve_phu}
 \title{Retrieve Public Health Unit boundaries}
 \usage{
-retrieve_phu(simplify = FALSE)
+retrieve_phu(simplify = FALSE, refresh = FALSE)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE}, requests generalized geometry from the
@@ -13,6 +13,9 @@ service (\code{maxAllowableOffset = 10}) to reduce payload size. Defaults to
 borders between adjacent units, which can misassign points near a
 boundary. This layer is small (34 features) and fast to fetch at full
 precision, so simplification is opt-in rather than default.}
+
+\item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
+from the live API. Defaults to \code{FALSE}.}
 }
 \value{
 An \code{sf} object of PHU boundary polygons, with \code{source_url},

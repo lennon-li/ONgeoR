@@ -4,17 +4,19 @@ NULL
 #' Retrieve a layer by source registry id
 #'
 #' @param source_id Character scalar. A source id from [list_sources()].
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API.
 #'
 #' @return An `sf` object.
 #' @keywords internal
 #' @noRd
-retrieve_by_source_id <- function(source_id) {
+retrieve_by_source_id <- function(source_id, refresh = FALSE) {
   switch(source_id,
-    phu_boundaries = retrieve_phu(),
-    ontario_health_regions = retrieve_health_region(),
-    municipal_upper = retrieve_municipal("upper"),
-    municipal_lower = retrieve_municipal("lower"),
-    moh_service_locations = retrieve_moh_service_locations(),
+    phu_boundaries = retrieve_phu(refresh = refresh),
+    ontario_health_regions = retrieve_health_region(refresh = refresh),
+    municipal_upper = retrieve_municipal("upper", refresh = refresh),
+    municipal_lower = retrieve_municipal("lower", refresh = refresh),
+    moh_service_locations = retrieve_moh_service_locations(refresh = refresh),
     {
       valid_ids <- list_sources()$source_id
       rlang::abort(sprintf(
@@ -29,13 +31,15 @@ retrieve_by_source_id <- function(source_id) {
 #' Retrieve distinct source layers
 #'
 #' @param source_ids Character vector of source ids from [list_sources()].
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API.
 #'
 #' @return A named list of `sf` objects keyed by source id.
 #' @keywords internal
 #' @noRd
-retrieve_layers <- function(source_ids) {
+retrieve_layers <- function(source_ids, refresh = FALSE) {
   source_ids <- unique(source_ids)
-  layers <- lapply(source_ids, retrieve_by_source_id)
+  layers <- lapply(source_ids, retrieve_by_source_id, refresh = refresh)
   stats::setNames(layers, source_ids)
 }
 
@@ -43,17 +47,19 @@ retrieve_layers <- function(source_ids) {
 #'
 #' @param from_ids Character vector of source ids.
 #' @param to_ids Character vector of source ids.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API.
 #'
 #' @return A [tibble::tibble()] containing all pairwise crosswalk rows.
 #' @keywords internal
 #' @noRd
-cross_crosswalk <- function(from_ids, to_ids) {
+cross_crosswalk <- function(from_ids, to_ids, refresh = FALSE) {
   pairs <- expand.grid(
     from_id = from_ids,
     to_id = to_ids,
     stringsAsFactors = FALSE
   )
-  layers <- retrieve_layers(unique(c(from_ids, to_ids)))
+  layers <- retrieve_layers(unique(c(from_ids, to_ids)), refresh = refresh)
 
   results <- lapply(seq_len(nrow(pairs)), function(i) {
     from_id <- pairs$from_id[[i]]

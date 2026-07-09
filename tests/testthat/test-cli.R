@@ -71,7 +71,7 @@ test_that("retrieve_by_source_id errors clearly on unknown ids", {
 test_that("cross_crosswalk stamps one from-to pair with registry ids", {
   layers <- make_cli_layers()
   testthat::local_mocked_bindings(
-    retrieve_layers = function(source_ids) layers[source_ids],
+    retrieve_layers = function(source_ids, refresh = FALSE) layers[source_ids],
     .package = "ONgeoR"
   )
 
@@ -86,7 +86,7 @@ test_that("cross_crosswalk stamps one from-to pair with registry ids", {
 test_that("cross_crosswalk includes all 2x2 source id pairs", {
   layers <- make_cli_layers()
   testthat::local_mocked_bindings(
-    retrieve_layers = function(source_ids) layers[source_ids],
+    retrieve_layers = function(source_ids, refresh = FALSE) layers[source_ids],
     .package = "ONgeoR"
   )
 

@@ -114,7 +114,9 @@ municipality-to-region, and point-to-health-region are all expressed as
 ## Future (Post-MVP)
 
 ### Additional Features
-- Interactive maps (leaflet)
+- Interactive maps: `map_layers()` (generic, by geometry type) and
+  `map_crosswalk()` shipped; `map_nearest()` (points + connector lines +
+  nearest facilities, on `map_layers()`) still planned
 - Batch processing for large datasets
 - Custom CRS support
 - Export to multiple formats (CSV, GeoJSON, Shapefile)

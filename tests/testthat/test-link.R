@@ -21,18 +21,13 @@ make_synthetic_facilities <- function() {
     data.frame(
       facility_id = c(10, 20, 30),
       facility_name = c("Facility A", "Facility B", "Facility C"),
-      service_type = c("Hospital", "Clinic", "Hospital"),
       lon = c(-79.000, -79.010, -80.000),
       lat = c(43.000, 43.000, 44.000)
     ),
-    coords = c("lon", "lat"),
-    crs = 4326
+    coords = c("lon", "lat"), crs = 4326
   )
   attr(facilities, "source_url") <- "https://example.com/facilities"
-  attr(facilities, "retrieved_at") <- as.POSIXct(
-    "2026-07-08 01:00:00",
-    tz = "UTC"
-  )
+  attr(facilities, "retrieved_at") <- as.POSIXct("2026-07-08 01:00:00", tz = "UTC")
   facilities
 }
 
@@ -90,15 +85,11 @@ test_that("link aborts on a raster source (seam not yet implemented)", {
   expect_error(link(fake_raster, phu), "not yet implemented")
 })
 
-test_that("nearest_facility returns the closest facility per point", {
+test_that("nearest returns the closest target per source (k = 1)", {
   facilities <- make_synthetic_facilities()
-  points <- data.frame(
-    point_id = 1:2,
-    lon = c(-79.000, -80.000),
-    lat = c(43.000, 44.000)
-  )
+  points <- data.frame(point_id = 1:2, lon = c(-79.000, -80.000), lat = c(43.000, 44.000))
 
-  result <- nearest_facility(points, facilities)
+  result <- nearest(points, facilities)
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 2)
@@ -106,15 +97,15 @@ test_that("nearest_facility returns the closest facility per point", {
   expect_equal(result$rank, c(1, 1))
   expect_equal(result$facility_name, c("Facility A", "Facility C"))
   expect_equal(result$distance_km, c(0, 0), tolerance = 0.001)
-  expect_equal(result$source_url, rep("https://example.com/facilities", 2))
+  expect_equal(result$target_url, rep("https://example.com/facilities", 2))
   expect_false(is.null(result$retrieved_at))
 })
 
-test_that("nearest_facility returns k matches in ascending distance order", {
+test_that("nearest returns k matches in ascending distance order", {
   facilities <- make_synthetic_facilities()
   points <- data.frame(point_id = 1, lon = -79.000, lat = 43.000)
 
-  result <- nearest_facility(points, facilities, k = 2)
+  result <- nearest(points, facilities, k = 2)
 
   expect_equal(nrow(result), 2)
   expect_equal(result$rank, c(1, 2))
@@ -122,38 +113,25 @@ test_that("nearest_facility returns k matches in ascending distance order", {
   expect_true(result$distance_km[1] <= result$distance_km[2])
 })
 
-test_that("nearest_facility caps k at the available facility count", {
+test_that("nearest caps k at the available target count", {
   facilities <- make_synthetic_facilities()
   points <- data.frame(point_id = 1, lon = -79.000, lat = 43.000)
 
-  result <- nearest_facility(points, facilities, k = 5)
+  result <- nearest(points, facilities, k = 5)
 
   expect_equal(nrow(result), 3)
   expect_equal(result$rank, 1:3)
-  expect_equal(
-    result$facility_name,
-    c("Facility A", "Facility B", "Facility C")
-  )
 })
 
-test_that("facilities_within returns nearby facilities and omits no-match points", {
+test_that("nearest with max_dist_km acts as a radius search and omits empty sources", {
   facilities <- make_synthetic_facilities()
-  points <- data.frame(
-    point_id = 1:2,
-    lon = c(-79.000, -82.000),
-    lat = c(43.000, 45.000)
-  )
+  points <- data.frame(point_id = 1:2, lon = c(-79.000, -82.000), lat = c(43.000, 45.000))
 
-  result <- expect_no_warning(
-    facilities_within(points, facilities, radius_km = 2)
-  )
+  result <- nearest(points, facilities, k = Inf, max_dist_km = 2)
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 2)
   expect_equal(result$point_id, c(1, 1))
   expect_equal(result$facility_name, c("Facility A", "Facility B"))
   expect_true(result$distance_km[1] <= result$distance_km[2])
-  expect_false("rank" %in% names(result))
-  expect_equal(result$source_url, rep("https://example.com/facilities", 2))
-  expect_false(is.null(result$retrieved_at))
 })

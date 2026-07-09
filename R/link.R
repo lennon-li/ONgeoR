@@ -58,170 +58,80 @@ link <- function(source, target,
   result
 }
 
-#' Calculate point-to-facility distances
+#' Find the nearest targets to each source geometry
 #'
-#' @param points An `sf` point object.
-#' @param facilities An `sf` point object.
+#' For each source geometry, returns the `k` nearest targets in ascending
+#' distance, optionally capped at `max_dist_km`. Use `k = Inf` with
+#' `max_dist_km` for a pure radius search.
 #'
-#' @return A numeric matrix of distances in kilometers, with one row per
-#'   point and one column per facility.
+#' @param source An `sf` object of points, or a `data.frame` with `lon`/`lat`
+#'   columns (assumed CRS 4326 / WGS 84).
+#' @param target An `sf` object of candidate geometries.
+#' @param k Integer. Number of nearest targets to return per source. Defaults
+#'   to `1`. If a source has fewer than `k` targets available, all are returned.
+#' @param max_dist_km Numeric or `NULL`. If set, drop targets farther than this
+#'   distance (km). Defaults to `NULL` (no cap). A source with no target in
+#'   range contributes zero rows.
 #'
-#' @noRd
-facility_distance_matrix_km <- function(points, facilities) {
-  distances_m <- sf::st_distance(points, facilities)
+#' @return A [tibble::tibble()] with the source columns, `rank` (1 = nearest),
+#'   the matched target columns, `distance_km`, and `source_url` / `target_url`
+#'   / `retrieved_at` provenance columns. Uses a full source-by-target distance
+#'   matrix (not spatial-indexed); adequate at current scale.
+#'
+#' @examples
+#' if (interactive()) {
+#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
+#'   result <- nearest(points, retrieve_moh_service_locations(), k = 3)
+#' }
+#'
+#' @export
+nearest <- function(source, target, k = 1, max_dist_km = NULL) {
+  if (inherits(source, "data.frame") && !inherits(source, "sf")) {
+    source <- sf::st_as_sf(source, coords = c("lon", "lat"), crs = 4326)
+  }
 
-  matrix(
-    as.numeric(distances_m) / 1000,
-    nrow = nrow(distances_m),
-    ncol = ncol(distances_m)
+  source_data <- tibble::as_tibble(sf::st_drop_geometry(source))
+  if (ncol(source_data) == 0) {
+    source_data <- tibble::tibble(point_id = seq_len(nrow(source)))
+  }
+  target_data <- tibble::as_tibble(sf::st_drop_geometry(target))
+
+  distances_km <- matrix(
+    as.numeric(sf::st_distance(source, target)) / 1000,
+    nrow = nrow(source), ncol = nrow(target)
   )
-}
 
-#' Find the nearest facilities to points
-#'
-#' Finds the `k` nearest Ministry of Health service location facilities for
-#' each input point.
-#'
-#' @param points An `sf` object of points, or a `data.frame` with `lon` and
-#'   `lat` columns (assumed CRS 4326 / WGS 84).
-#' @param facilities An `sf` point object of facilities, as returned by
-#'   [retrieve_moh_service_locations()]. If `NULL` (the default), facilities
-#'   are retrieved automatically.
-#' @param k Integer. Number of nearest facilities to return per point.
-#'   Defaults to `1`. If `k` exceeds the number of facilities, all facilities
-#'   are returned for each point.
-#' @param service_type Character or `NULL`. Passed to
-#'   [retrieve_moh_service_locations()] when `facilities` is `NULL`; ignored
-#'   when `facilities` is supplied directly.
-#'
-#' @return A [tibble::tibble()] with the original point data, a `rank` column,
-#'   matched facility attributes, `distance_km`, and `source_url` /
-#'   `retrieved_at` provenance columns. Distance calculation uses a full
-#'   point-by-facility distance matrix, which may be memory-intensive for
-#'   large inputs.
-#'
-#' @examples
-#' if (interactive()) {
-#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
-#'   result <- nearest_facility(points, k = 3, service_type = "Hospital")
-#' }
-#'
-#' @export
-nearest_facility <- function(points, facilities = NULL, k = 1,
-                             service_type = NULL) {
-  if (is.null(facilities)) {
-    facilities <- retrieve_moh_service_locations(service_type = service_type)
-  }
-
-  if (inherits(points, "data.frame") && !inherits(points, "sf")) {
-    points <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
-  }
-
-  point_data <- tibble::as_tibble(sf::st_drop_geometry(points))
-  if (ncol(point_data) == 0) {
-    point_data <- tibble::tibble(point_id = seq_len(nrow(points)))
-  }
-
-  facility_data <- tibble::as_tibble(sf::st_drop_geometry(facilities))
-  distances_km <- facility_distance_matrix_km(points, facilities)
-  max_k <- min(k, nrow(facilities))
-
-  rows <- vector("list", nrow(points))
-  for (point_index in seq_len(nrow(points))) {
-    facility_indices <- order(distances_km[point_index, ])[seq_len(max_k)]
-
-    rows[[point_index]] <- cbind(
-      point_data[rep(point_index, max_k), , drop = FALSE],
-      rank = seq_len(max_k),
-      facility_data[facility_indices, , drop = FALSE],
-      distance_km = distances_km[point_index, facility_indices]
-    )
-  }
-
-  result <- tibble::as_tibble(do.call(rbind, rows))
-  result$source_url <- attr(facilities, "source_url")
-  result$retrieved_at <- attr(facilities, "retrieved_at")
-
-  result
-}
-
-#' Find facilities within a radius of points
-#'
-#' Finds all Ministry of Health service location facilities within a radius
-#' of each input point.
-#'
-#' @param points An `sf` object of points, or a `data.frame` with `lon` and
-#'   `lat` columns (assumed CRS 4326 / WGS 84).
-#' @param facilities An `sf` point object of facilities, as returned by
-#'   [retrieve_moh_service_locations()]. If `NULL` (the default), facilities
-#'   are retrieved automatically.
-#' @param radius_km Numeric. Search radius in kilometers. Facilities with
-#'   `distance_km <= radius_km` are included.
-#' @param service_type Character or `NULL`. Passed to
-#'   [retrieve_moh_service_locations()] when `facilities` is `NULL`; ignored
-#'   when `facilities` is supplied directly.
-#'
-#' @return A [tibble::tibble()] with the original point data, matched facility
-#'   attributes, `distance_km`, and `source_url` / `retrieved_at` provenance
-#'   columns. Points with no facilities within the radius contribute zero
-#'   rows. Distance calculation uses a full point-by-facility distance matrix,
-#'   which may be memory-intensive for large inputs.
-#'
-#' @examples
-#' if (interactive()) {
-#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
-#'   result <- facilities_within(points, radius_km = 10)
-#' }
-#'
-#' @export
-facilities_within <- function(points, facilities = NULL, radius_km,
-                              service_type = NULL) {
-  if (is.null(facilities)) {
-    facilities <- retrieve_moh_service_locations(service_type = service_type)
-  }
-
-  if (inherits(points, "data.frame") && !inherits(points, "sf")) {
-    points <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
-  }
-
-  point_data <- tibble::as_tibble(sf::st_drop_geometry(points))
-  if (ncol(point_data) == 0) {
-    point_data <- tibble::tibble(point_id = seq_len(nrow(points)))
-  }
-
-  facility_data <- tibble::as_tibble(sf::st_drop_geometry(facilities))
-  distances_km <- facility_distance_matrix_km(points, facilities)
-
-  rows <- vector("list", nrow(points))
-  for (point_index in seq_len(nrow(points))) {
-    facility_indices <- which(distances_km[point_index, ] <= radius_km)
-    facility_indices <- facility_indices[
-      order(distances_km[point_index, facility_indices])
-    ]
-
-    if (length(facility_indices) > 0) {
-      rows[[point_index]] <- cbind(
-        point_data[rep(point_index, length(facility_indices)), , drop = FALSE],
-        facility_data[facility_indices, , drop = FALSE],
-        distance_km = distances_km[point_index, facility_indices]
-      )
+  rows <- vector("list", nrow(source))
+  for (i in seq_len(nrow(source))) {
+    ordered <- order(distances_km[i, ])
+    idx <- ordered[seq_len(min(k, length(ordered)))]
+    if (!is.null(max_dist_km)) {
+      idx <- idx[distances_km[i, idx] <= max_dist_km]
     }
+    if (length(idx) == 0) next
+
+    rows[[i]] <- cbind(
+      source_data[rep(i, length(idx)), , drop = FALSE],
+      rank = seq_along(idx),
+      target_data[idx, , drop = FALSE],
+      distance_km = distances_km[i, idx]
+    )
   }
 
   rows <- rows[!vapply(rows, is.null, logical(1))]
   if (length(rows) == 0) {
     result <- cbind(
-      point_data[0, , drop = FALSE],
-      facility_data[0, , drop = FALSE],
-      distance_km = numeric()
+      source_data[0, , drop = FALSE], rank = integer(),
+      target_data[0, , drop = FALSE], distance_km = numeric()
     )
   } else {
     result <- do.call(rbind, rows)
   }
 
   result <- tibble::as_tibble(result)
-  result$source_url <- attr(facilities, "source_url")
-  result$retrieved_at <- attr(facilities, "retrieved_at")
+  result$source_url <- provenance_attr(source, "source_url")
+  result$target_url <- provenance_attr(target, "source_url")
+  result$retrieved_at <- provenance_attr(target, "retrieved_at")
 
   result
 }

@@ -103,57 +103,8 @@ cross_crosswalk <- function(from_ids, to_ids, refresh = FALSE) {
 #'
 #' @export
 map_crosswalk <- function(layers, from_ids, to_ids) {
-  source_ids <- unique(c(from_ids, to_ids))
-  map <- leaflet::leaflet() |>
-    leaflet::addTiles()
-
-  for (source_id in source_ids) {
-    layer <- layers[[source_id]]
-    name_col <- guess_name_col(layer)
-    geometry_types <- unique(as.character(sf::st_geometry_type(layer)))
-    polygon_types <- c("POLYGON", "MULTIPOLYGON", "GEOMETRYCOLLECTION")
-
-    if (all(geometry_types %in% c("POINT", "MULTIPOINT"))) {
-      popups <- as.character(layer[[name_col]])
-      map <- leaflet::addCircleMarkers(
-        map,
-        data = layer,
-        group = source_id,
-        popup = popups,
-        radius = 4,
-        stroke = FALSE,
-        fillOpacity = 0.8
-      )
-    } else if (all(geometry_types %in% polygon_types)) {
-      polygon_layer <- if ("GEOMETRYCOLLECTION" %in% geometry_types) {
-        extract_polygon_collection(layer)
-      } else {
-        layer
-      }
-      polygon_layer <- polygon_layer[!sf::st_is_empty(polygon_layer), ]
-      popups <- as.character(polygon_layer[[name_col]])
-      map <- leaflet::addPolygons(
-        map,
-        data = polygon_layer,
-        group = source_id,
-        popup = popups,
-        weight = 1,
-        fillOpacity = 0.2
-      )
-    } else {
-      rlang::abort(sprintf(
-        "Source id '%s' has unsupported geometry type(s): %s.",
-        source_id,
-        paste(geometry_types, collapse = ", ")
-      ))
-    }
-  }
-
-  leaflet::addLayersControl(
-    map,
-    overlayGroups = source_ids,
-    options = leaflet::layersControlOptions(collapsed = FALSE)
-  )
+  ids <- unique(c(from_ids, to_ids))
+  do.call(map_layers, layers[ids])
 }
 
 #' Render a reproducible R script for a CLI run

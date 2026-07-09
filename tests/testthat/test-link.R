@@ -36,57 +36,58 @@ make_synthetic_facilities <- function() {
   facilities
 }
 
-test_that("points_to_phu joins a data.frame of points to the correct PHU", {
+test_that("link joins points to the containing polygon (within)", {
   phu <- make_synthetic_phu()
+  points <- data.frame(point_id = 1:2, lon = c(-79.5, -81.5), lat = c(43.5, 43.5))
 
-  points <- data.frame(
-    point_id = 1:2,
-    lon = c(-79.5, -81.5),
-    lat = c(43.5, 43.5)
-  )
-
-  result <- points_to_phu(points, phu)
+  result <- link(points, phu)
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 2)
   expect_equal(result$PHU_NAME_ENG, c("Test Health Unit A", "Test Health Unit B"))
-  expect_equal(result$source_url, rep("https://example.com/phu", 2))
+  expect_equal(result$target_url, rep("https://example.com/phu", 2))
+  expect_true(all(is.na(result$source_url)))
   expect_false(is.null(result$retrieved_at))
 })
 
-test_that("points_to_phu accepts sf point input directly", {
+test_that("link accepts sf point input directly", {
   phu <- make_synthetic_phu()
-
   points_sf <- sf::st_as_sf(
     data.frame(point_id = 1, lon = -79.5, lat = 43.5),
-    coords = c("lon", "lat"),
-    crs = 4326
+    coords = c("lon", "lat"), crs = 4326
   )
 
-  result <- points_to_phu(points_sf, phu)
+  result <- link(points_sf, phu)
 
   expect_equal(nrow(result), 1)
   expect_equal(result$PHU_NAME_ENG, "Test Health Unit A")
 })
 
-test_that("polygon_to_polygon joins municipality polygons to PHU polygons", {
+test_that("link joins polygons to polygons with the intersects predicate", {
   phu <- make_synthetic_phu()
-
   muni_poly <- sf::st_polygon(list(rbind(
     c(-79.8, 43.8), c(-79.2, 43.8), c(-79.2, 43.2), c(-79.8, 43.2), c(-79.8, 43.8)
   )))
   municipal <- sf::st_sf(
-    MUNID = 100,
-    MUNICIPAL_NAME = "Test Municipality",
+    MUNID = 100, MUNICIPAL_NAME = "Test Municipality",
     geometry = sf::st_sfc(muni_poly, crs = 4326)
   )
+  attr(municipal, "source_url") <- "https://example.com/muni"
 
-  result <- polygon_to_polygon(municipal, phu)
+  result <- link(municipal, phu, predicate = "intersects")
 
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 1)
   expect_equal(result$PHU_NAME_ENG, "Test Health Unit A")
-  expect_equal(result$source_url_to, "https://example.com/phu")
+  expect_equal(result$source_url, "https://example.com/muni")
+  expect_equal(result$target_url, "https://example.com/phu")
+})
+
+test_that("link aborts on a raster source (seam not yet implemented)", {
+  phu <- make_synthetic_phu()
+  fake_raster <- structure(list(), class = "SpatRaster")
+
+  expect_error(link(fake_raster, phu), "not yet implemented")
 })
 
 test_that("nearest_facility returns the closest facility per point", {

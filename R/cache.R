@@ -15,12 +15,12 @@ ongeor_cache_dir <- function() {
 #' @keywords internal
 #' @noRd
 cache_key <- function(source_name, service_layer, where, simplify,
-                      result_record_count) {
+                      result_record_count, paginate = FALSE) {
   slug <- tolower(source_name)
   slug <- gsub("[^[:alnum:]]+", "-", slug)
   slug <- gsub("^-+|-+$", "", slug)
   hash <- substr(
-    rlang::hash(list(service_layer, where, simplify, result_record_count)),
+    rlang::hash(list(service_layer, where, simplify, result_record_count, paginate)),
     1,
     8
   )

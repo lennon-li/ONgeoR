@@ -23,12 +23,6 @@ Retrieves Ministry of Health service location points (hospitals, clinics,
 and other health service facilities) from the LIO Open Data REST service
 (\code{LIO_Open09/26}), optionally filtered by service type.
 }
-\details{
-Note: this source has 11,625 features; v0.1 does not implement
-pagination, so results are limited to what the service returns for a
-single request (subject to the server's own record-count cap). Use
-\code{service_type} to narrow the query and stay within that limit.
-}
 \examples{
 if (interactive()) {
   hospitals <- retrieve_moh_service_locations(service_type = "Hospital")

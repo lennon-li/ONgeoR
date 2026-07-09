@@ -182,11 +182,6 @@ retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE) {
 #' and other health service facilities) from the LIO Open Data REST service
 #' (`LIO_Open09/26`), optionally filtered by service type.
 #'
-#' Note: this source has 11,625 features; v0.1 does not implement
-#' pagination, so results are limited to what the service returns for a
-#' single request (subject to the server's own record-count cap). Use
-#' `service_type` to narrow the query and stay within that limit.
-#'
 #' @param service_type Character or `NULL`. If supplied, filters results to
 #'   rows where `SERVICE_TYPE` equals this value. If `NULL` (the default),
 #'   no filter is applied.
@@ -214,6 +209,7 @@ retrieve_moh_service_locations <- function(service_type = NULL,
     source_name = "MOH Service Location",
     where = where,
     simplify = FALSE,
-    refresh = refresh
+    refresh = refresh,
+    paginate = TRUE
   )
 }

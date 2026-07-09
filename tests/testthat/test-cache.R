@@ -74,6 +74,14 @@ test_that("cache_key changes when effective query inputs change", {
     simplify = FALSE,
     result_record_count = 1000
   )))
+  expect_false(identical(base_key, cache_key(
+    source_name = "MOH Public Health Unit Boundary",
+    service_layer = "LIO_Open09/44",
+    where = "1=1",
+    simplify = FALSE,
+    result_record_count = 2000,
+    paginate = TRUE
+  )))
 })
 
 test_that("cache_write and cache_read round-trip an sf object", {

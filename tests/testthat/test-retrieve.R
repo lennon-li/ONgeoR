@@ -28,6 +28,20 @@ synthetic_waste_site_geojson <- paste0(
   "]}"
 )
 
+synthetic_point_geojson <- function(ids) {
+  features <- vapply(ids, function(id) {
+    paste0(
+      '{"type":"Feature","properties":{"OBJECTID":', id, ',"SERVICE_TYPE":"Test"},',
+      '"geometry":{"type":"Point","coordinates":[', -80 - id / 100, ",", 44 + id / 100, "]}}"
+    )
+  }, character(1))
+  paste0(
+    '{"type":"FeatureCollection","features":[',
+    paste(features, collapse = ","),
+    "]}"
+  )
+}
+
 mock_geojson_response <- function(body) {
   function(req) {
     httr2::response(
@@ -130,4 +144,94 @@ test_that("retrieve_waste_management returns an sf object with provenance attrib
   expect_false(is.null(attr(waste_site, "retrieved_at")))
   expect_equal(attr(waste_site, "source_name"), "Waste Management Site")
   expect_match(attr(waste_site, "source_url"), "LIO_Open08/MapServer/9")
+})
+
+test_that("fetch_lio_sf keeps default single-page behavior", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  calls <- 0
+  layer <- httr2::with_mocked_responses(
+    function(req) {
+      calls <<- calls + 1
+      httr2::response(
+        status_code = 200,
+        body = charToRaw(synthetic_point_geojson(1:2)),
+        headers = list("Content-Type" = "application/json")
+      )
+    },
+    fetch_lio_sf(
+      service_layer = "LIO_Open09/26",
+      source_name = "MOH Service Location",
+      simplify = FALSE,
+      result_record_count = 2,
+      refresh = TRUE
+    )
+  )
+
+  expect_s3_class(layer, "sf")
+  expect_equal(nrow(layer), 2)
+  expect_equal(calls, 1)
+})
+
+test_that("fetch_lio_sf combines paginated responses", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  pages <- list(1:2, 3:4, 5)
+  calls <- 0
+  layer <- httr2::with_mocked_responses(
+    function(req) {
+      calls <<- calls + 1
+      httr2::response(
+        status_code = 200,
+        body = charToRaw(synthetic_point_geojson(pages[[calls]])),
+        headers = list("Content-Type" = "application/json")
+      )
+    },
+    fetch_lio_sf(
+      service_layer = "LIO_Open09/26",
+      source_name = "MOH Service Location",
+      simplify = FALSE,
+      result_record_count = 2,
+      refresh = TRUE,
+      paginate = TRUE
+    )
+  )
+
+  expect_s3_class(layer, "sf")
+  expect_equal(nrow(layer), 5)
+  expect_equal(layer$OBJECTID, 1:5)
+  expect_equal(calls, 3)
+  expect_match(attr(layer, "source_url"), "resultRecordCount=2")
+  expect_no_match(attr(layer, "source_url"), "resultOffset")
+})
+
+test_that("fetch_lio_sf aborts paginated requests after the hard cap", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  calls <- 0
+  expect_error(
+    httr2::with_mocked_responses(
+      function(req) {
+        calls <<- calls + 1
+        httr2::response(
+          status_code = 200,
+          body = charToRaw(synthetic_point_geojson(1:2)),
+          headers = list("Content-Type" = "application/json")
+        )
+      },
+      fetch_lio_sf(
+        service_layer = "LIO_Open09/26",
+        source_name = "MOH Service Location",
+        simplify = FALSE,
+        result_record_count = 2,
+        refresh = TRUE,
+        paginate = TRUE
+      )
+    ),
+    "pagination exceeded 20 pages"
+  )
+  expect_equal(calls, 20)
 })

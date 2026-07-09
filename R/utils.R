@@ -10,18 +10,22 @@ lio_base_url <- "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_
 #' @param simplify Logical. Whether to request generalized geometry via
 #'   `maxAllowableOffset`.
 #' @param result_record_count Integer. Maximum number of records to request.
+#' @param result_offset Integer. Record offset for paginated requests.
 #'
 #' @return A character scalar: the full query URL.
 #' @keywords internal
 #' @noRd
 lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
-                          result_record_count = 2000) {
+                          result_record_count = 2000, result_offset = 0) {
   params <- list(
     where = where,
     outFields = "*",
     f = "geojson",
     resultRecordCount = result_record_count
   )
+  if (result_offset > 0) {
+    params$resultOffset <- result_offset
+  }
   if (simplify) {
     params$maxAllowableOffset <- 10
   }
@@ -44,6 +48,8 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
 #' @param result_record_count Integer. Maximum number of records to request.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API, overwriting the cache entry. Defaults to `FALSE`.
+#' @param paginate Logical. If `TRUE`, retrieve pages with `resultOffset`
+#'   until the service returns fewer rows than `result_record_count`.
 #'
 #' @return An `sf` object with `source_url`, `source_name`, and `retrieved_at`
 #'   attributes attached.
@@ -51,13 +57,14 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
 #' @noRd
 fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
                          simplify = TRUE, result_record_count = 2000,
-                         refresh = FALSE) {
+                         refresh = FALSE, paginate = FALSE) {
   key <- cache_key(
     source_name = source_name,
     service_layer = service_layer,
     where = where,
     simplify = simplify,
-    result_record_count = result_record_count
+    result_record_count = result_record_count,
+    paginate = paginate
   )
   if (!refresh) {
     cached <- cache_read(key)
@@ -66,21 +73,73 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
     }
   }
 
-  url <- lio_query_url(
+  read_lio_page <- function(result_offset = 0) {
+    url <- lio_query_url(
+      service_layer = service_layer,
+      where = where,
+      simplify = simplify,
+      result_record_count = result_record_count,
+      result_offset = result_offset
+    )
+
+    resp <- httr2::request(url) |> httr2::req_perform()
+    geojson <- httr2::resp_body_string(resp)
+
+    temp_file <- tempfile(fileext = ".geojson")
+    on.exit(unlink(temp_file), add = TRUE)
+    writeLines(geojson, temp_file)
+    sf_obj <- sf::st_read(temp_file, quiet = TRUE)
+    sf_obj <- sf::st_make_valid(sf_obj)
+
+    list(url = url, sf_obj = sf_obj)
+  }
+
+  first_url <- lio_query_url(
     service_layer = service_layer,
     where = where,
     simplify = simplify,
     result_record_count = result_record_count
   )
 
-  resp <- httr2::request(url) |> httr2::req_perform()
-  geojson <- httr2::resp_body_string(resp)
+  if (paginate) {
+    max_pages <- 20
+    pages <- list()
+    result_offset <- 0
 
-  temp_file <- tempfile(fileext = ".geojson")
-  on.exit(unlink(temp_file), add = TRUE)
-  writeLines(geojson, temp_file)
-  sf_obj <- sf::st_read(temp_file, quiet = TRUE)
-  sf_obj <- sf::st_make_valid(sf_obj)
+    repeat {
+      if (length(pages) >= max_pages) {
+        rlang::abort(sprintf(
+          "pagination exceeded %d pages; the service may not support offset-based paging as expected, or the layer has grown unexpectedly large -- stopping rather than looping unbounded",
+          max_pages
+        ))
+      }
+
+      page <- read_lio_page(result_offset)
+      n <- nrow(page$sf_obj)
+
+      if (n > 0) {
+        pages[[length(pages) + 1]] <- page$sf_obj
+      }
+      if (n < result_record_count) {
+        break
+      }
+
+      result_offset <- result_offset + result_record_count
+    }
+
+    sf_obj <- if (length(pages) == 0) {
+      page$sf_obj
+    } else if (length(pages) == 1) {
+      pages[[1]]
+    } else {
+      do.call(rbind, pages)
+    }
+    url <- first_url
+  } else {
+    page <- read_lio_page()
+    sf_obj <- page$sf_obj
+    url <- page$url
+  }
 
   attr(sf_obj, "source_url") <- url
   attr(sf_obj, "source_name") <- source_name

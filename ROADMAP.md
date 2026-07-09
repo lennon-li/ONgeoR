@@ -54,8 +54,9 @@ output table with provenance
 
 ### Deliverables
 - [ ] `DESCRIPTION`, `NAMESPACE`, `LICENSE`, `README.md`
-- [ ] `R/retrieve.R` — `retrieve_phu_boundaries()` function
-- [ ] `R/link.R` — `points_to_phu()` function
+- [ ] `R/retrieve.R` — `retrieve_phu()` and per-source retrieval functions
+- [ ] `R/link.R` — `link()` (topological join) and `nearest()` (proximity)
+- [ ] `R/resolve.R` — `resolve()` (attribute lookup by id/name)
 - [ ] `R/crosswalk.R` — `build_crosswalk()` function
 - [ ] `inst/extdata/` — example data (3 test points as CSV)
 - [ ] `tests/testthat/` — unit tests for each function
@@ -69,10 +70,16 @@ Suggests: testthat, knitr, rmarkdown
 
 ### Functions
 ```r
-retrieve_phu_boundaries() -> sf object
-points_to_phu(points_sf, phu_sf) -> joined tibble
+retrieve_phu() -> sf object
+link(source, target, predicate) -> joined tibble       # point/polygon by geometry type
+nearest(source, target, k, max_dist_km) -> ranked tibble
+resolve(layer, query, by) -> matched records
 build_crosswalk(from_sf, to_sf) -> provenance tibble
 ```
+
+Linking dispatches on geometry type, not named source: facility-to-PHU,
+municipality-to-region, and point-to-health-region are all expressed as
+`link()`; proximity as `nearest()`. There are no per-source linking functions.
 
 ---
 

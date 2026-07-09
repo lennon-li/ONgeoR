@@ -19,11 +19,11 @@ ONgeoR provides a standardized, reproducible framework for these tasks without b
 ## What ONgeoR Does (v0.1)
 
 - Provides a source registry with metadata for Tier 1 Ontario GeoHub (LIO) datasets
-- Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, and MOH service locations at runtime
-- Performs spatial linking operations (point-in-polygon, polygon-in-polygon)
-- Generates auditable crosswalk tables with full provenance metadata
+- Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, and waste management sites at runtime
+- Links geometries by type with `link()` (point-in-polygon and polygon-to-polygon) and `nearest()` (k-nearest and radius search), and resolves records by identifier or name with `resolve()`
+- Generates auditable crosswalk tables with full provenance metadata via `build_crosswalk()`
 
-See [ROADMAP.md](ROADMAP.md) for planned nearest-facility lookups, maps, and additional sources.
+See [ROADMAP.md](ROADMAP.md) for planned raster linking, maps, and additional sources.
 
 ## What ONgeoR Does Not Do
 
@@ -69,9 +69,15 @@ points <- data.frame(
   lat = c(43.6532, 45.4215, 48.3822)
 )
 
-# Link points to Public Health Units
-result <- points_to_phu(points, phu)
+# Link points to Public Health Units (point-in-polygon)
+result <- link(points, phu)
 print(result)
+
+# Find the 3 nearest MOH service locations to each point
+facilities <- nearest(points, retrieve_moh_service_locations(), k = 3)
+
+# Resolve an airport by its identifier
+airport <- resolve(retrieve_airport(), "CYYZ")
 
 # Build a crosswalk table between two polygon layers
 municipal <- retrieve_municipal("upper")

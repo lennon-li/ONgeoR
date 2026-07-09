@@ -24,13 +24,8 @@
 #' @export
 build_crosswalk <- function(from, to, method = c("within", "intersects")) {
   method <- match.arg(method)
-  predicate <- switch(method,
-    within = sf::st_within,
-    intersects = sf::st_intersects
-  )
 
-  joined <- sf::st_join(from, to, join = predicate)
-  joined_df <- sf::st_drop_geometry(joined)
+  linked <- link(from, to, predicate = method)
 
   from_id_col <- guess_id_col(from)
   from_name_col <- guess_name_col(from)
@@ -38,11 +33,11 @@ build_crosswalk <- function(from, to, method = c("within", "intersects")) {
   to_name_col <- guess_name_col(to)
 
   tibble::tibble(
-    from_id = as.character(joined_df[[from_id_col]]),
-    from_name = as.character(joined_df[[from_name_col]]),
+    from_id = as.character(linked[[from_id_col]]),
+    from_name = as.character(linked[[from_name_col]]),
     from_source = provenance_attr(from, "source_name"),
-    to_id = as.character(joined_df[[to_id_col]]),
-    to_name = as.character(joined_df[[to_name_col]]),
+    to_id = as.character(linked[[to_id_col]]),
+    to_name = as.character(linked[[to_name_col]]),
     to_source = provenance_attr(to, "source_name"),
     match_method = method,
     match_distance_km = NA_real_,

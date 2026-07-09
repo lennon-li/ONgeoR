@@ -156,30 +156,6 @@ map_crosswalk <- function(layers, from_ids, to_ids) {
   )
 }
 
-extract_polygon_collection <- function(layer) {
-  geometries <- sf::st_geometry(layer)
-  polygon_geometries <- lapply(geometries, function(geometry) {
-    geometry_type <- as.character(sf::st_geometry_type(geometry))
-    if (geometry_type != "GEOMETRYCOLLECTION") {
-      return(geometry)
-    }
-
-    extracted <- suppressWarnings(
-      sf::st_collection_extract(
-        sf::st_sfc(geometry, crs = sf::st_crs(layer)),
-        "POLYGON"
-      )
-    )
-    if (length(extracted) == 0) {
-      return(sf::st_polygon())
-    }
-    sf::st_combine(extracted)[[1]]
-  })
-
-  sf::st_geometry(layer) <- sf::st_sfc(polygon_geometries, crs = sf::st_crs(layer))
-  layer
-}
-
 #' Render a reproducible R script for a CLI run
 #'
 #' @param from_ids Character vector of source ids used as crosswalk sources.

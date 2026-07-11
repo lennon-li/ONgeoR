@@ -1,142 +1,84 @@
 # ONgeoR Roadmap
 
-## Current Status: API Validation Phase
+Updated 2026-07-11. Reflects shipped state through commit `b9ddf89`.
+`devtools::check()`: 0 errors / 0 warnings / 0 notes.
 
-**Goal:** Prove that we can retrieve Ontario geospatial data from the LIO REST API, perform spatial joins, and build auditable crosswalk tables.
+## Where the package is today
 
-### What We Know
-- ✅ LIO REST API is accessible (no auth required)
-- ✅ PHU boundaries retrievable via `resultRecordCount=2000` parameter
-- ✅ GeoJSON format works with httr2 + jsonlite
-- ✅ Layer metadata: `maxRecordCount: 2000`, pagination supported
-- ⚠️ Geometry data is truncated in GeoJSON responses (simplification needed)
-- ⚠️ Need to test: sf conversion, spatial joins, CRS handling
+The retrieve → link → crosswalk → map core is **built and live-verified**:
 
-### What We Need to Validate
-- Can we convert ArcGIS GeoJSON to sf objects?
-- Does `sf::st_join()` work on the retrieved geometries?
-- Can we build a crosswalk table with full provenance?
+- **Retrieval** — all 7 registered Ontario GeoHub sources (`retrieve_phu()`,
+  `retrieve_health_region()`, `retrieve_municipal()`,
+  `retrieve_moh_service_locations()` with bounded pagination,
+  `retrieve_airport()`, `retrieve_waste_management()`), each with provenance
+  and per-layer `simplify` defaults chosen by live testing.
+- **On-disk cache** — `~/.cache/R/ONgeoR`, no auto-expiry (boundary data
+  changes on the order of years); `--refresh`/`refresh =` to bypass.
+- **Four-verb API** — `link()` (topological, by geometry type), `nearest()`
+  (proximity/radius), `resolve()` (attribute lookup), `build_crosswalk()`
+  (provenance table). No per-source linking functions; raster seam stubbed
+  in `link()`.
+- **Mapping** — `map_layers()` generic leaflet primitive (dispatches on
+  geometry type, auto colors, layer toggle); `map_crosswalk()` as a thin
+  wrapper.
+- **CLI** — `Rscript inst/cli/ongeor.R <from_ids> <to_ids> [dir] [--refresh]`
+  emits `crosswalk.csv`, self-contained `map.html`, and a standalone
+  `reproduce.R`.
 
----
+## v0.2 — Hardening (next; do this before the UI)
 
-## Phase 1: Spatial Join Proof-of-Concept (Current)
+Small, bounded work that makes interactive use dependable. The LIO API has
+demonstrated flakiness (504s / "could not access server machines" on some
+layers); a script user retries by hand, a UI user just sees a broken app.
 
-**Deliverable:** R script that demonstrates end-to-end workflow
+- [ ] **Bounded retry/backoff** in `fetch_lio_sf()` via `httr2::req_retry()` —
+  2–3 attempts, exponential backoff, retry only on transient classes
+  (429/5xx/connect timeouts). Deliberately narrow; do NOT reintroduce
+  per-object-id fallback loops (see project memory: reverted scope-creep).
+- [ ] **Actionable error messages** — every user-facing abort says which
+  source/layer failed and what to try (`refresh = TRUE`, retry later,
+  `simplify` note).
+- [ ] **Progress signaling** — `cli`/`rlang` progress or messages on fetches
+  >2s, so both console and UI users see life during 5–30s retrievals.
+- [ ] **`map_nearest()`** — composite of `nearest()` + `map_layers()` with
+  connector lines (deferred from the map_layers pass).
+- [ ] **Getting-started vignette** — one end-to-end story (retrieve → link →
+  crosswalk → map). Other vignettes can wait.
+- [ ] Repo hygiene: archive the Phase-1 root scripts
+  (`test_lio_api.R`, `test_lio_count.R`, `test_spatial_join.R`) under
+  `inst/validation/` or drop them; stop tracking rendered HTML artifacts.
 
-```
-retrieve PHU boundaries → convert to sf → 
-create test points → spatial join → 
-output table with provenance
-```
+## v0.3 — Shiny UI (start once retry/backoff + progress land)
 
-**Test scenario:**
-- 3 synthetic points (Toronto, Ottawa, Thunder Bay)
-- Retrieve all 34 PHU boundaries
-- Join points to PHUs
-- Output: point_id, point_name, lon, lat, phu_id, phu_name_en, retrieved_at
+**Goal:** a thin UI over the package — no logic in the app that isn't already
+a package function. The CLI proved the workflow; the UI is the same workflow
+with pickers.
 
-**Success criteria:**
-- [ ] Script runs in < 10 seconds
-- [ ] All 3 points correctly assigned to their PHUs
-- [ ] Output includes full provenance (source_url, retrieved_at)
-- [ ] No CRS errors or geometry conversion failures
+- [ ] MVP: pick from-sources and to-sources (from `list_sources()`) →
+  build crosswalk → show table + `map_layers()` leaflet → download
+  `crosswalk.csv` / `map.html` / `reproduce.R` (reuse
+  `render_reproducer_script()`).
+- [ ] Long fetches run async (`ExtendedTask`/promises) with the v0.2 progress
+  hooks; cache makes repeat runs fast.
+- [ ] `nearest()` tab: upload points CSV → nearest facilities → `map_nearest()`.
+- [ ] Ship as `inst/shiny/` + `run_app()` export (package stays
+  installable without Shiny: `Suggests`, not `Imports`).
 
-**Files:**
-- `test_spatial_join.R` — main script
-- `test_lio_api.R` — API connectivity test
-- `test_lio_count.R` — pagination/count validation
+## v0.4 — Expansion (order by demand, not sequence)
 
----
+- [ ] **Raster linking** — design already decided (cell-centroid → polygon;
+  point → cell-bbox; see project memory DECISIONS). Add `terra` to
+  `DESCRIPTION` first; implement inside the existing `link()` seam.
+- [ ] **New sources** — census subdivisions (StatCan), transit, environment;
+  each needs a registry entry + live simplify/pagination testing.
+- [ ] **Performance** — spatial-indexed nearest-neighbor for large point sets
+  (current full distance matrix is fine at present scale).
+- [ ] Remaining vignettes (adding-data-sources, building-crosswalks),
+  pkgdown site, GitHub issue templates.
 
-## Phase 2: Package Skeleton (After Phase 1 Validates)
+## Blocked (data-source questions, not code)
 
-**Goal:** Minimal R package structure with working examples
-
-### Deliverables
-- [ ] `DESCRIPTION`, `NAMESPACE`, `LICENSE`, `README.md`
-- [ ] `R/retrieve.R` — `retrieve_phu()` and per-source retrieval functions
-- [ ] `R/link.R` — `link()` (topological join) and `nearest()` (proximity)
-- [ ] `R/resolve.R` — `resolve()` (attribute lookup by id/name)
-- [ ] `R/crosswalk.R` — `build_crosswalk()` function
-- [ ] `inst/extdata/` — example data (3 test points as CSV)
-- [ ] `tests/testthat/` — unit tests for each function
-- [ ] `man/` — roxygen2 documentation
-
-### Dependencies
-```
-Imports: sf, httr2, jsonlite, dplyr
-Suggests: testthat, knitr, rmarkdown
-```
-
-### Functions
-```r
-retrieve_phu() -> sf object
-link(source, target, predicate) -> joined tibble       # point/polygon by geometry type
-nearest(source, target, k, max_dist_km) -> ranked tibble
-resolve(layer, query, by) -> matched records
-build_crosswalk(from_sf, to_sf) -> provenance tibble
-```
-
-Linking dispatches on geometry type, not named source: facility-to-PHU,
-municipality-to-region, and point-to-health-region are all expressed as
-`link()`; proximity as `nearest()`. There are no per-source linking functions.
-
----
-
-## Phase 3: Expand Source Coverage
-
-**Goal:** Add more Ontario datasets to the source registry
-
-### Target Layers
-- [ ] Health Unit boundaries (done in Phase 1)
-- [ ] Municipal boundaries (LIO_Open03)
-- [ ] Postal code boundaries (if available)
-- [ ] Hospitals/health facilities (if available)
-
-### Source Registry
-- `inst/extdata/sources.yaml` — metadata for each source
-- Each entry: name, url, description, license, last_updated, retrieval_function
-
----
-
-## Phase 4: User Interface
-
-**Goal:** Make the package user-friendly
-
-### Deliverables
-- [ ] Vignettes: quickstart, examples, troubleshooting
-- [ ] Error messages with actionable guidance
-- [ ] Progress indicators for long retrievals
-- [ ] Caching strategy (avoid re-downloading)
-
----
-
-## Future (Post-MVP)
-
-### Additional Features
-- Interactive maps: `map_layers()` (generic, by geometry type) and
-  `map_crosswalk()` shipped; `map_nearest()` (points + connector lines +
-  nearest facilities, on `map_layers()`) still planned
-- Batch processing for large datasets
-- Custom CRS support
-- Export to multiple formats (CSV, GeoJSON, Shapefile)
-
-### Additional Data Sources
-- Ontario Health regions
-- Census subdivisions (Statistics Canada)
-- Transit routes (if public API available)
-- Environmental data (air quality, water quality)
-
----
-
-## Known Issues / Open Questions
-
-1. **Geometry truncation:** LIO API returns simplified geometries. Need to verify this is acceptable for spatial joins.
-
-2. **CRS handling:** ArcGIS uses WKID 102100 (Web Mercator). Need to confirm sf can reproject to WGS84 (EPSG:4326).
-
-3. **Pagination:** maxRecordCount is 2000. Need to test if any layer exceeds this and implement pagination.
-
-4. **Rate limiting:** Unknown if LIO API has rate limits. Need to test with multiple concurrent requests.
-
-5. **Data freshness:** Unknown how often LIO updates these layers. Need to add `last_updated` field to source registry.
+- `resolve_postal()` — needs a licensed/user-supplied PCCF; no free LIO
+  equivalent. Decide the source before building anything.
+- `resolve_terminal()` — no registered LIO source (ORWN Station/rail is
+  FALSE-flagged); scope undefined.

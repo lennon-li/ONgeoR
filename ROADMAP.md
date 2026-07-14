@@ -1,6 +1,6 @@
 # ONgeoR Roadmap
 
-Updated 2026-07-11. Reflects shipped state through commit `b9ddf89`.
+Updated 2026-07-14. Reflects the current implemented state.
 `devtools::check()`: 0 errors / 0 warnings / 0 notes.
 
 ## Where the package is today
@@ -20,7 +20,8 @@ The retrieve → link → crosswalk → map core is **built and live-verified**:
   in `link()`.
 - **Mapping** — `map_layers()` generic leaflet primitive (dispatches on
   geometry type, auto colors, layer toggle); `map_crosswalk()` as a thin
-  wrapper.
+  wrapper; `map_nearest()` for source points, matched targets, and connector
+  lines.
 - **CLI** — `Rscript inst/cli/ongeor.R <from_ids> <to_ids> [dir] [--refresh]`
   emits `crosswalk.csv`, self-contained `map.html`, and a standalone
   `reproduce.R`.
@@ -31,22 +32,23 @@ Small, bounded work that makes interactive use dependable. The LIO API has
 demonstrated flakiness (504s / "could not access server machines" on some
 layers); a script user retries by hand, a UI user just sees a broken app.
 
-- [ ] **Bounded retry/backoff** in `fetch_lio_sf()` via `httr2::req_retry()` —
+- [x] **Bounded retry/backoff** in `fetch_lio_sf()` via `httr2::req_retry()` —
   2–3 attempts, exponential backoff, retry only on transient classes
   (429/5xx/connect timeouts). Deliberately narrow; do NOT reintroduce
   per-object-id fallback loops (see project memory: reverted scope-creep).
-- [ ] **Actionable error messages** — every user-facing abort says which
+- [x] **Actionable error messages** — every user-facing abort says which
   source/layer failed and what to try (`refresh = TRUE`, retry later,
   `simplify` note).
-- [ ] **Progress signaling** — `cli`/`rlang` progress or messages on fetches
+- [x] **Progress signaling** — `cli`/`rlang` progress or messages on fetches
   >2s, so both console and UI users see life during 5–30s retrievals.
-- [ ] **`map_nearest()`** — composite of `nearest()` + `map_layers()` with
+- [x] **`map_nearest()`** — composite of `nearest()` + `map_layers()` with
   connector lines (deferred from the map_layers pass).
-- [ ] **Getting-started vignette** — one end-to-end story (retrieve → link →
-  crosswalk → map). Other vignettes can wait.
-- [ ] Repo hygiene: archive the Phase-1 root scripts
-  (`test_lio_api.R`, `test_lio_count.R`, `test_spatial_join.R`) under
-  `inst/validation/` or drop them; stop tracking rendered HTML artifacts.
+- [x] **Getting-started vignette** — one end-to-end story (retrieve → link →
+  crosswalk → map). The building-crosswalks and adding-data-sources vignettes
+  are also complete.
+- [x] **Repo hygiene** — removed the obsolete root Phase-1 scripts
+  (`test_lio_api.R`, `test_lio_count.R`, `test_spatial_join.R`) and the tracked
+  rendered `geohub-inventory.html`; retained the Markdown and CSV inventory.
 
 ## v0.3 — Shiny UI (start once retry/backoff + progress land)
 
@@ -73,8 +75,7 @@ with pickers.
   each needs a registry entry + live simplify/pagination testing.
 - [ ] **Performance** — spatial-indexed nearest-neighbor for large point sets
   (current full distance matrix is fine at present scale).
-- [ ] Remaining vignettes (adding-data-sources, building-crosswalks),
-  pkgdown site, GitHub issue templates.
+- [ ] pkgdown site and GitHub issue templates.
 
 ## Blocked (data-source questions, not code)
 

@@ -1,0 +1,109 @@
+---
+title: "Building geographic crosswalks"
+author: "ONgeoR contributors"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Building geographic crosswalks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+A crosswalk records how features in one polygon layer relate to features in
+another. `build_crosswalk()` standardizes the result and includes provenance
+needed to audit it later. This vignette uses synthetic polygons and requires no
+network connection.
+
+## A reproducible polygon example
+
+```{r layers}
+library(ONgeoR)
+
+square <- function(xmin, ymin, xmax, ymax) {
+  sf::st_polygon(list(rbind(
+    c(xmin, ymin), c(xmax, ymin), c(xmax, ymax),
+    c(xmin, ymax), c(xmin, ymin)
+  )))
+}
+
+phu <- sf::st_sf(
+  PHU_ID = c("P1", "P2"),
+  PHU_NAME_ENG = c("West PHU", "East PHU"),
+  geometry = sf::st_sfc(
+    square(0, 0, 1, 1), square(1, 0, 2, 1), crs = 3857
+  )
+)
+municipal <- sf::st_sf(
+  MUNID = c("M1", "M2"),
+  MUNICIPAL_NAME = c("West municipality", "East municipality"),
+  geometry = sf::st_sfc(
+    square(0.1, 0.1, 0.9, 0.9), square(1.1, 0.1, 1.9, 0.9), crs = 3857
+  )
+)
+
+attr(phu, "source_name") <- "Synthetic PHU boundaries"
+attr(phu, "source_url") <- "https://example.invalid/phu"
+attr(phu, "retrieved_at") <- as.POSIXct("2026-01-01", tz = "UTC")
+attr(municipal, "source_name") <- "Synthetic municipal boundaries"
+attr(municipal, "source_url") <- "https://example.invalid/municipal"
+
+crosswalk <- build_crosswalk(municipal, phu, method = "within")
+crosswalk
+```
+
+`within` is appropriate when every source polygon should be wholly contained
+by one target polygon and both layers use compatible, sufficiently precise
+boundaries. It avoids counting polygons that merely touch.
+
+Real municipal layers are simplified by default. Generalizing each layer can
+move nominally shared borders enough that a municipal polygon is no longer
+strictly within a PHU polygon. For those layers, `intersects` is often the
+practical predicate. It can return more than one row for a feature that crosses
+or touches multiple targets, so inspect duplicates rather than assuming a
+one-to-one result.
+
+## Inspect the audit fields
+
+The canonical output contains source and target identifiers and names, the
+registry-style source labels, the matching method, reserved distance field,
+source URLs, and the target retrieval time.
+
+```{r inspect}
+names(crosswalk)
+crosswalk[, c(
+  "from_id", "from_name", "to_id", "to_name", "match_method",
+  "source_url_from", "source_url_to", "retrieved_at"
+)]
+```
+
+`match_distance_km` is currently `NA` because `build_crosswalk()` implements
+topological polygon matching, not nearest-neighbour matching.
+
+Export only after checking unmatched or duplicated source identifiers and the
+provenance fields. This write is deliberately not run during the vignette
+build:
+
+```{r export, eval=FALSE}
+write.csv(crosswalk, "municipal-to-phu.csv", row.names = FALSE)
+```
+
+## Live Ontario example
+
+The following example requires network access or populated ONgeoR caches and
+is not executed while this vignette builds.
+
+```{r live-crosswalk, eval=FALSE}
+municipal <- retrieve_municipal("upper")
+phu <- retrieve_phu()
+
+municipal_to_phu <- build_crosswalk(
+  municipal,
+  phu,
+  method = "intersects"
+)
+
+map_layers(Municipalities = municipal, PHUs = phu)
+```

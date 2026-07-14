@@ -22,7 +22,8 @@ ONgeoR provides a standardized, reproducible framework for these tasks without b
 - Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, and waste management sites at runtime
 - Links geometries by type with `link()` (point-in-polygon and polygon-to-polygon) and `nearest()` (k-nearest and radius search), and resolves records by identifier or name with `resolve()`
 - Generates auditable crosswalk tables with full provenance metadata via `build_crosswalk()`
-- Draws interactive leaflet maps of any layers by geometry type with `map_layers()`
+- Draws interactive leaflet maps with `map_layers()` and nearest-match maps
+  with `map_nearest()`
 
 See [ROADMAP.md](ROADMAP.md) for planned raster linking, more maps, and additional sources.
 
@@ -87,6 +88,12 @@ crosswalk <- build_crosswalk(municipal, phu, method = "intersects")
 # Draw an interactive map of health-unit boundaries and hospitals
 map_layers(phu, retrieve_moh_service_locations(service_type = "Hospital"))
 ```
+
+## Documentation
+
+- [Getting started](vignettes/getting-started.Rmd)
+- [Building crosswalks](vignettes/building-crosswalks.Rmd)
+- [Adding data sources](vignettes/adding-data-sources.Rmd)
 
 ## Data Sources
 

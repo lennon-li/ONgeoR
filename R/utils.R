@@ -3,6 +3,31 @@ NULL
 
 lio_base_url <- "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA"
 
+lio_now <- function() Sys.time()
+
+inform_lio_progress <- function(message) {
+  rlang::inform(message, class = "ongeor_retrieval_progress")
+}
+
+abort_lio_retrieval <- function(message, parent = NULL) {
+  rlang::abort(
+    message,
+    class = "ongeor_retrieval_error",
+    parent = parent
+  )
+}
+
+lio_simplify_guidance <- function(simplify) {
+  if (simplify) {
+    "Generalized geometry is already requested (simplify = TRUE)."
+  } else {
+    paste(
+      "If generalized geometry is acceptable and supported for this layer,",
+      "try simplify = TRUE."
+    )
+  }
+}
+
 #' Build a LIO ArcGIS REST query URL
 #'
 #' @param service_layer Character. Service and layer path, e.g. `"LIO_Open09/44"`.
@@ -68,11 +93,33 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
     paginate = paginate
   )
   if (!refresh) {
-    cached <- cache_read(key)
+    cached <- tryCatch(
+      cache_read(key),
+      error = function(cnd) {
+        abort_lio_retrieval(
+          sprintf(
+            paste(
+              "Could not read cached data for source '%s' (layer '%s').",
+              "Use refresh = TRUE to bypass and replace this cache entry."
+            ),
+            source_name,
+            service_layer
+          ),
+          parent = cnd
+        )
+      }
+    )
     if (!is.null(cached)) {
       return(cached)
     }
   }
+
+  started_at <- lio_now()
+  inform_lio_progress(sprintf(
+    "Retrieving source '%s' (layer '%s').",
+    source_name,
+    service_layer
+  ))
 
   read_lio_page <- function(result_offset = 0) {
     url <- lio_query_url(
@@ -83,14 +130,42 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       result_offset = result_offset
     )
 
-    resp <- httr2::request(url) |> httr2::req_perform()
-    geojson <- httr2::resp_body_string(resp)
+    sf_obj <- tryCatch(
+      {
+        resp <- httr2::request(url) |>
+          httr2::req_retry(
+            max_tries = 3,
+            retry_on_failure = TRUE,
+            is_transient = function(resp) {
+              status <- httr2::resp_status(resp)
+              status == 429 || (status >= 500 && status <= 599)
+            }
+          ) |>
+          httr2::req_perform()
+        geojson <- httr2::resp_body_string(resp)
 
-    temp_file <- tempfile(fileext = ".geojson")
-    on.exit(unlink(temp_file), add = TRUE)
-    writeLines(geojson, temp_file)
-    sf_obj <- sf::st_read(temp_file, quiet = TRUE)
-    sf_obj <- sf::st_make_valid(sf_obj)
+        temp_file <- tempfile(fileext = ".geojson")
+        on.exit(unlink(temp_file), add = TRUE)
+        writeLines(geojson, temp_file)
+        sf_obj <- sf::st_read(temp_file, quiet = TRUE)
+        sf::st_make_valid(sf_obj)
+      },
+      error = function(cnd) {
+        abort_lio_retrieval(
+          sprintf(
+            paste(
+              "Could not retrieve source '%s' (layer '%s').",
+              "Retry later; transient requests are limited to three attempts.",
+              "%s"
+            ),
+            source_name,
+            service_layer,
+            lio_simplify_guidance(simplify)
+          ),
+          parent = cnd
+        )
+      }
+    )
 
     list(url = url, sf_obj = sf_obj)
   }
@@ -109,9 +184,29 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
 
     repeat {
       if (length(pages) >= max_pages) {
-        rlang::abort(sprintf(
-          "pagination exceeded %d pages; the service may not support offset-based paging as expected, or the layer has grown unexpectedly large -- stopping rather than looping unbounded",
+        abort_lio_retrieval(sprintf(
+          paste(
+            "Stopped retrieving source '%s' (layer '%s') at the %d-page",
+            "pagination hard cap to avoid an unbounded request loop.",
+            paste(
+              "Narrow the query and retry; if the layer legitimately exceeds",
+              "the safety cap, report it so the package limit can be reviewed",
+              "deliberately."
+            )
+          ),
+          source_name,
+          service_layer,
           max_pages
+        ))
+      }
+
+      if (result_offset > 0) {
+        page_number <- result_offset %/% result_record_count + 1
+        inform_lio_progress(sprintf(
+          "Retrieving page %d for source '%s' (layer '%s').",
+          page_number,
+          source_name,
+          service_layer
         ))
       }
 
@@ -157,6 +252,16 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       retrieved_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
     )
   )
+
+  elapsed <- as.numeric(difftime(lio_now(), started_at, units = "secs"))
+  if (elapsed >= 2) {
+    inform_lio_progress(sprintf(
+      "Retrieved source '%s': %d rows in %.1f seconds.",
+      source_name,
+      nrow(sf_obj),
+      elapsed
+    ))
+  }
 
   sf_obj
 }

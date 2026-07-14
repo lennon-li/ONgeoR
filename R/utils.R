@@ -34,9 +34,10 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
   service <- parts[1]
   layer <- parts[2]
 
-  httr2::request(paste0(lio_base_url, "/", service, "/MapServer/", layer, "/query")) |>
-    httr2::req_url_query(!!!params) |>
-    httr2::req_get_url()
+  paste0(lio_base_url, "/", service, "/MapServer/", layer, "/query") |>
+    httr2::url_parse() |>
+    httr2::url_modify_query(!!!params) |>
+    httr2::url_build()
 }
 
 #' Retrieve a LIO layer and convert it to an sf object with provenance

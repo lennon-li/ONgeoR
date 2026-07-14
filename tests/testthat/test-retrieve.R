@@ -63,6 +63,22 @@ use_temp_cache <- function() {
   cache_dir
 }
 
+test_that("lio_query_url builds encoded query and pagination parameters", {
+  url <- lio_query_url(
+    service_layer = "LIO_Open09/26",
+    where = "SERVICE_TYPE = 'Public Health'",
+    simplify = FALSE,
+    result_record_count = 100,
+    result_offset = 200
+  )
+
+  expect_match(url, "LIO_Open09/MapServer/26/query", fixed = TRUE)
+  expect_match(url, "where=SERVICE_TYPE%20%3D%20%27Public%20Health%27")
+  expect_match(url, "resultRecordCount=100", fixed = TRUE)
+  expect_match(url, "resultOffset=200", fixed = TRUE)
+  expect_no_match(url, "maxAllowableOffset", fixed = TRUE)
+})
+
 test_that("retrieve_phu returns an sf object with provenance attributes", {
   cache_dir <- use_temp_cache()
   on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)

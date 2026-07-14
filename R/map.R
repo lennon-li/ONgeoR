@@ -58,6 +58,123 @@ map_layers <- function(..., colors = NULL) {
   )
 }
 
+#' Map nearest targets and their connections to source points
+#'
+#' Combines [nearest()] with [map_layers()] to show source points, the targets
+#' matched to them, and a connector line for every match. Only matched targets
+#' are drawn. If no target is within `max_dist_km`, the returned map contains
+#' the source points without target or connector layers.
+#'
+#' @param source An `sf` object of points, or a `data.frame` with `lon` and
+#'   `lat` columns (assumed CRS 4326 / WGS 84).
+#' @param target An `sf` object of candidate point or polygon geometries.
+#' @param k Integer. Number of nearest targets to map per source. Defaults to
+#'   `1`; `Inf` may be used with `max_dist_km` for a radius search.
+#' @param max_dist_km Numeric or `NULL`. If set, omit targets farther than this
+#'   distance in kilometres.
+#'
+#' @return A `leaflet` htmlwidget.
+#'
+#' @examples
+#' if (interactive()) {
+#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
+#'   map_nearest(points, retrieve_moh_service_locations(), k = 3)
+#' }
+#'
+#' @export
+map_nearest <- function(source, target, k = 1, max_dist_km = NULL) {
+  if (inherits(source, "data.frame") && !inherits(source, "sf")) {
+    if (!all(c("lon", "lat") %in% names(source))) {
+      rlang::abort("`source` must contain `lon` and `lat` columns.")
+    }
+    source <- sf::st_as_sf(source, coords = c("lon", "lat"), crs = 4326)
+  }
+  if (!inherits(source, "sf")) {
+    rlang::abort("`source` must be an sf object or a lon-lat data frame.")
+  }
+  if (!inherits(target, "sf")) {
+    rlang::abort("`target` must be an sf object.")
+  }
+  source_types <- unique(as.character(sf::st_geometry_type(source)))
+  if (length(source_types) == 0 ||
+    !all(source_types %in% c("POINT", "MULTIPOINT"))) {
+    rlang::abort("`source` must contain point geometries.")
+  }
+  if (nrow(source) == 0) {
+    rlang::abort("`source` must contain at least one feature.")
+  }
+  if (nrow(target) == 0) {
+    rlang::abort("`target` must contain at least one feature.")
+  }
+  if (!is.numeric(k) || length(k) != 1 || is.na(k) ||
+    k <= 0 || (!is.infinite(k) && k != as.integer(k))) {
+    rlang::abort("`k` must be a positive integer or Inf.")
+  }
+  if (!is.null(max_dist_km) &&
+    (!is.numeric(max_dist_km) || length(max_dist_km) != 1 ||
+      is.na(max_dist_km) || !is.finite(max_dist_km) || max_dist_km < 0)) {
+    rlang::abort("`max_dist_km` must be a single non-negative number or NULL.")
+  }
+
+  keyed_source <- source
+  keyed_target <- target
+  source_columns <- setdiff(names(source), attr(source, "sf_column"))
+  target_columns <- setdiff(names(target), attr(target, "sf_column"))
+  combined_columns <- make.unique(c(source_columns, target_columns))
+  names(keyed_target)[match(target_columns, names(keyed_target))] <-
+    combined_columns[length(source_columns) + seq_along(target_columns)]
+
+  key_names <- make.unique(c(
+    names(keyed_source), names(keyed_target),
+    ".ongeor_source_row", ".ongeor_target_row"
+  ))
+  source_key <- key_names[length(key_names) - 1]
+  target_key <- key_names[length(key_names)]
+  keyed_source[[source_key]] <- seq_len(nrow(source))
+  keyed_target[[target_key]] <- seq_len(nrow(target))
+
+  matches <- nearest(
+    keyed_source,
+    keyed_target,
+    k = k,
+    max_dist_km = max_dist_km
+  )
+  if (nrow(matches) == 0) {
+    return(map_layers(Source = source))
+  }
+
+  source_rows <- matches[[source_key]]
+  target_rows <- matches[[target_key]]
+  matched_target <- target[unique(target_rows), , drop = FALSE]
+  connector_geometry <- lapply(seq_along(source_rows), function(i) {
+    sf::st_nearest_points(
+      source[source_rows[i], , drop = FALSE],
+      target[target_rows[i], , drop = FALSE],
+      pairwise = TRUE
+    )[[1]]
+  })
+  connectors <- sf::st_sf(
+    distance_km = matches$distance_km,
+    geometry = sf::st_sfc(connector_geometry, crs = sf::st_crs(source))
+  )
+
+  map <- map_layers(Source = source, `Matched targets` = matched_target)
+  map <- leaflet::addPolylines(
+    map,
+    data = connectors,
+    group = "Connections",
+    popup = sprintf("%.2f km", connectors$distance_km),
+    weight = 2,
+    color = "#666666",
+    opacity = 0.7
+  )
+  leaflet::addLayersControl(
+    map,
+    overlayGroups = c("Source", "Matched targets", "Connections"),
+    options = leaflet::layersControlOptions(collapsed = FALSE)
+  )
+}
+
 #' Derive group labels for map layers
 #'
 #' Priority: the argument name, then the layer's `source_name` provenance

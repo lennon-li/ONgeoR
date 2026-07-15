@@ -270,7 +270,7 @@ test_that("fetch_lio_sf retry progress has no attempt-level noise", {
 
   calls <- 0
   testthat::local_mocked_bindings(
-    req_perform1 = function(req, path = NULL, handle = NULL) {
+    req_perform1 = function(req, ...) {
       calls <<- calls + 1
       if (calls == 1) {
         return(mock_lio_response(503, retry_after = "0"))
@@ -379,7 +379,7 @@ test_that("fetch_lio_sf failures have no completion progress", {
   calls <- 0
   messages <- character()
   testthat::local_mocked_bindings(
-    req_perform1 = function(req, path = NULL, handle = NULL) {
+    req_perform1 = function(req, ...) {
       calls <<- calls + 1
       mock_lio_response(503, retry_after = "0")
     },
@@ -413,7 +413,7 @@ test_that("fetch_lio_sf retries a transient response then succeeds", {
 
   calls <- 0
   testthat::local_mocked_bindings(
-    req_perform1 = function(req, path = NULL, handle = NULL) {
+    req_perform1 = function(req, ...) {
       calls <<- calls + 1
       if (calls == 1) {
         return(mock_lio_response(503, retry_after = "0"))
@@ -438,7 +438,7 @@ test_that("fetch_lio_sf stops after three persistent transient responses", {
 
   calls <- 0
   testthat::local_mocked_bindings(
-    req_perform1 = function(req, path = NULL, handle = NULL) {
+    req_perform1 = function(req, ...) {
       calls <<- calls + 1
       mock_lio_response(503, retry_after = "0")
     },
@@ -467,7 +467,7 @@ test_that("fetch_lio_sf does not retry a non-transient client response", {
 
   calls <- 0
   testthat::local_mocked_bindings(
-    req_perform1 = function(req, path = NULL, handle = NULL) {
+    req_perform1 = function(req, ...) {
       calls <<- calls + 1
       mock_lio_response(400)
     },

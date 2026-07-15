@@ -12,6 +12,8 @@ Description: Provides a reproducible framework for retrieving Ontario
     retrieved at runtime from external sources.
 License: MIT + file LICENSE
 Encoding: UTF-8
+Depends: 
+    R (>= 4.1.0)
 Roxygen: list(markdown = TRUE)
 Imports:
     htmlwidgets,
@@ -22,8 +24,10 @@ Imports:
     tibble,
     yaml
 Suggests:
+    bslib,
     knitr,
     rmarkdown,
+    shiny,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

@@ -21,6 +21,7 @@ Imports:
     leaflet,
     rlang,
     sf,
+    terra,
     tibble,
     yaml
 Suggests:

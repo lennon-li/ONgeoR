@@ -12,7 +12,12 @@ build_crosswalk(from, to, method = c("within", "intersects"))
 \item{to}{An \code{sf} object: the target layer (e.g. PHU boundaries).}
 
 \item{method}{Character. Spatial join predicate: \code{"within"} (default) or
-\code{"intersects"}.}
+\code{"intersects"}. If \code{method = "within"} and \code{from} is polygonal while
+\code{to} is point-type, the join direction is geometrically degenerate (a
+polygon is never "within" a point). In that case \code{build_crosswalk()}
+auto-corrects by joining \code{to} within \code{from} instead, emits an
+informative message, and builds the same output schema from the
+corrected join.}
 }
 \value{
 A \code{\link[tibble:tibble]{tibble::tibble()}} with columns \code{from_id}, \code{from_name},

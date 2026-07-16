@@ -37,9 +37,14 @@ test_that("layer_group_labels prefers arg name, then source_name, then position"
   expect_equal(from_prov, c("Layer 1", "MOH Service Location"))
 })
 
-test_that("map_layers aborts on a raster layer (seam not implemented)", {
-  fake_raster <- structure(list(), class = "SpatRaster")
-  expect_error(map_layers(fake_raster), "not yet implemented")
+test_that("map_layers renders a raster layer as a leaflet widget", {
+  m <- map_layers(`Air quality` = retrieve_synthetic_raster())
+  expect_s3_class(m, "leaflet")
+  expect_s3_class(m, "htmlwidget")
+
+  methods <- vapply(m$x$calls, `[[`, character(1), "method")
+  expect_true("addRasterImage" %in% methods)
+  expect_true("addLegend" %in% methods)
 })
 
 test_that("map_layers aborts on an unsupported geometry type", {

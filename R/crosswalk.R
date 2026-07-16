@@ -6,7 +6,12 @@
 #' @param from An `sf` object: the source layer (e.g. municipal boundaries).
 #' @param to An `sf` object: the target layer (e.g. PHU boundaries).
 #' @param method Character. Spatial join predicate: `"within"` (default) or
-#'   `"intersects"`.
+#'   `"intersects"`. If `method = "within"` and `from` is polygonal while
+#'   `to` is point-type, the join direction is geometrically degenerate (a
+#'   polygon is never "within" a point). In that case `build_crosswalk()`
+#'   auto-corrects by joining `to` within `from` instead, emits an
+#'   informative message, and builds the same output schema from the
+#'   corrected join.
 #'
 #' @return A [tibble::tibble()] with columns `from_id`, `from_name`,
 #'   `from_source`, `to_id`, `to_name`, `to_source`, `match_method`,
@@ -25,7 +30,19 @@
 build_crosswalk <- function(from, to, method = c("within", "intersects")) {
   method <- match.arg(method)
 
-  linked <- link(from, to, predicate = method)
+  if (method == "within" && is_polygon_geom(from) && is_point_geom(to)) {
+    rlang::inform(
+      paste(
+        "build_crosswalk(): auto-corrected join direction for a",
+        "point-in-boundary match (from is polygonal, to is point-type);",
+        "linking `to` within `from` instead of `from` within `to`."
+      ),
+      class = "ongeor_crosswalk_reordered"
+    )
+    linked <- link(to, from, predicate = method)
+  } else {
+    linked <- link(from, to, predicate = method)
+  }
 
   from_id_col <- guess_id_col(from)
   from_name_col <- guess_name_col(from)

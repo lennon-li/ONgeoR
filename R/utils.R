@@ -319,6 +319,34 @@ guess_name_col <- function(x) {
   name_cols[1]
 }
 
+#' Check whether a layer's geometry is entirely points
+#'
+#' @param x An `sf` object.
+#'
+#' @return Logical scalar. `FALSE` for an empty layer.
+#' @keywords internal
+#' @noRd
+is_point_geom <- function(x) {
+  if (!inherits(x, "sf") || nrow(x) == 0) {
+    return(FALSE)
+  }
+  all(as.character(sf::st_geometry_type(x)) %in% c("POINT", "MULTIPOINT"))
+}
+
+#' Check whether a layer's geometry is entirely polygons
+#'
+#' @param x An `sf` object.
+#'
+#' @return Logical scalar. `FALSE` for an empty layer.
+#' @keywords internal
+#' @noRd
+is_polygon_geom <- function(x) {
+  if (!inherits(x, "sf") || nrow(x) == 0) {
+    return(FALSE)
+  }
+  all(as.character(sf::st_geometry_type(x)) %in% c("POLYGON", "MULTIPOLYGON"))
+}
+
 #' Read a provenance attribute, falling back to NA
 #'
 #' @param x An object with provenance attributes (`source_url`,

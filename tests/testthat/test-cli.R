@@ -88,6 +88,44 @@ test_that("retrieve_by_source_id errors clearly on unknown ids", {
   )
 })
 
+test_that("retrieve_source errors clearly on unknown ids", {
+  expect_error(
+    retrieve_source("bogus_id"),
+    "Unknown source_id 'bogus_id'.*Valid source ids are"
+  )
+})
+
+test_that("retrieve_source dispatches to the right retrieval path", {
+  layers <- make_cli_layers()
+  testthat::local_mocked_bindings(
+    retrieve_phu = function(refresh = FALSE) layers$phu_boundaries,
+    .package = "ONgeoR"
+  )
+
+  phu <- retrieve_source("phu_boundaries")
+
+  expect_equal(attr(phu, "source_name"), "MOH Public Health Unit Boundary")
+})
+
+test_that("retrieve_by_source_id delegates to retrieve_source", {
+  layers <- make_cli_layers()
+  testthat::local_mocked_bindings(
+    retrieve_phu = function(refresh = FALSE) layers$phu_boundaries,
+    .package = "ONgeoR"
+  )
+
+  phu <- retrieve_by_source_id("phu_boundaries")
+
+  expect_equal(attr(phu, "source_name"), "MOH Public Health Unit Boundary")
+})
+
+test_that("retrieve_source dispatches the synthetic raster source", {
+  r <- retrieve_source("synthetic_air_quality")
+
+  expect_s4_class(r, "SpatRaster")
+  expect_equal(names(r), "pm25")
+})
+
 test_that("cross_crosswalk stamps one from-to pair with registry ids", {
   layers <- make_cli_layers()
   testthat::local_mocked_bindings(

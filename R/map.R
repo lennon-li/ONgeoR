@@ -1,13 +1,12 @@
 #' Map one or more layers on an interactive leaflet map
 #'
 #' Draws each `sf` layer on a single leaflet map, dispatching on geometry type:
-#' polygons are drawn as filled outlines, points as circle markers. Layers get
-#' a toggle in a layers-control. Raster layers are planned but not yet
-#' implemented.
+#' polygons are drawn as filled outlines, points as circle markers. A
+#' `SpatRaster` layer is drawn as a coloured raster image with a legend.
+#' Layers get a toggle in a layers-control.
 #'
-#' @param ... One or more `sf` objects (points or polygons). Arguments may be
-#'   named; a name sets that layer's group label. A `SpatRaster` argument
-#'   aborts (raster mapping is not yet implemented).
+#' @param ... One or more `sf` objects (points or polygons) or `SpatRaster`
+#'   objects. Arguments may be named; a name sets that layer's group label.
 #' @param colors Optional character vector of colors, one per layer (recycled if
 #'   shorter). If `NULL` (default), distinct colors are assigned from a built-in
 #'   qualitative palette.
@@ -26,14 +25,6 @@ map_layers <- function(..., colors = NULL) {
     rlang::abort("map_layers() requires at least one sf layer.")
   }
 
-  for (layer in layers) {
-    if (inherits(layer, "SpatRaster")) {
-      rlang::abort(
-        "raster mapping not yet implemented; see the package raster linking model"
-      )
-    }
-  }
-
   groups <- layer_group_labels(layers)
 
   palette <- c(
@@ -48,7 +39,11 @@ map_layers <- function(..., colors = NULL) {
 
   map <- leaflet::addTiles(leaflet::leaflet())
   for (i in seq_along(layers)) {
-    map <- add_sf_layer(map, layers[[i]], groups[i], layer_colors[i])
+    if (inherits(layers[[i]], "SpatRaster")) {
+      map <- add_raster_layer(map, layers[[i]], groups[i])
+    } else {
+      map <- add_sf_layer(map, layers[[i]], groups[i], layer_colors[i])
+    }
   }
 
   leaflet::addLayersControl(
@@ -249,6 +244,42 @@ add_sf_layer <- function(map, layer, group, color) {
       paste(geometry_types, collapse = ", ")
     ))
   }
+}
+
+#' Add a single raster layer to a leaflet map
+#'
+#' Draws a `SpatRaster` as a coloured raster image with a matching legend,
+#' toggleable via the map's layers-control.
+#'
+#' @param map A leaflet map.
+#' @param raster A `SpatRaster`.
+#' @param group Character group label for the layers-control.
+#' @return The updated leaflet map.
+#' @keywords internal
+#' @noRd
+add_raster_layer <- function(map, raster, group) {
+  values <- terra::values(raster[[1]], na.rm = TRUE)
+  domain <- range(values, na.rm = TRUE)
+  palette <- leaflet::colorNumeric(
+    "viridis",
+    domain = domain,
+    na.color = "transparent"
+  )
+
+  map <- leaflet::addRasterImage(
+    map,
+    raster[[1]],
+    colors = palette,
+    opacity = 0.8,
+    group = group
+  )
+  leaflet::addLegend(
+    map,
+    pal = palette,
+    values = domain,
+    title = group,
+    group = group
+  )
 }
 
 #' Reduce GEOMETRYCOLLECTION geometries to their polygon parts

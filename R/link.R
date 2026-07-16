@@ -1,20 +1,28 @@
 #' Link geometries to a target layer by spatial relationship
 #'
 #' Joins a source layer to a target layer using a spatial predicate. Covers
-#' point-in-polygon and polygon-to-polygon joins. Raster sources are planned
-#' (reduced to centroids per the package's raster linking model) but not yet
-#' implemented.
+#' point-in-polygon and polygon-to-polygon joins, plus raster sources and
+#' targets via the package's raster linking model (rasters are reduced to
+#' vector geometries and delegated to the vector join path).
 #'
 #' @param source An `sf` object (points or polygons), or a `data.frame` with
 #'   `lon` and `lat` columns (assumed CRS 4326 / WGS 84). A `SpatRaster`
-#'   routes to the raster-reduction path (not yet implemented).
-#' @param target An `sf` object, typically polygons.
+#'   `source` is reduced to its cell-centroid points (carrying the raster's
+#'   value column(s), NA cells dropped) before the join.
+#' @param target An `sf` object, typically polygons. A `SpatRaster` `target`
+#'   is reduced to per-cell bounding-box polygons (carrying the raster's value
+#'   column(s)) before the join, so each source point lands in the polygon of
+#'   the cell that contains it (equivalent to raster sampling).
 #' @param predicate Character. Spatial join predicate: `"within"` (default),
 #'   `"intersects"`, or `"contains"`. Note: simplified boundary data (e.g.
 #'   municipal boundaries retrieved with `simplify = TRUE`) often needs
 #'   `"intersects"`, because `"within"` misses matches against generalized
 #'   borders. For very complex geometry, simplify first
 #'   (retrieve with `simplify = TRUE`, or `sf::st_simplify()`) then link.
+#'   `predicate = "within"` with a polygon `source` and point `target` is
+#'   geometrically degenerate (a polygon is never "within" a point): every
+#'   row will be unmatched (NA), and `link()` emits a warning before running
+#'   the join. The join still runs and the return shape is unchanged.
 #'
 #' @return A [tibble::tibble()] with the source's non-geometry columns, the
 #'   matched target columns, and `source_url` / `target_url` / `retrieved_at`
@@ -32,14 +40,35 @@ link <- function(source, target,
                  predicate = c("within", "intersects", "contains")) {
   predicate <- match.arg(predicate)
 
-  if (inherits(source, "SpatRaster") || inherits(target, "SpatRaster")) {
-    rlang::abort(
-      "raster linking not yet implemented; see the package raster linking model"
-    )
+  source_is_raster <- inherits(source, "SpatRaster")
+  target_is_raster <- inherits(target, "SpatRaster")
+
+  if (source_is_raster && target_is_raster) {
+    rlang::abort(paste(
+      "raster-to-raster linking is not supported;",
+      "align/resample with terra first, then link the reduced vectors."
+    ))
+  }
+  if (source_is_raster) {
+    return(link(raster_to_centroid_points(source), target, predicate = predicate))
+  }
+  if (target_is_raster) {
+    return(link(source, raster_to_cell_polygons(target), predicate = predicate))
   }
 
   if (inherits(source, "data.frame") && !inherits(source, "sf")) {
     source <- sf::st_as_sf(source, coords = c("lon", "lat"), crs = 4326)
+  }
+
+  if (predicate == "within" && is_polygon_geom(source) && is_point_geom(target)) {
+    rlang::warn(
+      paste(
+        "predicate = \"within\" with a polygon source and point target",
+        "matches nothing; every row will be unmatched (NA). Did you mean to",
+        "swap `source` and `target`, or use predicate = \"contains\"?"
+      ),
+      class = "ongeor_link_degenerate_within"
+    )
   }
 
   predicate_fn <- switch(predicate,
@@ -134,4 +163,51 @@ nearest <- function(source, target, k = 1, max_dist_km = NULL) {
   result$retrieved_at <- provenance_attr(target, "retrieved_at")
 
   result
+}
+
+#' Copy provenance attributes from a raster onto a reduced sf object
+#'
+#' @param x The reduced `sf` object.
+#' @param raster The source `SpatRaster` (may lack provenance attributes if
+#'   terra dropped them, in which case NA is carried through).
+#' @return `x` with `source_url`, `source_name`, and `retrieved_at` attributes.
+#' @keywords internal
+#' @noRd
+copy_raster_provenance <- function(x, raster) {
+  attr(x, "source_url") <- provenance_attr(raster, "source_url")
+  attr(x, "source_name") <- provenance_attr(raster, "source_name")
+  attr(x, "retrieved_at") <- provenance_attr(raster, "retrieved_at")
+  x
+}
+
+#' Reduce a raster to cell-centroid points as an sf object
+#'
+#' Converts a `SpatRaster` to one point per non-empty cell, carrying the
+#' raster's value column(s), for delegation to the vector [link()] path.
+#'
+#' @param raster A `SpatRaster`.
+#' @return An `sf` object of `POINT` geometries with the raster's value
+#'   column(s) and provenance attributes.
+#' @keywords internal
+#' @noRd
+raster_to_centroid_points <- function(raster) {
+  points <- terra::as.points(raster, na.rm = TRUE)
+  reduced <- sf::st_as_sf(points)
+  copy_raster_provenance(reduced, raster)
+}
+
+#' Reduce a raster to per-cell bounding-box polygons as an sf object
+#'
+#' Converts a `SpatRaster` to one bounding-box polygon per cell, carrying the
+#' raster's value column(s), for delegation to the vector [link()] path.
+#'
+#' @param raster A `SpatRaster`.
+#' @return An `sf` object of `POLYGON` geometries with the raster's value
+#'   column(s) and provenance attributes.
+#' @keywords internal
+#' @noRd
+raster_to_cell_polygons <- function(raster) {
+  polygons <- terra::as.polygons(raster, aggregate = FALSE, na.rm = FALSE)
+  reduced <- sf::st_as_sf(polygons)
+  copy_raster_provenance(reduced, raster)
 }

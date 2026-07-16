@@ -9,16 +9,24 @@ link(source, target, predicate = c("within", "intersects", "contains"))
 \arguments{
 \item{source}{An \code{sf} object (points or polygons), or a \code{data.frame} with
 \code{lon} and \code{lat} columns (assumed CRS 4326 / WGS 84). A \code{SpatRaster}
-routes to the raster-reduction path (not yet implemented).}
+\code{source} is reduced to its cell-centroid points (carrying the raster's
+value column(s), NA cells dropped) before the join.}
 
-\item{target}{An \code{sf} object, typically polygons.}
+\item{target}{An \code{sf} object, typically polygons. A \code{SpatRaster} \code{target}
+is reduced to per-cell bounding-box polygons (carrying the raster's value
+column(s)) before the join, so each source point lands in the polygon of
+the cell that contains it (equivalent to raster sampling).}
 
 \item{predicate}{Character. Spatial join predicate: \code{"within"} (default),
 \code{"intersects"}, or \code{"contains"}. Note: simplified boundary data (e.g.
 municipal boundaries retrieved with \code{simplify = TRUE}) often needs
 \code{"intersects"}, because \code{"within"} misses matches against generalized
 borders. For very complex geometry, simplify first
-(retrieve with \code{simplify = TRUE}, or \code{sf::st_simplify()}) then link.}
+(retrieve with \code{simplify = TRUE}, or \code{sf::st_simplify()}) then link.
+\code{predicate = "within"} with a polygon \code{source} and point \code{target} is
+geometrically degenerate (a polygon is never "within" a point): every
+row will be unmatched (NA), and \code{link()} emits a warning before running
+the join. The join still runs and the return shape is unchanged.}
 }
 \value{
 A \code{\link[tibble:tibble]{tibble::tibble()}} with the source's non-geometry columns, the
@@ -28,9 +36,9 @@ follow \code{sf::st_join()}'s default \code{.x}/\code{.y} suffixing.
 }
 \description{
 Joins a source layer to a target layer using a spatial predicate. Covers
-point-in-polygon and polygon-to-polygon joins. Raster sources are planned
-(reduced to centroids per the package's raster linking model) but not yet
-implemented.
+point-in-polygon and polygon-to-polygon joins, plus raster sources and
+targets via the package's raster linking model (rasters are reduced to
+vector geometries and delegated to the vector join path).
 }
 \examples{
 if (interactive()) {

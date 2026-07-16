@@ -176,6 +176,72 @@ retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE) {
   )
 }
 
+#' Retrieve a synthetic coarse air-quality raster
+#'
+#' Generates a deterministic synthetic `SpatRaster` of ground-level PM2.5
+#' (micrograms per cubic metre) covering Ontario. No raster source exists in
+#' the Ontario GeoHub registry (every registered source is vector), so this
+#' function provides a reproducible raster surface to exercise the package's
+#' raster linking and mapping paths end-to-end.
+#'
+#' Values are a pure, deterministic function of each cell's centroid
+#' coordinates: a smooth north-to-south gradient (higher over the populated
+#' south) plus two fixed Gaussian hotspots near Toronto and Ottawa. There is
+#' no random component, so two calls return identical rasters.
+#'
+#' @param refresh Logical. Accepted for signature uniformity with the other
+#'   `retrieve_*()` functions but unused: synthetic data is computed on demand
+#'   and needs no cache or network access. Defaults to `FALSE`.
+#'
+#' @return A single-layer `SpatRaster` (layer `"pm25"`) in EPSG:4326 spanning
+#'   the Ontario bounding box, with `source_name`, `source_url`, and
+#'   `retrieved_at` R attributes attached for provenance. Note that terra
+#'   operations may drop these attributes; downstream code reads them through
+#'   an NA-safe fallback.
+#'
+#' @examples
+#' if (interactive()) {
+#'   r <- retrieve_synthetic_raster()
+#'   terra::plot(r)
+#' }
+#'
+#' @export
+retrieve_synthetic_raster <- function(refresh = FALSE) {
+  r <- terra::rast(
+    xmin = -95.2, xmax = -74.3, ymin = 41.7, ymax = 56.9,
+    ncols = 42, nrows = 30,
+    crs = "EPSG:4326"
+  )
+
+  coords <- terra::crds(r, na.rm = FALSE)
+  lon <- coords[, 1]
+  lat <- coords[, 2]
+
+  ymin <- 41.7
+  ymax <- 56.9
+  south_fraction <- (ymax - lat) / (ymax - ymin)
+  base <- 4 + 5 * south_fraction
+
+  gaussian <- function(clon, clat, amp, sigma) {
+    amp * exp(-((lon - clon)^2 + (lat - clat)^2) / (2 * sigma^2))
+  }
+  toronto <- gaussian(-79.4, 43.7, amp = 5, sigma = 0.8)
+  ottawa <- gaussian(-75.7, 45.4, amp = 3.5, sigma = 0.8)
+
+  pm25 <- base + toronto + ottawa
+  pm25 <- pmin(pmax(pm25, 3), 15)
+
+  terra::values(r) <- pm25
+  names(r) <- "pm25"
+  terra::varnames(r) <- "pm25"
+
+  attr(r, "source_name") <- "Synthetic Air Quality Surface (PM2.5)"
+  attr(r, "source_url") <- "synthetic://ongeor/pm25"
+  attr(r, "retrieved_at") <- Sys.time()
+
+  r
+}
+
 #' Retrieve MOH service locations
 #'
 #' Retrieves Ministry of Health service location points (hospitals, clinics,
@@ -212,4 +278,32 @@ retrieve_moh_service_locations <- function(service_type = NULL,
     refresh = refresh,
     paginate = TRUE
   )
+}
+
+#' Retrieve HIVE Grid boundaries
+#'
+#' Returns the built-in HIVE Grid dataset, a custom hierarchical polygon
+#' grid (Levels 1-3, 1629 features) maintained by the package author. Unlike
+#' the other `retrieve_*()` functions, this does not call a live web
+#' service: the data ships with the package as a static, pre-simplified
+#' `sf` object (see `data-raw/hive.R` for the reproducible prep pipeline
+#' that generated it from the author's source shapefile).
+#'
+#' @param refresh Logical. Accepted for signature uniformity with the other
+#'   `retrieve_*()` functions but unused: HIVE is a static built-in dataset
+#'   with no live source to re-fetch from. Defaults to `FALSE`.
+#'
+#' @return An `sf` object of HIVE Grid polygons (`GRID_ID`, `Level`,
+#'   `HIVE_ID` columns) in EPSG:4326, with `source_url`, `source_name`, and
+#'   `retrieved_at` attributes attached for provenance.
+#'
+#' @examples
+#' if (interactive()) {
+#'   hive <- retrieve_hive()
+#' }
+#'
+#' @export
+retrieve_hive <- function(refresh = FALSE) {
+  path <- system.file("extdata", "hive.rds", package = "ONgeoR")
+  readRDS(path)
 }

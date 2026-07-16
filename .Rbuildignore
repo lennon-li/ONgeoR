@@ -13,3 +13,5 @@
 ^\.claude$
 ^docs$
 ^ONgeoR\.png$
+^data$
+^data-raw$

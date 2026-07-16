@@ -78,11 +78,32 @@ test_that("link joins polygons to polygons with the intersects predicate", {
   expect_equal(result$target_url, "https://example.com/phu")
 })
 
-test_that("link aborts on a raster source (seam not yet implemented)", {
+test_that("link warns when predicate = within has a polygon source and point target", {
   phu <- make_synthetic_phu()
-  fake_raster <- structure(list(), class = "SpatRaster")
+  points <- sf::st_as_sf(
+    data.frame(point_id = 1, lon = -79.5, lat = 43.5),
+    coords = c("lon", "lat"), crs = 4326
+  )
 
-  expect_error(link(fake_raster, phu), "not yet implemented")
+  expect_warning(
+    result <- link(phu, points, predicate = "within"),
+    "matches nothing"
+  )
+  expect_equal(nrow(result), 2)
+  expect_true(all(is.na(result$point_id)))
+})
+
+test_that("link does not warn when source is points and target is polygons", {
+  phu <- make_synthetic_phu()
+  points <- data.frame(point_id = 1:2, lon = c(-79.5, -81.5), lat = c(43.5, 43.5))
+
+  expect_no_warning(link(points, phu, predicate = "within"))
+})
+
+test_that("link aborts on raster-to-raster linking", {
+  r <- retrieve_synthetic_raster()
+
+  expect_error(link(r, r), "raster-to-raster linking is not supported")
 })
 
 test_that("nearest returns the closest target per source (k = 1)", {

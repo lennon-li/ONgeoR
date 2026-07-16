@@ -7,9 +7,8 @@
 map_layers(..., colors = NULL)
 }
 \arguments{
-\item{...}{One or more \code{sf} objects (points or polygons). Arguments may be
-named; a name sets that layer's group label. A \code{SpatRaster} argument
-aborts (raster mapping is not yet implemented).}
+\item{...}{One or more \code{sf} objects (points or polygons) or \code{SpatRaster}
+objects. Arguments may be named; a name sets that layer's group label.}
 
 \item{colors}{Optional character vector of colors, one per layer (recycled if
 shorter). If \code{NULL} (default), distinct colors are assigned from a built-in
@@ -20,9 +19,9 @@ A \code{leaflet} htmlwidget.
 }
 \description{
 Draws each \code{sf} layer on a single leaflet map, dispatching on geometry type:
-polygons are drawn as filled outlines, points as circle markers. Layers get
-a toggle in a layers-control. Raster layers are planned but not yet
-implemented.
+polygons are drawn as filled outlines, points as circle markers. A
+\code{SpatRaster} layer is drawn as a coloured raster image with a legend.
+Layers get a toggle in a layers-control.
 }
 \examples{
 if (interactive()) {

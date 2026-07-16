@@ -3,14 +3,24 @@ NULL
 
 #' Retrieve a layer by source registry id
 #'
+#' Dispatches to the appropriate `retrieve_*()` function for a given source
+#' id, so callers can retrieve any registered layer without knowing which
+#' underlying retrieval function backs it.
+#'
 #' @param source_id Character scalar. A source id from [list_sources()].
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
-#'   from the live API.
+#'   from the live API. Defaults to `FALSE`.
 #'
-#' @return An `sf` object.
-#' @keywords internal
-#' @noRd
-retrieve_by_source_id <- function(source_id, refresh = FALSE) {
+#' @return An `sf` object, or a `SpatRaster` for raster sources (e.g.
+#'   `"synthetic_air_quality"`).
+#'
+#' @examples
+#' if (interactive()) {
+#'   phu <- retrieve_source("phu_boundaries")
+#' }
+#'
+#' @export
+retrieve_source <- function(source_id, refresh = FALSE) {
   switch(source_id,
     phu_boundaries = retrieve_phu(refresh = refresh),
     ontario_health_regions = retrieve_health_region(refresh = refresh),
@@ -19,6 +29,8 @@ retrieve_by_source_id <- function(source_id, refresh = FALSE) {
     airport_official = retrieve_airport(refresh = refresh),
     waste_management_site = retrieve_waste_management(refresh = refresh),
     moh_service_locations = retrieve_moh_service_locations(refresh = refresh),
+    synthetic_air_quality = retrieve_synthetic_raster(refresh = refresh),
+    hive = retrieve_hive(refresh = refresh),
     {
       valid_ids <- list_sources()$source_id
       rlang::abort(sprintf(
@@ -28,6 +40,19 @@ retrieve_by_source_id <- function(source_id, refresh = FALSE) {
       ))
     }
   )
+}
+
+#' Retrieve a layer by source registry id (internal alias)
+#'
+#' @param source_id Character scalar. A source id from [list_sources()].
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API.
+#'
+#' @return An `sf` object.
+#' @keywords internal
+#' @noRd
+retrieve_by_source_id <- function(source_id, refresh = FALSE) {
+  retrieve_source(source_id, refresh = refresh)
 }
 
 #' Retrieve distinct source layers
@@ -41,7 +66,7 @@ retrieve_by_source_id <- function(source_id, refresh = FALSE) {
 #' @noRd
 retrieve_layers <- function(source_ids, refresh = FALSE) {
   source_ids <- unique(source_ids)
-  layers <- lapply(source_ids, retrieve_by_source_id, refresh = refresh)
+  layers <- lapply(source_ids, retrieve_source, refresh = refresh)
   stats::setNames(layers, source_ids)
 }
 

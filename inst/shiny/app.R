@@ -17,13 +17,12 @@ color_choices <- c(
   "Gray" = "#898781"
 )
 
-# Basemap switching now happens on the map itself (a Leaflet layers
-# control), not via a sidebar input - see base_leaflet_layers() /
-# render_styled_map(). basemap_groups is the display order and the set of
-# radio options in that control; "Light" is added first so it's the default
-# active base layer. "None" has no associated tile layer - selecting it in
-# the control just leaves the map blank, which is the desired behavior.
-basemap_groups <- c("Light", "Dark", "OpenStreetMap", "Satellite", "None")
+# basemap_groups defines the display order for the native Leaflet control.
+# "None" intentionally has no associated tile layer.
+basemap_groups <- c(
+  "Light", "Dark", "OpenStreetMap", "Satellite",
+  "Topographic", "Streets", "Voyager", "None"
+)
 
 style_controls <- function(prefix) {
   tagList(
@@ -66,15 +65,16 @@ download_or_disabled <- function(ready, items) {
   }))
 }
 
-# Adds every basemap choice as its own named tile group so the Leaflet
-# layers control (added in render_styled_map) can switch between them
-# client-side, with no server round-trip. "Light" is added first, so it's
-# the default visible base layer; "None" intentionally has no tile layer.
+# Adds every real basemap choice as its own named tile group. "Light" is
+# added first, so it is the default visible base layer.
 base_leaflet_layers <- function(map) {
   map <- leaflet::addProviderTiles(map, "CartoDB.Positron", group = "Light")
   map <- leaflet::addProviderTiles(map, "CartoDB.DarkMatter", group = "Dark")
   map <- leaflet::addProviderTiles(map, "OpenStreetMap.Mapnik", group = "OpenStreetMap")
   map <- leaflet::addProviderTiles(map, "Esri.WorldImagery", group = "Satellite")
+  map <- leaflet::addProviderTiles(map, "Esri.WorldTopoMap", group = "Topographic")
+  map <- leaflet::addProviderTiles(map, "Esri.WorldStreetMap", group = "Streets")
+  map <- leaflet::addProviderTiles(map, "CartoDB.Voyager", group = "Voyager")
   map
 }
 
@@ -134,12 +134,36 @@ render_styled_map <- function(layers, style) {
   }
   # Only "Light" (added first, above) starts visible; hide the other real
   # tile groups so the layers control's radio behavior starts from a single
-  # clean default instead of stacking all four.
-  map <- leaflet::hideGroup(map, c("Dark", "OpenStreetMap", "Satellite"))
+  # clean default instead of stacking all tile layers.
+  map <- leaflet::hideGroup(
+    map,
+    c(
+      "Dark", "OpenStreetMap", "Satellite",
+      "Topographic", "Streets", "Voyager"
+    )
+  )
   leaflet::addLayersControl(
     map,
     baseGroups = basemap_groups,
     overlayGroups = names(layers),
+    options = leaflet::layersControlOptions(collapsed = FALSE)
+  )
+}
+
+add_nearest_connectors <- function(map, layers, connectors) {
+  if (is.null(connectors) || nrow(connectors) == 0) {
+    return(map)
+  }
+
+  map <- leaflet::addPolylines(
+    map,
+    data = connectors, group = "Connections",
+    color = "#52514e", weight = 1, opacity = 0.7, dashArray = "4,4"
+  )
+  leaflet::addLayersControl(
+    map,
+    baseGroups = basemap_groups,
+    overlayGroups = c(names(layers), "Connections"),
     options = leaflet::layersControlOptions(collapsed = FALSE)
   )
 }
@@ -191,6 +215,7 @@ nearest_layers <- function(source, target, k, max_dist_km) {
 ui <- bslib::page_navbar(
   title = tags$img(src = "logo.png", height = "144px", style = "vertical-align: middle;"),
   theme = bslib::bs_theme(version = 5, primary = "#2a78d6", success = "#0ca30c"),
+  header = tags$head(tags$link(rel = "stylesheet", href = "theme.css")),
   bslib::nav_panel(
     "Link",
     bslib::layout_sidebar(
@@ -408,20 +433,7 @@ server <- function(input, output, session) {
       layers[["Matched targets"]] <- nearest_result$matched_target
     }
     map <- render_styled_map(layers, style)
-    if (!is.null(nearest_result$connectors) && nrow(nearest_result$connectors) > 0) {
-      map <- leaflet::addPolylines(
-        map,
-        data = nearest_result$connectors, group = "Connections",
-        color = "#52514e", weight = 1, opacity = 0.7, dashArray = "4,4"
-      )
-      map <- leaflet::addLayersControl(
-        map,
-        baseGroups = basemap_groups,
-        overlayGroups = c(names(layers), "Connections"),
-        options = leaflet::layersControlOptions(collapsed = FALSE)
-      )
-    }
-    map
+    add_nearest_connectors(map, layers, nearest_result$connectors)
   })
 
   output$nearest_map <- renderLeaflet({

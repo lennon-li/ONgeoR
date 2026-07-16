@@ -1,0 +1,119 @@
+:root {
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --series-1: #2a78d6;
+  --series-2: #1baf7a;
+  --status-good: #0ca30c;
+}
+
+body {
+  background: var(--page);
+  color: var(--text-primary);
+}
+
+.bslib-sidebar-layout > .sidebar,
+.sidebar {
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar,
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.form-select,
+.form-control {
+  background: var(--page);
+  border-color: var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.nav-tabs,
+.navbar-nav {
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--grid);
+  border-radius: 0;
+  flex-grow: 1 !important;
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 0;
+  width: 100%;
+}
+
+.nav-tabs .nav-link,
+.navbar-nav .nav-link {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0;
+  color: var(--text-secondary);
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  padding: 0.35rem 0.7rem !important;
+  text-decoration: none !important;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  color: var(--text-primary);
+}
+
+.nav-link.active,
+.nav-tabs .nav-link.active,
+.navbar-nav .nav-link.active {
+  background: transparent !important;
+  border-bottom: 2px solid var(--series-1) !important;
+  color: var(--text-primary) !important;
+  text-decoration: none !important;
+}
+
+.btn-primary {
+  background: var(--series-1);
+  border: 0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-outline-secondary {
+  background: var(--page);
+  border-color: var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+  background: var(--surface-1);
+  border-color: var(--baseline);
+  color: var(--text-primary);
+}
+
+.form-label,
+.shiny-input-container > label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+  font-size: 12px;
+}

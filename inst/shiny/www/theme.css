@@ -38,6 +38,76 @@ body {
   font-size: 13px;
 }
 
+.selectize-input {
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: none;
+  font-size: 13px;
+}
+
+.selectize-input.focus {
+  border-color: var(--baseline);
+  box-shadow: none;
+}
+
+.selectize-dropdown {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.selectize-dropdown .option.active {
+  background: var(--page);
+  color: var(--text-primary);
+}
+
+.irs-grid,
+.irs-min,
+.irs-max {
+  display: none;
+}
+
+.irs--shiny .irs-line {
+  background: var(--grid);
+  border: 0;
+  height: 4px;
+  top: 20px;
+}
+
+.irs--shiny .irs-bar {
+  background: var(--series-1);
+  border: 0;
+  height: 4px;
+  top: 20px;
+}
+
+.irs--shiny .irs-handle,
+.irs--shiny .irs-handle:hover,
+.irs--shiny .irs-handle.state_hover {
+  background: var(--series-1);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+  height: 16px;
+  top: 14px;
+  width: 16px;
+}
+
+.irs--shiny .irs-single,
+.irs--shiny .irs-from,
+.irs--shiny .irs-to {
+  background: var(--series-1);
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.irs--shiny .irs-single::before,
+.irs--shiny .irs-from::before,
+.irs--shiny .irs-to::before {
+  border-top-color: var(--series-1);
+}
+
 .nav-tabs,
 .navbar-nav {
   align-items: stretch;
@@ -84,10 +154,22 @@ body {
 }
 
 .btn-primary {
-  background: var(--series-1);
+  background-color: var(--series-1) !important;
   border: 0;
+  border-color: var(--series-1) !important;
   border-radius: 8px;
   font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #2266bb !important;
+  border-color: #2266bb !important;
+}
+
+.navbar-brand img {
+  height: 36px;
+  width: auto;
 }
 
 .btn-outline-secondary {

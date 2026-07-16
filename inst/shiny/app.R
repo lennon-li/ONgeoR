@@ -33,7 +33,7 @@ style_controls <- function(prefix) {
     selectInput(paste0(prefix, "_point_color"), "Point color",
       choices = color_choices, selected = "#e34948"),
     sliderInput(paste0(prefix, "_point_size"), "Point size",
-      min = 2, max = 12, value = 5, step = 1),
+      min = 2, max = 12, value = 5, step = 1, ticks = FALSE),
     selectInput(paste0(prefix, "_point_shape"), "Point shape",
       choices = c("Circle" = "circle", "Square" = "square"), selected = "circle")
   )

@@ -26,3 +26,7 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Deliberately-untracked source/derived assets (see .Rbuildignore)
+/ONgeoR.png
+docs/superpowers/specs/*.html

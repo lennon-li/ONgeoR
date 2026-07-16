@@ -34,6 +34,12 @@ crosswalk → map workflow is implemented and live-verified.
 than app-driven, repeatably tested, and protected by CI before adding more data
 sources or raster support.
 
+**Immediate next action:** complete [GitHub issue #1 — v0.3 consolidation: make
+Shiny app package-driven and add validation](https://github.com/lennon-li/ONgeoR/issues/1).
+That issue is the implementation handoff for the P0 architectural cleanup,
+Shiny validation, and CI work below. Do not begin v0.4 expansion until its
+acceptance criteria pass and this roadmap is updated with evidence.
+
 ### P0 — Reconcile project state
 
 - [x] Remove completed v0.2 and Shiny MVP work from the pending task list.

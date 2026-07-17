@@ -61,30 +61,42 @@ lines between each source point and its nearest target.
 
 Workflow:
 
-1. **Source layer** -- Select the layer whose features are the starting points
-   (e.g. a set of clinic locations).
-2. **Target layer** -- Select the candidate layer to search within (e.g.
-   hospitals).
+1. **Source points** -- Upload a CSV of your own starting points using the
+   "Source points (CSV with lon/lat columns)" file input (e.g. a set of
+   clinic locations).
+2. **Target source** -- Select the registered candidate layer to search
+   within (e.g. MOH Service Locations).
 3. **k** -- Set the number of nearest targets to return per source point
    (default 1).
-4. **Max distance (km)** -- Optionally cap results to targets within this
-   radius. Leave blank for no cap.
-5. **Find Nearest** -- Click the button. The map shows connector lines from
-   each source to its nearest target(s), and the result table lists the
-   distances.
+4. **max_dist_km** -- Cap results to targets within this radius.
+5. **Preview on map / Find nearest** -- Preview draws the uploaded points
+   and target layer; Find nearest runs the search. The map shows connector
+   lines from each source to its nearest target(s), and the result table
+   lists the distances.
 
 ## Download buttons
 
-After either operation completes, three download buttons become available:
+Each tab has its own download buttons, which become available after the
+corresponding operation completes.
+
+Link tab:
 
 | Button | Output |
 |---|---|
-| **Download map** | `map.html` -- a self-contained Leaflet widget (no server required) |
-| **Download crosswalk** | `crosswalk.csv` -- the linked or nearest-match table |
+| **Download map** | `map.html` -- the Leaflet map as a standalone HTML file |
+| **Download results** | `crosswalk.csv` (or `linked.csv` for raster linking) |
 | **Download script** | `reproduce.R` -- an R script that reproduces the result from scratch |
 
-The `map.html` file embeds all JavaScript and tile data so it can be shared
-with colleagues who do not have R installed.
+Find Nearest tab:
+
+| Button | Output |
+|---|---|
+| **Download map** | `map.html` -- the Leaflet map as a standalone HTML file |
+| **Download results** | `nearest.csv` -- the nearest-match table |
+
+The `map.html` file embeds the widget's JavaScript and data, so it opens
+without R installed; note the basemap tiles are still fetched from the tile
+provider, so viewing it requires network access.
 
 ## A note on automated testing
 

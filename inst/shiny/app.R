@@ -1,6 +1,22 @@
 library(shiny)
 library(bslib)
 library(leaflet)
+library(promises)
+library(future)
+library(DT)
+
+# ExtendedTask (used for all async flows below) needs shiny >= 1.8.0.
+if (utils::packageVersion("shiny") < "1.8.0") {
+  stop(
+    "The ONgeoR Shiny app requires shiny >= 1.8.0 (for ExtendedTask); ",
+    "installed: ", utils::packageVersion("shiny")
+  )
+}
+
+# plan() returns the previous plan; restore it when the app stops so a
+# multisession plan does not leak into the caller's R session.
+.previous_future_plan <- future::plan(future::multisession)
+shiny::onStop(function() future::plan(.previous_future_plan))
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
@@ -556,7 +572,7 @@ ui <- bslib::page_navbar(
         ),
         bslib::nav_panel(
           "Data",
-          tableOutput("cw_table")
+          DT::dataTableOutput("cw_table")
         )
       )
     )
@@ -586,7 +602,8 @@ ui <- bslib::page_navbar(
           )
         ),
         numericInput("k", "k", value = 1, min = 1),
-        numericInput("max_dist_km", "max_dist_km", value = 50, min = 0),
+        numericInput("max_dist_km", "max_dist_km", value = NA, min = 0),
+        helpText("Leave blank for no distance cap."),
         actionButton("nearest_preview_btn", "Preview on map", class = "btn-preview w-100 mb-1"),
         actionButton("nearest_btn", "Find nearest", class = "btn-primary"),
         tags$hr(),
@@ -615,7 +632,7 @@ ui <- bslib::page_navbar(
         ),
         bslib::nav_panel(
           "Data",
-          tableOutput("nearest_table")
+          DT::dataTableOutput("nearest_table")
         )
       )
     )
@@ -623,6 +640,86 @@ ui <- bslib::page_navbar(
 )
 
 server <- function(input, output, session) {
+
+  # --- Async tasks (ExtendedTask; requires shiny >= 1.8.0) -----------
+
+  preview_task <- shiny::ExtendedTask$new(function(base_id, overlay_id) {
+    promises::future_promise({
+      base_sf    <- ONgeoR::retrieve_source(base_id)
+      overlay_sf <- ONgeoR::retrieve_source(overlay_id)
+      list(base_sf = base_sf, overlay_sf = overlay_sf,
+           base_id = base_id, overlay_id = overlay_id)
+    })
+  })
+
+  build_task <- shiny::ExtendedTask$new(function(base_id, overlay_id, method) {
+    promises::future_promise({
+      base_sf    <- ONgeoR::retrieve_source(base_id)
+      overlay_sf <- ONgeoR::retrieve_source(overlay_id)
+      base_kind    <- layer_geom(base_sf)
+      overlay_kind <- layer_geom(overlay_sf)
+      if (base_kind == "raster" || overlay_kind == "raster") {
+        # Rasters are not crosswalk-able; route to link(), which is
+        # raster-aware. Order so the raster sits where link()'s reduction is
+        # semantically right: a raster SOURCE reduces to cell-centroid points
+        # (raster + polygon case, cells into boundaries), a raster TARGET
+        # reduces to cell polygons (point + raster case, sampling).
+        # Both-raster is aborted by link() itself and surfaces via the
+        # tryCatch in the status observer.
+        if ("polygon" %in% c(base_kind, overlay_kind)) {
+          if (base_kind == "raster") {
+            from_sf <- base_sf; to_sf <- overlay_sf
+          } else {
+            from_sf <- overlay_sf; to_sf <- base_sf
+          }
+        } else {
+          if (base_kind == "raster") {
+            from_sf <- overlay_sf; to_sf <- base_sf
+          } else {
+            from_sf <- base_sf; to_sf <- overlay_sf
+          }
+        }
+        linked <- ONgeoR::link(from_sf, to_sf, predicate = "within")
+        list(crosswalk = NULL, linked = linked,
+             base_sf = base_sf, overlay_sf = overlay_sf)
+      } else {
+        # Universal direction rule: every crosswalk row assigns an overlay
+        # unit to the base polygon it belongs to (overlay is always from,
+        # base always to) - e.g. each airport polygon is assigned to its
+        # health unit, never the reverse.
+        from_sf   <- overlay_sf
+        to_sf     <- base_sf
+        crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = method)
+        list(crosswalk = crosswalk, linked = NULL,
+             base_sf = base_sf, overlay_sf = overlay_sf)
+      }
+    })
+  })
+
+  nearest_preview_task <- shiny::ExtendedTask$new(function(csv_path, target_id) {
+    promises::future_promise({
+      points <- utils::read.csv(csv_path)
+      if (!all(c("lon", "lat") %in% names(points))) {
+        rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
+      }
+      source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
+      target_sf <- ONgeoR::retrieve_source(target_id)
+      list(source_sf = source_sf, target_sf = target_sf)
+    })
+  })
+
+  nearest_task <- shiny::ExtendedTask$new(function(csv_path, target_id, k_val, max_dist_km_val) {
+    promises::future_promise({
+      points <- utils::read.csv(csv_path)
+      if (!all(c("lon", "lat") %in% names(points))) {
+        rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
+      }
+      source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
+      target_sf <- ONgeoR::retrieve_source(target_id)
+      nearest_layers(source_sf, target_sf, k = k_val, max_dist_km = max_dist_km_val)
+    })
+  })
+
   # --- Link tab -------------------------------------------------------
 
   observeEvent(input$base_layer, {
@@ -730,8 +827,12 @@ server <- function(input, output, session) {
     point_point <- is_facility_source(input$base_layer) && is_facility_source(input$overlay_source)
     previewed_current <- identical(cw_result$previewed, c(input$base_layer, input$overlay_source))
     enabled <- previewed_current && !point_point
+    build_running <- identical(build_task$status(), "running")
 
-    if (enabled) {
+    if (build_running) {
+      tags$button("Running...", type = "button",
+        class = "btn btn-primary w-100", disabled = "disabled")
+    } else if (enabled) {
       actionButton("build_btn", "Link", class = "btn-primary w-100")
     } else if (point_point) {
       tagList(
@@ -749,105 +850,66 @@ server <- function(input, output, session) {
   # Unlike build_btn, this has no point-point guard - previewing two point
   # layers is just mapping, with no containment semantics involved - and no
   # raster/method branching, since it never calls build_crosswalk()/link().
+  observe({
+    label <- if (identical(preview_task$status(), "running")) "Running..." else "Preview on map"
+    updateActionButton(session, "preview_btn", label = label)
+  })
+
   observeEvent(input$preview_btn, {
     req(input$base_layer, input$overlay_source)
-
-    withProgress(message = "Retrieving layers", value = 0.2, {
-      tryCatch({
-        base_sf <- ONgeoR::retrieve_source(input$base_layer)
-        incProgress(0.4)
-        overlay_sf <- ONgeoR::retrieve_source(input$overlay_source)
-        incProgress(0.4)
-
-        cw_result$base_sf <- base_sf
-        cw_result$overlay_sf <- overlay_sf
-        # A fresh preview invalidates any stale link results - the Data tab
-        # goes empty and the crosswalk/linked-csv and reproduce.R downloads
-        # disable until Link is run again.
-        cw_result$crosswalk <- NULL
-        cw_result$linked <- NULL
-        # Records exactly what was previewed, so the Link button's renderUI
-        # can require the current picker values to match before enabling -
-        # changing either picker after a preview re-greys Link. Only set on
-        # success; an error path below leaves this untouched.
-        cw_result$previewed <- c(input$base_layer, input$overlay_source)
-
-        # Every successful preview shows the pairing-info modal (styled with
-        # a logo + info-sign header); a failed preview does not, since this
-        # runs only after the tryCatch body's happy path completes.
-        kinds <- c(geom_kind(input$base_layer), geom_kind(input$overlay_source))
-        showModal(pairing_info_modal(kinds))
-      }, error = function(e) {
-        showNotification(conditionMessage(e), type = "error", duration = NULL)
-      })
-    })
+    preview_task$invoke(input$base_layer, input$overlay_source)
   })
+
+  observeEvent(preview_task$status(), {
+    s <- preview_task$status()
+    if (!s %in% c("success", "error")) return()
+    result <- tryCatch(preview_task$result(), error = function(e) e)
+    if (inherits(result, "error")) {
+      showNotification(conditionMessage(result), type = "error", duration = NULL)
+      return()
+    }
+    cw_result$base_sf <- result$base_sf
+    cw_result$overlay_sf <- result$overlay_sf
+    # A fresh preview invalidates any stale link results - the Data tab
+    # goes empty and the crosswalk/linked-csv and reproduce.R downloads
+    # disable until Link is run again.
+    cw_result$crosswalk <- NULL
+    cw_result$linked <- NULL
+    # Records exactly what was previewed, so the Link button's renderUI
+    # can require the current picker values to match before enabling -
+    # changing either picker after a preview re-greys Link. Only set on
+    # success; an error path below leaves this untouched.
+    cw_result$previewed <- c(result$base_id, result$overlay_id)
+    # Every successful preview shows the pairing-info modal (styled with
+    # a logo + info-sign header); a failed preview does not, since this
+    # runs only after the tryCatch body's happy path completes.
+    kinds <- c(geom_kind(result$base_id), geom_kind(result$overlay_id))
+    showModal(pairing_info_modal(kinds))
+  }, ignoreInit = TRUE)
 
   observeEvent(input$build_btn, {
     req(input$base_layer, input$overlay_source)
-
     # Point-to-point containment is undefined; the Link button's renderUI
     # (build_btn_ui) keeps Link permanently disabled for this pair, so the
     # on-click redirect notice that used to live here is no longer reachable
     # and has been removed - see link_method_ui for the still-shown
     # point-point explanatory message.
-    withProgress(message = "Linking", value = 0.2, {
-      tryCatch({
-        base_sf <- ONgeoR::retrieve_source(input$base_layer)
-        incProgress(0.3)
-        overlay_sf <- ONgeoR::retrieve_source(input$overlay_source)
-        incProgress(0.3)
-
-        base_kind <- layer_geom(base_sf)
-        overlay_kind <- layer_geom(overlay_sf)
-
-        if (base_kind == "raster" || overlay_kind == "raster") {
-          # Rasters are not crosswalk-able; route to link(), which is
-          # raster-aware. Order so the raster sits where link()'s reduction is
-          # semantically right: a raster SOURCE reduces to cell-centroid points
-          # (raster + polygon case, cells into boundaries), a raster TARGET
-          # reduces to cell polygons (point + raster case, sampling). Both-raster
-          # is aborted by link() itself and surfaces via the tryCatch below.
-          if ("polygon" %in% c(base_kind, overlay_kind)) {
-            if (base_kind == "raster") {
-              from_sf <- base_sf; to_sf <- overlay_sf
-            } else {
-              from_sf <- overlay_sf; to_sf <- base_sf
-            }
-          } else {
-            if (base_kind == "raster") {
-              from_sf <- overlay_sf; to_sf <- base_sf
-            } else {
-              from_sf <- base_sf; to_sf <- overlay_sf
-            }
-          }
-          cw_result$linked <- ONgeoR::link(from_sf, to_sf, predicate = "within")
-          cw_result$crosswalk <- NULL
-        } else {
-          method <- input$method %||% "within"
-          # Universal direction rule: every crosswalk row assigns an overlay
-          # unit to the base polygon it belongs to (base = large container,
-          # overlay = the content laid over it), so the overlay is always
-          # `from` and the base always `to` - e.g. each airport polygon is
-          # assigned to its health unit, never the reverse. This subsumes the
-          # old facility-only reorder (a point overlay is just a special
-          # case), and if the slots are inverted (points as base),
-          # build_crosswalk()'s own direction guard corrects the join and
-          # says so.
-          from_sf <- overlay_sf
-          to_sf <- base_sf
-          cw_result$crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = method)
-          cw_result$linked <- NULL
-        }
-
-        cw_result$base_sf <- base_sf
-        cw_result$overlay_sf <- overlay_sf
-        incProgress(0.2)
-      }, error = function(e) {
-        showNotification(conditionMessage(e), type = "error", duration = NULL)
-      })
-    })
+    build_task$invoke(input$base_layer, input$overlay_source, input$method %||% "within")
   })
+
+  observeEvent(build_task$status(), {
+    s <- build_task$status()
+    if (!s %in% c("success", "error")) return()
+    result <- tryCatch(build_task$result(), error = function(e) e)
+    if (inherits(result, "error")) {
+      showNotification(conditionMessage(result), type = "error", duration = NULL)
+      return()
+    }
+    cw_result$crosswalk   <- result$crosswalk
+    cw_result$linked      <- result$linked
+    cw_result$base_sf     <- result$base_sf
+    cw_result$overlay_sf  <- result$overlay_sf
+  }, ignoreInit = TRUE)
 
   link_map <- reactive({
     req(cw_result$base_sf, cw_result$overlay_sf)
@@ -865,11 +927,11 @@ server <- function(input, output, session) {
   # Shows whichever mode the last run produced: a crosswalk (build_crosswalk)
   # or a linked values table (raster runs via link()); the coverage column of a
   # largest_overlap crosswalk shows here naturally.
-  output$cw_table <- renderTable({
+  output$cw_table <- DT::renderDataTable({
     tbl <- cw_result$crosswalk %||% cw_result$linked
     req(tbl)
-    utils::head(tbl, 100)
-  })
+    tbl
+  }, rownames = FALSE, options = list(scrollX = TRUE, pageLength = 25))
 
   output$dl_cw_csv <- downloadHandler(
     filename = function() if (!is.null(cw_result$linked)) "linked.csv" else "crosswalk.csv",
@@ -935,55 +997,57 @@ server <- function(input, output, session) {
   # or connectors yet - nearest_map() draws the target under its own
   # "Target source" group (styled with the target accent) whenever
   # preview_target is set and matched_target is NULL.
+  observe({
+    label <- if (identical(nearest_preview_task$status(), "running")) "Running..." else "Preview on map"
+    updateActionButton(session, "nearest_preview_btn", label = label)
+  })
+
   observeEvent(input$nearest_preview_btn, {
     req(input$points_csv, input$target_source)
-    withProgress(message = "Retrieving layers", value = 0.2, {
-      tryCatch({
-        points <- utils::read.csv(input$points_csv$datapath)
-        if (!all(c("lon", "lat") %in% names(points))) {
-          rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
-        }
-        source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
-        incProgress(0.3)
-        target_sf <- ONgeoR::retrieve_source(input$target_source)
-        incProgress(0.5)
+    nearest_preview_task$invoke(input$points_csv$datapath, input$target_source)
+  })
 
-        nearest_result$source_sf <- source_sf
-        nearest_result$preview_target <- target_sf
-        nearest_result$table <- NULL
-        nearest_result$matched_target <- NULL
-        nearest_result$connectors <- NULL
-      }, error = function(e) {
-        showNotification(conditionMessage(e), type = "error", duration = NULL)
-      })
-    })
+  observeEvent(nearest_preview_task$status(), {
+    s <- nearest_preview_task$status()
+    if (!s %in% c("success", "error")) return()
+    result <- tryCatch(nearest_preview_task$result(), error = function(e) e)
+    if (inherits(result, "error")) {
+      showNotification(conditionMessage(result), type = "error", duration = NULL)
+      return()
+    }
+    nearest_result$source_sf     <- result$source_sf
+    nearest_result$preview_target <- result$target_sf
+    nearest_result$table         <- NULL
+    nearest_result$matched_target <- NULL
+    nearest_result$connectors    <- NULL
+  }, ignoreInit = TRUE)
+
+  observe({
+    label <- if (identical(nearest_task$status(), "running")) "Running..." else "Find nearest"
+    updateActionButton(session, "nearest_btn", label = label)
   })
 
   observeEvent(input$nearest_btn, {
     req(input$points_csv, input$target_source)
-    withProgress(message = "Finding nearest", value = 0.2, {
-      tryCatch({
-        points <- utils::read.csv(input$points_csv$datapath)
-        if (!all(c("lon", "lat") %in% names(points))) {
-          rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
-        }
-        source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
-        incProgress(0.2)
-        target_sf <- ONgeoR::retrieve_source(input$target_source)
-        incProgress(0.3)
-        built <- nearest_layers(source_sf, target_sf, k = input$k, max_dist_km = input$max_dist_km)
-        nearest_result$table <- built$table
-        nearest_result$source_sf <- built$source
-        nearest_result$matched_target <- built$matched_target
-        nearest_result$connectors <- built$connectors
-        # A completed match supersedes any preview target layer.
-        nearest_result$preview_target <- NULL
-        incProgress(0.3)
-      }, error = function(e) {
-        showNotification(conditionMessage(e), type = "error", duration = NULL)
-      })
-    })
+    max_dist_km_val <- if (is.na(input$max_dist_km) || is.null(input$max_dist_km)) NULL else input$max_dist_km
+    nearest_task$invoke(input$points_csv$datapath, input$target_source, input$k, max_dist_km_val)
   })
+
+  observeEvent(nearest_task$status(), {
+    s <- nearest_task$status()
+    if (!s %in% c("success", "error")) return()
+    result <- tryCatch(nearest_task$result(), error = function(e) e)
+    if (inherits(result, "error")) {
+      showNotification(conditionMessage(result), type = "error", duration = NULL)
+      return()
+    }
+    nearest_result$table          <- result$table
+    nearest_result$source_sf      <- result$source
+    nearest_result$matched_target <- result$matched_target
+    nearest_result$connectors     <- result$connectors
+    # A completed match supersedes any preview target layer.
+    nearest_result$preview_target <- NULL
+  }, ignoreInit = TRUE)
 
   nearest_map <- reactive({
     req(nearest_result$source_sf)
@@ -1010,10 +1074,10 @@ server <- function(input, output, session) {
   output$nearest_map <- renderLeaflet({
     nearest_map()
   })
-  output$nearest_table <- renderTable({
+  output$nearest_table <- DT::renderDataTable({
     req(nearest_result$table)
-    utils::head(nearest_result$table, 100)
-  })
+    nearest_result$table
+  }, rownames = FALSE, options = list(scrollX = TRUE, pageLength = 25))
 
   output$dl_nearest_csv <- downloadHandler(
     filename = function() "nearest.csv",

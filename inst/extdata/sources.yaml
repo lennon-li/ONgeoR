@@ -5,7 +5,7 @@ sources:
     geography_type: "boundary"
     feature_count: 34
     key_fields: ["PHU_ID", "PHU_NAME_ENG", "PHU_NAME_FR"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/44"
 
   ontario_health_regions:
@@ -14,7 +14,7 @@ sources:
     geography_type: "boundary"
     feature_count: 6
     key_fields: ["OH_REGION_ID", "ENGLISH_NAME", "FRENCH_NAME"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/52"
 
   municipal_upper:
@@ -23,7 +23,7 @@ sources:
     geography_type: "boundary"
     feature_count: 98
     key_fields: ["MUNID", "MUNICIPAL_NAME", "MUNICIPAL_TYPE"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open03/MapServer/13"
 
   municipal_lower:
@@ -32,7 +32,7 @@ sources:
     geography_type: "boundary"
     feature_count: 685
     key_fields: ["MUNID", "MUNICIPAL_NAME", "MUNICIPAL_TYPE", "UPPER_TIER_MUNICIPALITY"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open03/MapServer/14"
 
   airport_official:
@@ -41,7 +41,7 @@ sources:
     geography_type: "boundary"
     feature_count: 403
     key_fields: ["AIRPORT_IDENT", "NAME", "AIRPORT_TYPE"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open05/MapServer/0"
 
   waste_management_site:
@@ -50,7 +50,7 @@ sources:
     geography_type: "boundary"
     feature_count: 813
     key_fields: ["SITE_NAME", "PRIMARY_CLASSIFICATION", "STATUS"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open08/MapServer/9"
 
   moh_service_locations:
@@ -59,8 +59,26 @@ sources:
     geography_type: "facility"
     feature_count: 11625
     key_fields: ["MOH_SERVICE_PROVIDER_IDENT", "SERVICE_TYPE", "ENGLISH_NAME", "POSTAL_CODE"]
-    license: "Open Government Licence – Ontario"
+    license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/26"
+
+  conservation_authority:
+    name: "Conservation Authority Admin Area"
+    service_layer: "LIO_Open03/11"
+    geography_type: "boundary"
+    feature_count: 36
+    key_fields: ["CA_ID", "LEGAL_NAME", "COMMON_NAME"]
+    license: "Open Government Licence - Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open03/MapServer/11"
+
+  orwn_station:
+    name: "ORWN Station"
+    service_layer: "LIO_Open04/15"
+    geography_type: "facility"
+    feature_count: 671
+    key_fields: ["STENNAME", "STNTYPE", "TRACKNAME"]
+    license: "Open Government Licence - Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open04/MapServer/15"
 
   synthetic_air_quality:
     name: "Synthetic Air Quality Surface (PM2.5)"

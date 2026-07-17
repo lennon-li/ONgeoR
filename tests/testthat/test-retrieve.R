@@ -28,6 +28,24 @@ synthetic_waste_site_geojson <- paste0(
   "]}"
 )
 
+synthetic_conservation_authority_geojson <- paste0(
+  '{"type":"FeatureCollection","features":[',
+  '{"type":"Feature","properties":{"CA_ID":1,"LEGAL_NAME":"Test Conservation Authority","COMMON_NAME":"Test CA"},',
+  '"geometry":{"type":"Polygon","coordinates":[[[-80,44],[-79,44],[-79,43],[-80,43],[-80,44]]]}},',
+  '{"type":"Feature","properties":{"CA_ID":2,"LEGAL_NAME":"Another Conservation Authority","COMMON_NAME":"Another CA"},',
+  '"geometry":{"type":"Polygon","coordinates":[[[-82,44],[-81,44],[-81,43],[-82,43],[-82,44]]]}}',
+  "]}"
+)
+
+synthetic_orwn_station_geojson <- paste0(
+  '{"type":"FeatureCollection","features":[',
+  '{"type":"Feature","properties":{"STENNAME":"Union Station","STNTYPE":"Passenger","TRACKNAME":"Main Line"},',
+  '"geometry":{"type":"Point","coordinates":[-79.38,43.64]}},',
+  '{"type":"Feature","properties":{"STENNAME":"Oshawa GO","STNTYPE":"Commuter","TRACKNAME":"Lakeshore East"},',
+  '"geometry":{"type":"Point","coordinates":[-78.86,43.90]}}',
+  "]}"
+)
+
 synthetic_point_geojson <- function(ids) {
   features <- vapply(ids, function(id) {
     paste0(
@@ -609,4 +627,55 @@ test_that("fetch_lio_sf aborts paginated requests after the hard cap", {
   expect_match(conditionMessage(error), "20-page", fixed = TRUE)
   expect_match(conditionMessage(error), "MOH Service Location", fixed = TRUE)
   expect_match(conditionMessage(error), "LIO_Open09/26", fixed = TRUE)
+})
+
+test_that("retrieve_conservation_authority returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  ca <- httr2::with_mocked_responses(
+    mock_geojson_response(synthetic_conservation_authority_geojson),
+    retrieve_conservation_authority()
+  )
+
+  expect_s3_class(ca, "sf")
+  expect_equal(nrow(ca), 2)
+  expect_true(all(c("CA_ID", "LEGAL_NAME", "COMMON_NAME") %in% colnames(ca)))
+  expect_false(is.null(attr(ca, "source_url")))
+  expect_false(is.null(attr(ca, "retrieved_at")))
+  expect_equal(attr(ca, "source_name"), "Conservation Authority Admin Area")
+  expect_match(attr(ca, "source_url"), "LIO_Open03/MapServer/11")
+})
+
+test_that("retrieve_conservation_authority dispatches simplify argument", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  captured_url <- NULL
+  httr2::with_mocked_responses(
+    function(req) {
+      captured_url <<- req$url
+      mock_geojson_response(synthetic_conservation_authority_geojson)(req)
+    },
+    retrieve_conservation_authority(simplify = FALSE)
+  )
+  expect_no_match(captured_url, "maxAllowableOffset", fixed = TRUE)
+})
+
+test_that("retrieve_orwn_station returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  stations <- httr2::with_mocked_responses(
+    mock_geojson_response(synthetic_orwn_station_geojson),
+    retrieve_orwn_station()
+  )
+
+  expect_s3_class(stations, "sf")
+  expect_equal(nrow(stations), 2)
+  expect_true(all(c("STENNAME", "STNTYPE", "TRACKNAME") %in% colnames(stations)))
+  expect_false(is.null(attr(stations, "source_url")))
+  expect_false(is.null(attr(stations, "retrieved_at")))
+  expect_equal(attr(stations, "source_name"), "ORWN Station")
+  expect_match(attr(stations, "source_url"), "LIO_Open04/MapServer/15")
 })

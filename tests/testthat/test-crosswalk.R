@@ -135,6 +135,39 @@ test_that("build_crosswalk auto-reorder output has the documented column schema"
   expect_equal(colnames(crosswalk), expected_cols)
 })
 
+test_that("auto-reorder: matched facility has non-NA from_id and non-NA to_id (direction-sensitivity regression)", {
+  # Regression guard: without the direction fix, build_crosswalk(polygon, points)
+  # called link(polygon, points, predicate = "within"), which ran
+  # st_within(polygon, point) -- geometrically degenerate (a polygon is never
+  # "within" a point). Every matched column (including to_id) came back NA.
+  # The direction guard fixes this by calling link(to, from, ...) instead.
+  # After the fix, link(points, polygon) runs st_join(points, polygon, st_within),
+  # which adds the polygon boundary columns to each point row. Both from_id
+  # (boundary ID, from the reversed join target) and to_id (facility ID, from
+  # the reversed join source) must be non-NA for the inside facility.
+  layers <- make_synthetic_point_layers()
+
+  crosswalk <- suppressMessages(
+    build_crosswalk(layers$area, layers$facilities, method = "within")
+  )
+
+  inside_row <- crosswalk[crosswalk$to_id == "10", ]
+
+  # The direction guard must produce a valid, non-degenerate result.
+  expect_false(
+    is.na(inside_row$from_id),
+    label = "from_id must not be NA for the facility inside the boundary"
+  )
+  expect_false(
+    is.na(inside_row$to_id),
+    label = "to_id must not be NA for the matched facility"
+  )
+  # Confirm the actual matched boundary ID is correct.
+  expect_equal(inside_row$from_id, "100")
+  # Confirm the facility ID round-trips correctly through the reversed join.
+  expect_equal(inside_row$to_id, "10")
+})
+
 # --- helpers for polygon-to-polygon method tests ---------------------------
 
 make_two_base_layer <- function() {

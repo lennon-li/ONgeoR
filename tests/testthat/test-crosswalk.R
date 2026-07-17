@@ -151,7 +151,11 @@ test_that("auto-reorder: matched facility has non-NA from_id and non-NA to_id (d
     build_crosswalk(layers$area, layers$facilities, method = "within")
   )
 
-  inside_row <- crosswalk[crosswalk$to_id == "10", ]
+  # which() drops NA comparisons, so a degenerate all-NA to_id column yields
+  # zero matches (a clear failure) instead of an all-NA phantom row.
+  inside_idx <- which(crosswalk$to_id == "10")
+  expect_length(inside_idx, 1)
+  inside_row <- crosswalk[inside_idx, ]
 
   # The direction guard must produce a valid, non-degenerate result.
   expect_false(

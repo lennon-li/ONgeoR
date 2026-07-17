@@ -26,7 +26,10 @@ Imports:
     yaml
 Suggests:
     bslib,
+    DT,
+    future,
     knitr,
+    promises,
     rmarkdown,
     shiny,
     testthat (>= 3.0.0)

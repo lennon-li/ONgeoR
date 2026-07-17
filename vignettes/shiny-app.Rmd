@@ -1,0 +1,115 @@
+---
+title: "Launching and using the ONgeoR Shiny app"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Launching and using the ONgeoR Shiny app}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+ONgeoR ships a browser-based Shiny application that lets you build spatial
+crosswalks and run nearest-match searches without writing any R code. This
+vignette describes how to launch the app and use its two main tabs.
+
+## Launching the app
+
+Open a browser-based session with a single call:
+
+```{r launch, eval=FALSE}
+ONgeoR::run_app()
+```
+
+`run_app()` calls `shiny::runApp()` on the bundled app directory
+(`inst/shiny`). By default Shiny opens a browser tab automatically. You can
+pass additional arguments to control the port or host:
+
+```{r launch-port, eval=FALSE}
+ONgeoR::run_app(port = 4321, launch.browser = FALSE)
+```
+
+The app requires the `shiny` and `bslib` packages; `run_app()` checks for them
+at startup and prompts you to install them if they are missing.
+
+## The two tabs
+
+### Link tab
+
+The **Link** tab retrieves two registered Ontario GeoHub or LIO layers and
+links them spatially.
+
+Workflow:
+
+1. **Base layer** -- Select a source from the "Base layer" dropdown. This is
+   the layer whose features will be matched (e.g. Public Health Unit
+   boundaries).
+2. **Overlay source** -- Select a second source from the "Overlay source"
+   dropdown (e.g. MOH Service Locations).
+3. **Preview** -- Click **Preview** to retrieve both layers and draw them on
+   an interactive Leaflet map. Inspect the map to confirm the layers align as
+   expected before linking.
+4. **Link** -- Click **Link** to run `link()` against the two layers. The
+   result table appears below the map.
+
+### Find Nearest tab
+
+The **Find Nearest** tab performs a nearest-match search and draws connector
+lines between each source point and its nearest target.
+
+Workflow:
+
+1. **Source layer** -- Select the layer whose features are the starting points
+   (e.g. a set of clinic locations).
+2. **Target layer** -- Select the candidate layer to search within (e.g.
+   hospitals).
+3. **k** -- Set the number of nearest targets to return per source point
+   (default 1).
+4. **Max distance (km)** -- Optionally cap results to targets within this
+   radius. Leave blank for no cap.
+5. **Find Nearest** -- Click the button. The map shows connector lines from
+   each source to its nearest target(s), and the result table lists the
+   distances.
+
+## Download buttons
+
+After either operation completes, three download buttons become available:
+
+| Button | Output |
+|---|---|
+| **Download map** | `map.html` -- a self-contained Leaflet widget (no server required) |
+| **Download crosswalk** | `crosswalk.csv` -- the linked or nearest-match table |
+| **Download script** | `reproduce.R` -- an R script that reproduces the result from scratch |
+
+The `map.html` file embeds all JavaScript and tile data so it can be shared
+with colleagues who do not have R installed.
+
+## A note on automated testing
+
+The source picker dropdowns use selectize.js, a JavaScript-enhanced widget
+that wraps a standard HTML select element. When writing automated tests with
+`shinytest2`, the underlying input value can be set programmatically:
+
+```r
+# Works: sets the underlying Shiny input value
+app$set_inputs(base_layer = "phu_boundaries")
+```
+
+However, the visible selectize dropdown does not update its displayed text
+until the JavaScript layer processes the change. Tests that rely on the widget
+visually showing the selected value must follow the `set_inputs()` call with
+either `app$click()` on a trigger element or direct JavaScript injection via
+`app$execute_script()`.
+
+Because of this constraint, the ONgeoR test suite covers the **server-side
+logic** (retrieval, linking, nearest-match computation, and download
+generation) in isolation rather than driving the full UI flow through a
+headless browser. This is intentional: the spatial and data correctness
+properties are best tested at the function level, while UI integration tests
+would add fragility without exercising new logic paths.
+
+If you want to add UI-level coverage, `shinytest2::AppDriver` is the
+recommended approach. See `vignette("shinytest2", package = "shinytest2")` for
+details on recording and replaying interactions with selectize widgets.

@@ -4,7 +4,19 @@ library(leaflet)
 library(promises)
 library(future)
 library(DT)
-future::plan(future::multisession)
+
+# ExtendedTask (used for all async flows below) needs shiny >= 1.8.0.
+if (utils::packageVersion("shiny") < "1.8.0") {
+  stop(
+    "The ONgeoR Shiny app requires shiny >= 1.8.0 (for ExtendedTask); ",
+    "installed: ", utils::packageVersion("shiny")
+  )
+}
+
+# plan() returns the previous plan; restore it when the app stops so a
+# multisession plan does not leak into the caller's R session.
+.previous_future_plan <- future::plan(future::multisession)
+shiny::onStop(function() future::plan(.previous_future_plan))
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
@@ -919,7 +931,7 @@ server <- function(input, output, session) {
     tbl <- cw_result$crosswalk %||% cw_result$linked
     req(tbl)
     tbl
-  }, options = list(scrollX = TRUE, pageLength = 25))
+  }, rownames = FALSE, options = list(scrollX = TRUE, pageLength = 25))
 
   output$dl_cw_csv <- downloadHandler(
     filename = function() if (!is.null(cw_result$linked)) "linked.csv" else "crosswalk.csv",
@@ -1065,7 +1077,7 @@ server <- function(input, output, session) {
   output$nearest_table <- DT::renderDataTable({
     req(nearest_result$table)
     nearest_result$table
-  }, options = list(scrollX = TRUE, pageLength = 25))
+  }, rownames = FALSE, options = list(scrollX = TRUE, pageLength = 25))
 
   output$dl_nearest_csv <- downloadHandler(
     filename = function() "nearest.csv",

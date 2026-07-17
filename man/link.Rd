@@ -47,3 +47,9 @@ if (interactive()) {
 }
 
 }
+\seealso{
+The "What linking does, by layer types" section of
+\code{vignette("building-crosswalks", package = "ONgeoR")} tabulates which
+operation each pair of layer geometries selects (polygon/point/raster),
+including the raster sampling paths this function delegates to.
+}

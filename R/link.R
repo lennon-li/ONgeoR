@@ -29,6 +29,11 @@
 #'   provenance columns. Column-name collisions between source and target
 #'   follow `sf::st_join()`'s default `.x`/`.y` suffixing.
 #'
+#' @seealso The "What linking does, by layer types" section of
+#'   `vignette("building-crosswalks", package = "ONgeoR")` tabulates which
+#'   operation each pair of layer geometries selects (polygon/point/raster),
+#'   including the raster sampling paths this function delegates to.
+#'
 #' @examples
 #' if (interactive()) {
 #'   points <- data.frame(lon = -79.3832, lat = 43.6532)

@@ -4,27 +4,48 @@
 \alias{build_crosswalk}
 \title{Build an auditable crosswalk table between two geographic layers}
 \usage{
-build_crosswalk(from, to, method = c("within", "intersects"))
+build_crosswalk(
+  from,
+  to,
+  method = c("within", "intersects", "point_on_surface", "largest_overlap")
+)
 }
 \arguments{
 \item{from}{An \code{sf} object: the source layer (e.g. municipal boundaries).}
 
 \item{to}{An \code{sf} object: the target layer (e.g. PHU boundaries).}
 
-\item{method}{Character. Spatial join predicate: \code{"within"} (default) or
-\code{"intersects"}. If \code{method = "within"} and \code{from} is polygonal while
-\code{to} is point-type, the join direction is geometrically degenerate (a
-polygon is never "within" a point). In that case \code{build_crosswalk()}
-auto-corrects by joining \code{to} within \code{from} instead, emits an
-informative message, and builds the same output schema from the
-corrected join.}
+\item{method}{Character. Assignment rule for the crosswalk:
+\itemize{
+\item \code{"within"} (default) / \code{"intersects"}: spatial-join predicate. If
+\code{method = "within"} and \code{from} is polygonal while \code{to} is point-type,
+the join direction is geometrically degenerate (a polygon is never
+"within" a point). In that case \code{build_crosswalk()} auto-corrects by
+joining \code{to} within \code{from} instead, emits an informative message, and
+builds the same output schema from the corrected join.
+\item \code{"point_on_surface"}: representative-point assignment for point-like
+\code{from} polygons. Each \code{from} polygon is reduced to a single
+guaranteed-interior point (\code{sf::st_point_on_surface()}, not the
+centroid, which can fall outside a concave polygon) and joined
+\code{"within"} the \code{to} boundaries. \code{to} must be a polygon layer.
+\item \code{"largest_overlap"}: same-scale polygon-to-polygon assignment. Each
+\code{from} polygon is assigned to the single \code{to} polygon it shares the
+largest intersection area with, and the \code{coverage} column reports that
+winner's share of the \code{from} polygon's area. Both layers must be
+polygonal.
+}
+
+\code{build_crosswalk()} returns an assignment table only: it never emits or
+contains geometry. \code{"largest_overlap"} uses intersection internally as
+area arithmetic only.}
 }
 \value{
 A \code{\link[tibble:tibble]{tibble::tibble()}} with columns \code{from_id}, \code{from_name},
 \code{from_source}, \code{to_id}, \code{to_name}, \code{to_source}, \code{match_method},
 \code{match_distance_km} (always \code{NA}, reserved for nearest-neighbour
-matching in a future version), \code{source_url_from}, \code{source_url_to}, and
-\code{retrieved_at}.
+matching in a future version), \code{coverage} (the winner's area share for
+\code{"largest_overlap"}, otherwise \code{NA}), \code{source_url_from}, \code{source_url_to},
+and \code{retrieved_at}.
 }
 \description{
 Joins two \code{sf} layers (e.g. municipalities to Public Health Units) and
@@ -37,4 +58,10 @@ if (interactive()) {
   crosswalk <- build_crosswalk(upper_tier, phu, method = "within")
 }
 
+}
+\seealso{
+The "What linking does, by layer types" section of
+\code{vignette("building-crosswalks", package = "ONgeoR")} tabulates which
+operation each pair of layer geometries selects (polygon/point/raster),
+including where the \code{coverage} column comes from.
 }

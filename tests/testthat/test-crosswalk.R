@@ -33,11 +33,12 @@ test_that("build_crosswalk produces the documented output schema", {
   expected_cols <- c(
     "from_id", "from_name", "from_source",
     "to_id", "to_name", "to_source",
-    "match_method", "match_distance_km",
+    "match_method", "match_distance_km", "coverage",
     "source_url_from", "source_url_to", "retrieved_at"
   )
   expect_equal(colnames(crosswalk), expected_cols)
   expect_equal(nrow(crosswalk), 1)
+  expect_true(all(is.na(crosswalk$coverage)))
 })
 
 test_that("build_crosswalk populates provenance fields correctly", {
@@ -128,8 +129,175 @@ test_that("build_crosswalk auto-reorder output has the documented column schema"
   expected_cols <- c(
     "from_id", "from_name", "from_source",
     "to_id", "to_name", "to_source",
-    "match_method", "match_distance_km",
+    "match_method", "match_distance_km", "coverage",
     "source_url_from", "source_url_to", "retrieved_at"
   )
   expect_equal(colnames(crosswalk), expected_cols)
+})
+
+# --- helpers for polygon-to-polygon method tests ---------------------------
+
+make_two_base_layer <- function() {
+  square <- function(x0, x1, y0, y1) {
+    sf::st_polygon(list(rbind(
+      c(x0, y1), c(x1, y1), c(x1, y0), c(x0, y0), c(x0, y1)
+    )))
+  }
+  base <- sf::st_sf(
+    BASE_ID = c(1, 2),
+    BASE_NAME = c("Base A", "Base B"),
+    geometry = sf::st_sfc(
+      square(-80, -79, 43, 44),
+      square(-79, -78, 43, 44),
+      crs = 4326
+    )
+  )
+  attr(base, "source_name") <- "Synthetic Base Layer"
+  attr(base, "source_url") <- "https://example.com/base"
+  attr(base, "retrieved_at") <- as.POSIXct("2026-07-08 03:00:00", tz = "UTC")
+  base
+}
+
+square_sf <- function(x0, x1, y0, y1, id, name) {
+  poly <- sf::st_polygon(list(rbind(
+    c(x0, y1), c(x1, y1), c(x1, y0), c(x0, y0), c(x0, y1)
+  )))
+  from <- sf::st_sf(
+    FROM_ID = id,
+    FROM_NAME = name,
+    geometry = sf::st_sfc(poly, crs = 4326)
+  )
+  attr(from, "source_name") <- "Synthetic From Layer"
+  attr(from, "source_url") <- "https://example.com/from"
+  from
+}
+
+test_that("point_on_surface assigns small polygons to the containing base", {
+  base <- make_two_base_layer()
+  small_a <- sf::st_polygon(list(rbind(
+    c(-79.6, 43.6), c(-79.4, 43.6), c(-79.4, 43.4), c(-79.6, 43.4), c(-79.6, 43.6)
+  )))
+  small_b <- sf::st_polygon(list(rbind(
+    c(-78.6, 43.6), c(-78.4, 43.6), c(-78.4, 43.4), c(-78.6, 43.4), c(-78.6, 43.6)
+  )))
+  from <- sf::st_sf(
+    FROM_ID = c(1, 2),
+    FROM_NAME = c("Small A", "Small B"),
+    geometry = sf::st_sfc(small_a, small_b, crs = 4326)
+  )
+  attr(from, "source_name") <- "Synthetic From Layer"
+  attr(from, "source_url") <- "https://example.com/from"
+
+  crosswalk <- build_crosswalk(from, base, method = "point_on_surface")
+
+  expect_equal(nrow(crosswalk), 2)
+  expect_equal(crosswalk$match_method, rep("point_on_surface", 2))
+  expect_true(all(is.na(crosswalk$coverage)))
+  row_a <- crosswalk[crosswalk$from_id == "1", ]
+  row_b <- crosswalk[crosswalk$from_id == "2", ]
+  expect_equal(row_a$to_id, "1")
+  expect_equal(row_a$from_name, "Small A")
+  expect_equal(row_b$to_id, "2")
+})
+
+test_that("point_on_surface uses interior point, not centroid, for concave from", {
+  base <- make_two_base_layer()
+  # C-shaped polygon straddling the A/B boundary: its centroid lands in base A,
+  # but its guaranteed-interior point_on_surface point lands in base B.
+  concave <- sf::st_polygon(list(rbind(
+    c(-79.90, 43.05), c(-79.30, 43.05), c(-79.30, 43.35), c(-78.10, 43.35),
+    c(-78.10, 43.05), c(-78.05, 43.05), c(-78.05, 43.95), c(-78.10, 43.95),
+    c(-78.10, 43.65), c(-79.30, 43.65), c(-79.30, 43.95), c(-79.90, 43.95),
+    c(-79.90, 43.05)
+  )))
+  from <- sf::st_sf(
+    FROM_ID = 7,
+    FROM_NAME = "Concave",
+    geometry = sf::st_sfc(concave, crs = 4326)
+  )
+  attr(from, "source_name") <- "Synthetic From Layer"
+  attr(from, "source_url") <- "https://example.com/from"
+
+  # Document the centroid trap: the area centroid falls in base A (wrong).
+  centroid <- suppressWarnings(sf::st_centroid(sf::st_geometry(from)))
+  expect_true(lengths(sf::st_within(centroid, sf::st_geometry(base)[1])) > 0)
+
+  crosswalk <- build_crosswalk(from, base, method = "point_on_surface")
+
+  # point_on_surface point falls in base B, so the assignment must be base B.
+  expect_equal(crosswalk$to_id, "2")
+  expect_equal(crosswalk$match_method, "point_on_surface")
+})
+
+test_that("point_on_surface aborts when the to layer is point-type", {
+  base <- make_two_base_layer()
+  from <- square_sf(-79.6, -79.4, 43.4, 43.6, 1, "Small A")
+  points <- sf::st_sf(
+    P_ID = 5,
+    P_NAME = "A point",
+    geometry = sf::st_sfc(sf::st_point(c(-79.5, 43.5)), crs = 4326)
+  )
+
+  expect_error(
+    build_crosswalk(from, points, method = "point_on_surface"),
+    "polygon"
+  )
+})
+
+test_that("largest_overlap assigns to the base with the greatest overlap area", {
+  base <- make_two_base_layer()
+  # p1: 70% in base A, 30% in base B -> assigned A, coverage ~0.7
+  p1 <- sf::st_polygon(list(rbind(
+    c(-79.35, 43.6), c(-78.85, 43.6), c(-78.85, 43.4), c(-79.35, 43.4), c(-79.35, 43.6)
+  )))
+  # p2: fully inside base B -> coverage ~1
+  p2 <- sf::st_polygon(list(rbind(
+    c(-78.7, 43.6), c(-78.3, 43.6), c(-78.3, 43.4), c(-78.7, 43.4), c(-78.7, 43.6)
+  )))
+  # p3: overlaps nothing -> NA to_id, NA coverage
+  p3 <- sf::st_polygon(list(rbind(
+    c(-70, 43.6), c(-69, 43.6), c(-69, 43.4), c(-70, 43.4), c(-70, 43.6)
+  )))
+  from <- sf::st_sf(
+    FROM_ID = c(1, 2, 3),
+    FROM_NAME = c("Straddle", "Inside B", "Nowhere"),
+    geometry = sf::st_sfc(p1, p2, p3, crs = 4326)
+  )
+  attr(from, "source_name") <- "Synthetic From Layer"
+  attr(from, "source_url") <- "https://example.com/from"
+
+  crosswalk <- build_crosswalk(from, base, method = "largest_overlap")
+
+  expect_equal(nrow(crosswalk), 3)
+  expect_equal(crosswalk$match_method, rep("largest_overlap", 3))
+
+  r1 <- crosswalk[crosswalk$from_id == "1", ]
+  r2 <- crosswalk[crosswalk$from_id == "2", ]
+  r3 <- crosswalk[crosswalk$from_id == "3", ]
+
+  expect_equal(r1$to_id, "1")
+  expect_equal(r1$coverage, 0.7, tolerance = 0.05)
+  expect_equal(r2$to_id, "2")
+  expect_equal(r2$coverage, 1, tolerance = 0.05)
+  expect_true(is.na(r3$to_id))
+  expect_true(is.na(r3$coverage))
+})
+
+test_that("largest_overlap aborts when either layer is point-type", {
+  base <- make_two_base_layer()
+  from_poly <- square_sf(-79.6, -79.4, 43.4, 43.6, 1, "Small A")
+  points <- sf::st_sf(
+    P_ID = 5,
+    P_NAME = "A point",
+    geometry = sf::st_sfc(sf::st_point(c(-79.5, 43.5)), crs = 4326)
+  )
+
+  expect_error(
+    build_crosswalk(from_poly, points, method = "largest_overlap"),
+    "polygon"
+  )
+  expect_error(
+    build_crosswalk(points, base, method = "largest_overlap"),
+    "polygon"
+  )
 })

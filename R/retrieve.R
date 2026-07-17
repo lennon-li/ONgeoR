@@ -280,6 +280,63 @@ retrieve_moh_service_locations <- function(service_type = NULL,
   )
 }
 
+#' Retrieve Conservation Authority administrative areas
+#'
+#' Retrieves Conservation Authority administrative area boundaries from the LIO
+#' Open Data REST service (`LIO_Open03/11`).
+#'
+#' @param simplify Logical. If `TRUE` (the default), requests generalized
+#'   geometry from the service. Conservation Authority boundaries are
+#'   province-scale watersheds; simplification keeps the payload small without
+#'   losing analytic utility for most crosswalk use-cases.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
+#'
+#' @return An `sf` object of Conservation Authority boundary polygons, with
+#'   `source_url`, `source_name`, and `retrieved_at` attributes attached for
+#'   provenance.
+#'
+#' @examples
+#' if (interactive()) {
+#'   ca_areas <- retrieve_conservation_authority()
+#' }
+#'
+#' @export
+retrieve_conservation_authority <- function(simplify = TRUE, refresh = FALSE) {
+  fetch_lio_sf(
+    service_layer = "LIO_Open03/11",
+    source_name = "Conservation Authority Admin Area",
+    simplify = simplify,
+    refresh = refresh
+  )
+}
+
+#' Retrieve Ontario Railway Network (ORWN) station points
+#'
+#' Retrieves railway station point locations from the Ontario Railway Network
+#' (ORWN) via the LIO Open Data REST service (`LIO_Open04/15`).
+#'
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
+#'
+#' @return An `sf` object of ORWN station points, with `source_url`,
+#'   `source_name`, and `retrieved_at` attributes attached for provenance.
+#'
+#' @examples
+#' if (interactive()) {
+#'   stations <- retrieve_orwn_station()
+#' }
+#'
+#' @export
+retrieve_orwn_station <- function(refresh = FALSE) {
+  fetch_lio_sf(
+    service_layer = "LIO_Open04/15",
+    source_name = "ORWN Station",
+    simplify = FALSE,
+    refresh = refresh
+  )
+}
+
 #' Retrieve HIVE Grid boundaries
 #'
 #' Returns the built-in HIVE Grid dataset, a custom hierarchical polygon

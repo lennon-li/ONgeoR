@@ -45,7 +45,7 @@ URL pattern as existing sources, and require no additional package dependencies.
 
 ## 2. Remaining CSV Candidates - Propose Only
 
-These five rows have `include=FALSE` in `geohub-inventory.csv` but were not
+These three rows have `include=FALSE` in `geohub-inventory.csv` but were not
 implemented because their relevance is too low to justify the surface-area
 cost, or there are open questions about utility.
 

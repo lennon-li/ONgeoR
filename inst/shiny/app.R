@@ -2,13 +2,219 @@ library(shiny)
 library(bslib)
 library(leaflet)
 
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
 source_choices <- function() {
   sources <- ONgeoR::list_sources()
-  stats::setNames(sources$source_id, sources$name)
+  stats::setNames(sources$source_id, source_choice_labels(sources))
+}
+
+# Maps a source's registry geography_type to the display-label type suffix.
+source_type_suffix <- function(geography_type) {
+  switch(geography_type,
+    boundary = "Polygon",
+    facility = "Point",
+    raster   = "Raster",
+    geography_type)
+}
+
+# Appends "(Type)" to each source's display name, e.g.
+# "MOH Service Location (Point)". Used by both the flat and grouped choice
+# builders so labels stay consistent everywhere a source picker appears.
+source_choice_labels <- function(sources) {
+  sprintf("%s (%s)", sources$name, vapply(sources$geography_type, source_type_suffix, character(1)))
+}
+
+# Grouped-choices form for use with selectInput's optgroup support:
+# list("Polygons" = c(label = id, ...), "Points" = c(...), "Rasters" = c(...)).
+# Any geography_type outside boundary/facility/raster is bucketed into an
+# "Other" group, which is only added if such sources exist.
+source_choices_grouped <- function() {
+  sources <- ONgeoR::list_sources()
+  labels <- source_choice_labels(sources)
+  values <- stats::setNames(sources$source_id, labels)
+
+  group_of <- vapply(sources$geography_type, function(gt) {
+    switch(gt,
+      boundary = "Polygons",
+      facility = "Points",
+      raster   = "Rasters",
+      "Other")
+  }, character(1))
+
+  group_order <- c("Polygons", "Points", "Rasters", "Other")
+  groups <- lapply(group_order, function(g) values[group_of == g])
+  names(groups) <- group_order
+  groups[lengths(groups) > 0]
+}
+
+# Removes `exclude_id` from whichever group of a grouped-choices list
+# contains it, then drops any group left empty - used by the mutual-exclusion
+# observers so the two source pickers can never hold the same value while
+# still presenting grouped (optgroup) choices.
+remove_choice_grouped <- function(groups, exclude_id) {
+  groups <- lapply(groups, function(g) g[g != exclude_id])
+  groups[lengths(groups) > 0]
+}
+
+# First value in a grouped-choices list, in group order - used to pick a
+# fallback selection when the previously selected id has been excluded.
+first_choice_grouped <- function(groups) {
+  for (g in groups) {
+    if (length(g) > 0) return(g[[1]])
+  }
+  NULL
 }
 
 is_facility_source <- function(source_id) {
   identical(ONgeoR::get_source(source_id)$geography_type, "facility")
+}
+
+# Maps a source's registry geography_type to a small geometry kind token used
+# to drive the per-layer style controls and the relationship line.
+geom_kind <- function(source_id) {
+  switch(ONgeoR::get_source(source_id)$geography_type,
+    boundary = "polygon",
+    facility = "point",
+    raster   = "raster",
+    "polygon")
+}
+
+# Same kind token, derived from an already-retrieved layer object, so the style
+# read for the map always matches the geometry that will actually be drawn.
+layer_geom <- function(layer) {
+  if (inherits(layer, "SpatRaster")) {
+    return("raster")
+  }
+  geometry_types <- unique(as.character(sf::st_geometry_type(layer)))
+  if (all(geometry_types %in% c("POINT", "MULTIPOINT"))) "point" else "polygon"
+}
+
+# Colored badge descriptor for a source's registry geography_type.
+source_geom_label <- function(source_id) {
+  gt <- ONgeoR::get_source(source_id)$geography_type
+  switch(gt,
+    boundary = list(text = "Polygon", class = "geo-polygon"),
+    facility = list(text = "Point",   class = "geo-point"),
+    raster   = list(text = "Raster",  class = "geo-raster"),
+    list(text = gt, class = "geo-other"))
+}
+
+geo_badge <- function(source_id) {
+  lbl <- source_geom_label(source_id)
+  tags$span(class = paste("geo-badge", lbl$class), lbl$text)
+}
+
+# Full explanatory text shown in the pairing-info modal after every
+# successful preview (see the preview_btn observeEvent in the server).
+# `kinds` is the unsorted c(base_kind, overlay_kind) pair.
+pairing_explanation_text <- function(kinds) {
+  if ("raster" %in% kinds) {
+    paste("Raster linking samples cell values - no match rule to choose.",
+      "The output is a linked values table, not a crosswalk.")
+  } else if (all(kinds == "point")) {
+    paste("Both layers are points - containment linking does not apply.",
+      "Use the Find Nearest tab for point-to-point matching.")
+  } else if ("point" %in% kinds && "polygon" %in% kinds) {
+    "One layer is point facilities; each point is matched to the boundary it falls inside."
+  } else {
+    paste("Both layers are boundaries. Use \"Any overlap\" if either was",
+      "simplified/generalized - \"Fully inside\" can miss matches near",
+      "simplified edges. \"Treat overlay as points\" reduces each overlay",
+      "polygon to an interior point for a fast one-to-one assignment;",
+      "\"Assign by largest overlap\" gives each overlay polygon to the",
+      "boundary it shares the most area with (the coverage column reports",
+      "that share).")
+  }
+}
+
+# Builds the styled pairing-info modal shown after every successful preview.
+# Uses a custom header row (logo + info-sign icon + relationship title)
+# instead of modalDialog's plain `title`, so title = NULL and the header is
+# rendered as part of the body content, wrapped in class "info-modal" for the
+# CSS in theme.css to target. The information source sign is written as the
+# HTML entity &#8505; via HTML() rather than a literal unicode character, to
+# keep this file ASCII-only.
+pairing_info_modal <- function(kinds) {
+  modalDialog(
+    title = NULL,
+    tags$div(class = "info-modal",
+      tags$div(class = "info-modal-header",
+        tags$img(src = "logo.png", class = "info-modal-logo"),
+        tags$span(class = "info-modal-icon", HTML("&#8505;")),
+        tags$h4(relationship_text(kinds[1], kinds[2]))
+      ),
+      tags$p(pairing_explanation_text(kinds))
+    ),
+    footer = modalButton("OK"),
+    easyClose = FALSE
+  )
+}
+
+# One-line plain-language description of how two geometry kinds relate.
+relationship_text <- function(a, b) {
+  kinds <- c(a, b)
+  if (all(kinds == "polygon")) {
+    "Polygon overlap"
+  } else if ("raster" %in% kinds && "polygon" %in% kinds) {
+    "Raster-to-boundary"
+  } else if ("raster" %in% kinds && "point" %in% kinds) {
+    "Point-to-raster sampling"
+  } else if (all(kinds == "raster")) {
+    "Raster-to-raster"
+  } else if ("point" %in% kinds && "polygon" %in% kinds) {
+    "Point-in-boundary containment"
+  } else {
+    "Point-to-point"
+  }
+}
+
+# Owner-approved combination matrix. Rendered verbatim in the in-app "?" help
+# modal and mirrored in the crosswalks vignette + build_crosswalk()/link()
+# roxygen so all three places tell the same story. ASCII only.
+link_matrix_table <- function() {
+  row <- function(types, does, output) {
+    tags$tr(tags$td(types), tags$td(does), tags$td(output))
+  }
+  tagList(
+    tags$table(class = "link-matrix",
+      tags$thead(tags$tr(
+        tags$th("Layer types"), tags$th("What linking does"), tags$th("Output")
+      )),
+      tags$tbody(
+        row("Polygon base x Point overlay",
+          "Point-in-boundary containment (within); points are always the from side internally.",
+          "Crosswalk"),
+        row("Polygon x Polygon",
+          paste("Your choice of four rules: within / intersects /",
+            "point_on_surface (interior representative point, not centroid) /",
+            "largest_overlap (majority shared area; coverage 0-1 reports the",
+            "winner's share)."),
+          "Crosswalk"),
+        row("Point x Raster (either slot order)",
+          paste("Sampling - each point gets the value of the cell containing",
+            "it (cell treated as its bounding-box polygon)."),
+          "Linked values table"),
+        row("Raster x Polygon (either slot order)",
+          paste("Cell sampling into boundaries - raster reduced to",
+            "cell-centroid points, each assigned to its containing boundary",
+            "and carrying its value."),
+          "Linked values table"),
+        row("Point x Point",
+          paste("Nearest matching (Find Nearest tab; k, max distance) - not a",
+            "containment link."),
+          "Nearest table"),
+        row("Raster x Raster",
+          "Not supported; align/resample with terra first.",
+          "-")
+      )
+    ),
+    tags$p(class = "text-muted",
+      paste("Linking never creates or emits geometry - overlap areas are",
+        "internal arithmetic only. The coverage column is populated only by",
+        "largest_overlap, where it reports the winning boundary's share (0-1)",
+        "of the source polygon's area."))
+  )
 }
 
 color_choices <- c(
@@ -24,37 +230,89 @@ basemap_groups <- c(
   "Topographic", "Streets", "Voyager", "None"
 )
 
-style_controls <- function(prefix) {
+# Emits the geometry-specific style controls for a single layer slot. `prefix`
+# namespaces the input IDs (base/overlay/src/tgt); `geom` selects which set of
+# controls to show; `accent` (a color from color_choices) is the default for
+# that layer slot's primary color input(s), so a slot's map style starts out
+# matching its slot-accent color (blue for base/src, green for overlay/tgt).
+# Rendered dynamically so switching a source's geometry swaps its controls.
+layer_style_controls <- function(prefix, geom, accent = "#2a78d6") {
+  if (identical(geom, "raster")) {
+    tagList(
+      selectInput(paste0(prefix, "_raster_palette"), "Palette",
+        choices = c("Viridis", "Magma", "Blues"), selected = "Viridis"),
+      sliderInput(paste0(prefix, "_raster_opacity"), "Layer opacity",
+        min = 0, max = 1, value = 0.8, step = 0.05, ticks = FALSE)
+    )
+  } else if (identical(geom, "point")) {
+    tagList(
+      selectInput(paste0(prefix, "_point_color"), "Point color",
+        choices = color_choices, selected = accent),
+      sliderInput(paste0(prefix, "_point_size"), "Point size",
+        min = 2, max = 12, value = 5, step = 1, ticks = FALSE),
+      selectInput(paste0(prefix, "_point_shape"), "Point shape",
+        choices = c("Circle" = "circle", "Square" = "square"), selected = "circle")
+    )
+  } else {
+    tagList(
+      selectInput(paste0(prefix, "_line_color"), "Boundary line color",
+        choices = color_choices, selected = accent),
+      selectInput(paste0(prefix, "_fill_color"), "Boundary fill color",
+        choices = color_choices, selected = accent),
+      sliderInput(paste0(prefix, "_fill_opacity"), "Fill opacity",
+        min = 0, max = 1, value = 0.25, step = 0.05, ticks = FALSE)
+    )
+  }
+}
+
+# Static connector-line controls for the Find Nearest tab.
+connector_style_controls <- function() {
   tagList(
-    selectInput(paste0(prefix, "_line_color"), "Boundary line color",
-      choices = color_choices, selected = "#2a78d6"),
-    selectInput(paste0(prefix, "_fill_color"), "Boundary fill color",
-      choices = color_choices, selected = "#2a78d6"),
-    selectInput(paste0(prefix, "_point_color"), "Point color",
-      choices = color_choices, selected = "#e34948"),
-    sliderInput(paste0(prefix, "_point_size"), "Point size",
-      min = 2, max = 12, value = 5, step = 1, ticks = FALSE),
-    selectInput(paste0(prefix, "_point_shape"), "Point shape",
-      choices = c("Circle" = "circle", "Square" = "square"), selected = "circle")
+    selectInput("conn_color", "Line color",
+      choices = c(color_choices, "Stone" = "#52514e"), selected = "#52514e"),
+    sliderInput("conn_weight", "Line weight",
+      min = 1, max = 5, value = 1, step = 1, ticks = FALSE),
+    sliderInput("conn_opacity", "Line opacity",
+      min = 0, max = 1, value = 0.7, step = 0.05, ticks = FALSE)
   )
 }
 
-read_style <- function(input, prefix) {
-  list(
-    line_color = input[[paste0(prefix, "_line_color")]],
-    fill_color = input[[paste0(prefix, "_fill_color")]],
-    point_color = input[[paste0(prefix, "_point_color")]],
-    point_size = input[[paste0(prefix, "_point_size")]],
-    point_shape = input[[paste0(prefix, "_point_shape")]]
-  )
+# Reads back the style list for one layer slot, keyed on the layer's actual
+# geometry. Every field falls back to a default so the map never fails when an
+# input has not been rendered yet (e.g. a picker changed after a build).
+# `accent` mirrors the default passed to layer_style_controls() for the same
+# slot, so the fallback color agrees with what the (not-yet-rendered) control
+# would have defaulted to.
+read_layer_style <- function(input, prefix, geom, accent = "#2a78d6") {
+  g <- function(suffix) input[[paste0(prefix, "_", suffix)]]
+  if (identical(geom, "raster")) {
+    list(
+      raster_palette = g("raster_palette") %||% "Viridis",
+      raster_opacity = g("raster_opacity") %||% 0.8
+    )
+  } else if (identical(geom, "point")) {
+    list(
+      point_color = g("point_color") %||% accent,
+      point_size = g("point_size") %||% 5,
+      point_shape = g("point_shape") %||% "circle"
+    )
+  } else {
+    list(
+      line_color = g("line_color") %||% accent,
+      fill_color = g("fill_color") %||% accent,
+      fill_opacity = g("fill_opacity") %||% 0.25
+    )
+  }
 }
 
-# Renders real (clickable) downloadButtons when `ready`, otherwise
-# visually-matching but non-functional disabled buttons - so the sidebar
-# download list is only ever clickable once the map/data it points to exist.
-download_or_disabled <- function(ready, items) {
+# Renders real (clickable) downloadButtons when an item's `ready` field is
+# TRUE, otherwise visually-matching but non-functional disabled buttons - so
+# each sidebar download is only ever clickable once the map/data it points to
+# exists. Readiness is per-item (item$ready) so, e.g., map.html can be ready
+# before crosswalk.csv is.
+download_or_disabled <- function(items) {
   tagList(lapply(items, function(item) {
-    if (ready) {
+    if (isTRUE(item$ready)) {
       downloadButton(item$id, item$label, class = "btn-outline-secondary w-100 mb-1")
     } else {
       tags$button(
@@ -79,6 +337,20 @@ base_leaflet_layers <- function(map) {
 }
 
 add_styled_sf_layer <- function(map, layer, group, style) {
+  if (inherits(layer, "SpatRaster")) {
+    if (!requireNamespace("terra", quietly = TRUE)) {
+      rlang::abort("Package 'terra' is required to render raster layers.")
+    }
+    map <- leaflet::addRasterImage(
+      map, layer, group = group,
+      opacity = style$raster_opacity,
+      colors = leaflet::colorNumeric(
+        style$raster_palette, terra::values(layer), na.color = "transparent"
+      )
+    )
+    return(map)
+  }
+
   name_col <- ONgeoR:::guess_name_col(layer)
   geometry_types <- unique(as.character(sf::st_geometry_type(layer)))
   polygon_types <- c("POLYGON", "MULTIPOLYGON", "GEOMETRYCOLLECTION")
@@ -116,7 +388,7 @@ add_styled_sf_layer <- function(map, layer, group, style) {
       map,
       data = polygon_layer, group = group, popup = popups,
       weight = 2, color = style$line_color,
-      fillColor = style$fill_color, fillOpacity = 0.25
+      fillColor = style$fill_color, fillOpacity = style$fill_opacity
     )
   } else {
     rlang::abort(sprintf(
@@ -127,10 +399,12 @@ add_styled_sf_layer <- function(map, layer, group, style) {
   map
 }
 
-render_styled_map <- function(layers, style) {
+# `styles` is a named list parallel to `layers`: styles[[nm]] is the per-layer
+# style for layers[[nm]].
+render_styled_map <- function(layers, styles) {
   map <- base_leaflet_layers(leaflet::leaflet())
   for (nm in names(layers)) {
-    map <- add_styled_sf_layer(map, layers[[nm]], nm, style)
+    map <- add_styled_sf_layer(map, layers[[nm]], nm, styles[[nm]])
   }
   # Only "Light" (added first, above) starts visible; hide the other real
   # tile groups so the layers control's radio behavior starts from a single
@@ -150,7 +424,7 @@ render_styled_map <- function(layers, style) {
   )
 }
 
-add_nearest_connectors <- function(map, layers, connectors) {
+add_nearest_connectors <- function(map, layers, connectors, conn_style) {
   if (is.null(connectors) || nrow(connectors) == 0) {
     return(map)
   }
@@ -158,7 +432,8 @@ add_nearest_connectors <- function(map, layers, connectors) {
   map <- leaflet::addPolylines(
     map,
     data = connectors, group = "Connections",
-    color = "#52514e", weight = 1, opacity = 0.7, dashArray = "4,4"
+    color = conn_style$color, weight = conn_style$weight,
+    opacity = conn_style$opacity, dashArray = "4,4"
   )
   leaflet::addLayersControl(
     map,
@@ -213,7 +488,7 @@ nearest_layers <- function(source, target, k, max_dist_km) {
 }
 
 ui <- bslib::page_navbar(
-  title = tags$img(src = "logo.png", height = "144px", style = "vertical-align: middle;"),
+  title = tags$img(src = "logo.png", height = "120px", style = "vertical-align: middle;"),
   theme = bslib::bs_theme(version = 5, primary = "#2a78d6", success = "#0ca30c"),
   header = tags$head(tags$link(rel = "stylesheet", href = "theme.css")),
   bslib::nav_panel(
@@ -222,12 +497,54 @@ ui <- bslib::page_navbar(
       fillable = FALSE,
       sidebar = bslib::sidebar(
         width = 300,
-        selectInput("base_layer", "Base layer", choices = source_choices(), selected = "phu_boundaries"),
-        selectInput("overlay_source", "Overlay source", choices = source_choices(), selected = "moh_service_locations"),
+        tags$div(class = "slot-block slot-base",
+          selectInput("base_layer", "Base layer", choices = source_choices_grouped(), selected = "phu_boundaries"),
+          tags$div(class = "slot-meta",
+            uiOutput("base_geom_badge"),
+            checkboxInput("base_upload_own", "Use my own file", FALSE)
+          ),
+          conditionalPanel(
+            "input.base_upload_own",
+            fileInput("base_own_file", NULL, buttonLabel = "Browse...",
+              placeholder = "GeoJSON, GeoPackage, zipped shapefile, or GeoTIFF"),
+            selectInput("base_own_type", "Layer type",
+              c("Polygon" = "polygon", "Point" = "point", "Raster" = "raster")),
+            tags$p(class = "text-muted", "Upload support is coming soon - this does not affect linking yet.")
+          )
+        ),
+        tags$div(class = "slot-block slot-overlay",
+          selectInput("overlay_source", "Overlay source", choices = source_choices_grouped(), selected = "moh_service_locations"),
+          tags$div(class = "slot-meta",
+            uiOutput("overlay_geom_badge"),
+            checkboxInput("overlay_upload_own", "Use my own file", FALSE)
+          ),
+          conditionalPanel(
+            "input.overlay_upload_own",
+            fileInput("overlay_own_file", NULL, buttonLabel = "Browse...",
+              placeholder = "GeoJSON, GeoPackage, zipped shapefile, or GeoTIFF"),
+            selectInput("overlay_own_type", "Layer type",
+              c("Polygon" = "polygon", "Point" = "point", "Raster" = "raster")),
+            tags$p(class = "text-muted", "Upload support is coming soon - this does not affect linking yet.")
+          )
+        ),
+        uiOutput("link_relationship"),
         uiOutput("link_method_ui"),
-        actionButton("build_btn", "Link", class = "btn-primary"),
+        actionButton("preview_btn", "Preview on map", class = "btn-preview w-100 mb-1"),
+        uiOutput("build_btn_ui"),
         tags$hr(),
-        style_controls("link"),
+        bslib::accordion(
+          open = FALSE,
+          bslib::accordion_panel(
+            tags$span(class = "slot-title slot-title-base", "Base layer style"),
+            uiOutput("base_style_ui"),
+            value = "Base layer style"
+          ),
+          bslib::accordion_panel(
+            tags$span(class = "slot-title slot-title-overlay", "Overlay layer style"),
+            uiOutput("overlay_style_ui"),
+            value = "Overlay layer style"
+          )
+        ),
         tags$hr(),
         tags$strong("Downloads"),
         uiOutput("link_downloads_ui")
@@ -250,13 +567,43 @@ ui <- bslib::page_navbar(
       fillable = FALSE,
       sidebar = bslib::sidebar(
         width = 300,
-        fileInput("points_csv", "Source points (CSV with lon/lat columns)", accept = ".csv"),
-        selectInput("target_source", "Target source", choices = source_choices()),
+        tags$div(class = "slot-block slot-base",
+          fileInput("points_csv", "Source points (CSV with lon/lat columns)", accept = ".csv")
+        ),
+        tags$div(class = "slot-block slot-overlay",
+          selectInput("target_source", "Target source", choices = source_choices_grouped()),
+          tags$div(class = "slot-meta",
+            uiOutput("target_geom_badge"),
+            checkboxInput("target_upload_own", "Use my own file", FALSE)
+          ),
+          conditionalPanel(
+            "input.target_upload_own",
+            fileInput("target_own_file", NULL, buttonLabel = "Browse...",
+              placeholder = "GeoJSON, GeoPackage, zipped shapefile, or GeoTIFF"),
+            selectInput("target_own_type", "Layer type",
+              c("Polygon" = "polygon", "Point" = "point", "Raster" = "raster")),
+            tags$p(class = "text-muted", "Upload support is coming soon - this does not affect linking yet.")
+          )
+        ),
         numericInput("k", "k", value = 1, min = 1),
         numericInput("max_dist_km", "max_dist_km", value = 50, min = 0),
+        actionButton("nearest_preview_btn", "Preview on map", class = "btn-preview w-100 mb-1"),
         actionButton("nearest_btn", "Find nearest", class = "btn-primary"),
         tags$hr(),
-        style_controls("nearest"),
+        bslib::accordion(
+          open = FALSE,
+          bslib::accordion_panel(
+            tags$span(class = "slot-title slot-title-base", "Source points style"),
+            uiOutput("src_style_ui"),
+            value = "Source points style"
+          ),
+          bslib::accordion_panel(
+            tags$span(class = "slot-title slot-title-overlay", "Matched targets style"),
+            uiOutput("tgt_style_ui"),
+            value = "Matched targets style"
+          ),
+          bslib::accordion_panel("Connector lines style", connector_style_controls())
+        ),
         tags$hr(),
         tags$strong("Downloads"),
         uiOutput("nearest_downloads_ui")
@@ -279,63 +626,220 @@ server <- function(input, output, session) {
   # --- Link tab -------------------------------------------------------
 
   observeEvent(input$base_layer, {
-    choices <- source_choices()
-    choices <- choices[choices != input$base_layer]
-    selected <- if (input$overlay_source %in% choices) input$overlay_source else choices[1]
-    updateSelectInput(session, "overlay_source", choices = choices, selected = selected)
+    groups <- remove_choice_grouped(source_choices_grouped(), input$base_layer)
+    selected <- if (input$overlay_source %in% unlist(groups)) {
+      input$overlay_source
+    } else {
+      first_choice_grouped(groups)
+    }
+    updateSelectInput(session, "overlay_source", choices = groups, selected = selected)
   }, ignoreInit = TRUE)
 
   observeEvent(input$overlay_source, {
-    choices <- source_choices()
-    choices <- choices[choices != input$overlay_source]
-    selected <- if (input$base_layer %in% choices) input$base_layer else choices[1]
-    updateSelectInput(session, "base_layer", choices = choices, selected = selected)
+    groups <- remove_choice_grouped(source_choices_grouped(), input$overlay_source)
+    selected <- if (input$base_layer %in% unlist(groups)) {
+      input$base_layer
+    } else {
+      first_choice_grouped(groups)
+    }
+    updateSelectInput(session, "base_layer", choices = groups, selected = selected)
   }, ignoreInit = TRUE)
+
+  # Geometry-type feedback badges, reactive the moment a picker changes.
+  output$base_geom_badge <- renderUI({
+    req(input$base_layer)
+    geo_badge(input$base_layer)
+  })
+  output$overlay_geom_badge <- renderUI({
+    req(input$overlay_source)
+    geo_badge(input$overlay_source)
+  })
+  output$link_relationship <- renderUI({
+    req(input$base_layer, input$overlay_source)
+    tags$p(class = "geo-relationship text-muted",
+      relationship_text(geom_kind(input$base_layer), geom_kind(input$overlay_source)))
+  })
+
+  # Per-layer style controls, driven by each selected source's geometry.
+  output$base_style_ui <- renderUI({
+    req(input$base_layer)
+    layer_style_controls("base", geom_kind(input$base_layer), accent = "#2a78d6")
+  })
+  output$overlay_style_ui <- renderUI({
+    req(input$overlay_source)
+    layer_style_controls("overlay", geom_kind(input$overlay_source), accent = "#1baf7a")
+  })
 
   output$link_method_ui <- renderUI({
     req(input$base_layer, input$overlay_source)
-    if (is_facility_source(input$base_layer) || is_facility_source(input$overlay_source)) {
+    base_k <- geom_kind(input$base_layer)
+    overlay_k <- geom_kind(input$overlay_source)
+    help_link <- actionLink("method_help", "?", class = "method-help",
+      title = "How linking works, by layer types")
+
+    if (base_k == "raster" || overlay_k == "raster") {
+      # Raster pairings route through link(), which has no match rule to pick.
+      # See pairing-explanation modal for details.
+      help_link
+    } else if (base_k == "point" && overlay_k == "point") {
+      # Point-to-point containment is undefined; redirect to Find Nearest.
+      # There is no dropdown here, so a short pointer stays in the sidebar;
+      # the full redirect sentence is in the pairing-explanation modal.
+      tagList(
+        tags$p(class = "text-muted",
+          "Points can't be linked here - see Find Nearest."),
+        help_link
+      )
+    } else if (is_facility_source(input$base_layer) || is_facility_source(input$overlay_source)) {
       tagList(
         selectInput("method", "Match rule", choices = c("Point-in-boundary" = "within")),
-        tags$p(class = "text-muted",
-          "One layer is point facilities; each point is matched to the boundary it falls inside.")
+        help_link
       )
     } else {
       tagList(
         selectInput("method", "Match rule", choices = c(
           "Fully inside (within)" = "within",
-          "Any overlap (intersects)" = "intersects"
+          "Any overlap (intersects)" = "intersects",
+          "Treat overlay as points (fast)" = "point_on_surface",
+          "Assign by largest overlap (accurate)" = "largest_overlap"
         )),
-        tags$p(class = "text-muted",
-          "Both layers are boundaries. Use \"Any overlap\" if either was simplified/generalized - \"Fully inside\" can miss matches near simplified edges.")
+        help_link
       )
     }
   })
 
-  cw_result <- reactiveValues(crosswalk = NULL, base_sf = NULL, overlay_sf = NULL)
+  observeEvent(input$method_help, {
+    showModal(modalDialog(
+      title = "How linking works, by layer types",
+      link_matrix_table(),
+      easyClose = TRUE, size = "l", footer = modalButton("Close")
+    ))
+  })
+
+  cw_result <- reactiveValues(crosswalk = NULL, linked = NULL,
+    base_sf = NULL, overlay_sf = NULL, previewed = NULL)
+
+  # Link is gated on having previewed the CURRENT pair: enabled only when a
+  # preview succeeded for exactly today's base_layer/overlay_source values
+  # (so changing either picker re-greys it) and the pair is not point-point
+  # (which stays permanently disabled, with a redirect message, since
+  # containment linking is undefined for it - see link_method_ui above for
+  # the parallel explanatory text).
+  output$build_btn_ui <- renderUI({
+    req(input$base_layer, input$overlay_source)
+    point_point <- is_facility_source(input$base_layer) && is_facility_source(input$overlay_source)
+    previewed_current <- identical(cw_result$previewed, c(input$base_layer, input$overlay_source))
+    enabled <- previewed_current && !point_point
+
+    if (enabled) {
+      actionButton("build_btn", "Link", class = "btn-primary w-100")
+    } else if (point_point) {
+      tagList(
+        tags$button("Link", type = "button", class = "btn btn-primary w-100", disabled = "disabled"),
+        tags$p(class = "text-muted",
+          "Both layers are points - use the Find Nearest tab for point-to-point matching.")
+      )
+    } else {
+      tags$button("Link", type = "button", class = "btn btn-primary w-100", disabled = "disabled")
+    }
+  })
+
+  # Retrieves and maps the two selected layers without linking them, so users
+  # can see what they picked before committing to a (possibly slow) link run.
+  # Unlike build_btn, this has no point-point guard - previewing two point
+  # layers is just mapping, with no containment semantics involved - and no
+  # raster/method branching, since it never calls build_crosswalk()/link().
+  observeEvent(input$preview_btn, {
+    req(input$base_layer, input$overlay_source)
+
+    withProgress(message = "Retrieving layers", value = 0.2, {
+      tryCatch({
+        base_sf <- ONgeoR::retrieve_source(input$base_layer)
+        incProgress(0.4)
+        overlay_sf <- ONgeoR::retrieve_source(input$overlay_source)
+        incProgress(0.4)
+
+        cw_result$base_sf <- base_sf
+        cw_result$overlay_sf <- overlay_sf
+        # A fresh preview invalidates any stale link results - the Data tab
+        # goes empty and the crosswalk/linked-csv and reproduce.R downloads
+        # disable until Link is run again.
+        cw_result$crosswalk <- NULL
+        cw_result$linked <- NULL
+        # Records exactly what was previewed, so the Link button's renderUI
+        # can require the current picker values to match before enabling -
+        # changing either picker after a preview re-greys Link. Only set on
+        # success; an error path below leaves this untouched.
+        cw_result$previewed <- c(input$base_layer, input$overlay_source)
+
+        # Every successful preview shows the pairing-info modal (styled with
+        # a logo + info-sign header); a failed preview does not, since this
+        # runs only after the tryCatch body's happy path completes.
+        kinds <- c(geom_kind(input$base_layer), geom_kind(input$overlay_source))
+        showModal(pairing_info_modal(kinds))
+      }, error = function(e) {
+        showNotification(conditionMessage(e), type = "error", duration = NULL)
+      })
+    })
+  })
 
   observeEvent(input$build_btn, {
-    req(input$base_layer, input$overlay_source, input$method)
+    req(input$base_layer, input$overlay_source)
+
+    # Point-to-point containment is undefined; the Link button's renderUI
+    # (build_btn_ui) keeps Link permanently disabled for this pair, so the
+    # on-click redirect notice that used to live here is no longer reachable
+    # and has been removed - see link_method_ui for the still-shown
+    # point-point explanatory message.
     withProgress(message = "Linking", value = 0.2, {
       tryCatch({
-        base_sf <- ONgeoR:::retrieve_by_source_id(input$base_layer)
+        base_sf <- ONgeoR::retrieve_source(input$base_layer)
         incProgress(0.3)
-        overlay_sf <- ONgeoR:::retrieve_by_source_id(input$overlay_source)
+        overlay_sf <- ONgeoR::retrieve_source(input$overlay_source)
         incProgress(0.3)
-        # build_crosswalk()/link() require the point/facility layer to be
-        # `from` for a correct point-in-boundary join; a boundary `from`
-        # against a point `to` silently returns all-NA matches. Reorder
-        # regardless of which picker the user put the facility layer in.
-        base_is_facility <- is_facility_source(input$base_layer)
-        overlay_is_facility <- is_facility_source(input$overlay_source)
-        if (overlay_is_facility && !base_is_facility) {
+
+        base_kind <- layer_geom(base_sf)
+        overlay_kind <- layer_geom(overlay_sf)
+
+        if (base_kind == "raster" || overlay_kind == "raster") {
+          # Rasters are not crosswalk-able; route to link(), which is
+          # raster-aware. Order so the raster sits where link()'s reduction is
+          # semantically right: a raster SOURCE reduces to cell-centroid points
+          # (raster + polygon case, cells into boundaries), a raster TARGET
+          # reduces to cell polygons (point + raster case, sampling). Both-raster
+          # is aborted by link() itself and surfaces via the tryCatch below.
+          if ("polygon" %in% c(base_kind, overlay_kind)) {
+            if (base_kind == "raster") {
+              from_sf <- base_sf; to_sf <- overlay_sf
+            } else {
+              from_sf <- overlay_sf; to_sf <- base_sf
+            }
+          } else {
+            if (base_kind == "raster") {
+              from_sf <- overlay_sf; to_sf <- base_sf
+            } else {
+              from_sf <- base_sf; to_sf <- overlay_sf
+            }
+          }
+          cw_result$linked <- ONgeoR::link(from_sf, to_sf, predicate = "within")
+          cw_result$crosswalk <- NULL
+        } else {
+          method <- input$method %||% "within"
+          # Universal direction rule: every crosswalk row assigns an overlay
+          # unit to the base polygon it belongs to (base = large container,
+          # overlay = the content laid over it), so the overlay is always
+          # `from` and the base always `to` - e.g. each airport polygon is
+          # assigned to its health unit, never the reverse. This subsumes the
+          # old facility-only reorder (a point overlay is just a special
+          # case), and if the slots are inverted (points as base),
+          # build_crosswalk()'s own direction guard corrects the join and
+          # says so.
           from_sf <- overlay_sf
           to_sf <- base_sf
-        } else {
-          from_sf <- base_sf
-          to_sf <- overlay_sf
+          cw_result$crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = method)
+          cw_result$linked <- NULL
         }
-        cw_result$crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = input$method)
+
         cw_result$base_sf <- base_sf
         cw_result$overlay_sf <- overlay_sf
         incProgress(0.2)
@@ -347,26 +851,32 @@ server <- function(input, output, session) {
 
   link_map <- reactive({
     req(cw_result$base_sf, cw_result$overlay_sf)
-    style <- read_style(input, "link")
-    render_styled_map(
-      list("Base layer" = cw_result$base_sf, "Overlay source" = cw_result$overlay_sf),
-      style
+    layers <- list("Base layer" = cw_result$base_sf, "Overlay source" = cw_result$overlay_sf)
+    styles <- list(
+      "Base layer" = read_layer_style(input, "base", layer_geom(cw_result$base_sf), accent = "#2a78d6"),
+      "Overlay source" = read_layer_style(input, "overlay", layer_geom(cw_result$overlay_sf), accent = "#1baf7a")
     )
+    render_styled_map(layers, styles)
   })
 
   output$cw_map <- renderLeaflet({
     link_map()
   })
+  # Shows whichever mode the last run produced: a crosswalk (build_crosswalk)
+  # or a linked values table (raster runs via link()); the coverage column of a
+  # largest_overlap crosswalk shows here naturally.
   output$cw_table <- renderTable({
-    req(cw_result$crosswalk)
-    utils::head(cw_result$crosswalk, 100)
+    tbl <- cw_result$crosswalk %||% cw_result$linked
+    req(tbl)
+    utils::head(tbl, 100)
   })
 
   output$dl_cw_csv <- downloadHandler(
-    filename = function() "crosswalk.csv",
+    filename = function() if (!is.null(cw_result$linked)) "linked.csv" else "crosswalk.csv",
     content = function(file) {
-      req(cw_result$crosswalk)
-      utils::write.csv(cw_result$crosswalk, file, row.names = FALSE)
+      tbl <- cw_result$crosswalk %||% cw_result$linked
+      req(tbl)
+      utils::write.csv(tbl, file, row.names = FALSE)
     }
   )
   output$dl_cw_map <- downloadHandler(
@@ -388,18 +898,66 @@ server <- function(input, output, session) {
   )
 
   output$link_downloads_ui <- renderUI({
-    ready <- !is.null(cw_result$crosswalk)
-    download_or_disabled(ready, list(
-      list(id = "dl_cw_map", label = "map.html"),
-      list(id = "dl_cw_csv", label = "crosswalk.csv"),
-      list(id = "dl_cw_script", label = "reproduce.R")
+    linked_run <- !is.null(cw_result$linked)
+    link_ready <- !is.null(cw_result$crosswalk) || linked_run
+    csv_label <- if (linked_run) "linked.csv" else "crosswalk.csv"
+    download_or_disabled(list(
+      list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),
+      list(id = "dl_cw_csv", label = csv_label, ready = link_ready),
+      list(id = "dl_cw_script", label = "reproduce.R", ready = link_ready)
     ))
   })
 
   # --- Find Nearest tab ------------------------------------------------
 
+  # Geometry-type feedback badge for the target source.
+  output$target_geom_badge <- renderUI({
+    req(input$target_source)
+    geo_badge(input$target_source)
+  })
+
+  # Source points are always points (uploaded lon/lat CSV); the target style
+  # follows the selected target source's geometry.
+  output$src_style_ui <- renderUI({
+    layer_style_controls("src", "point", accent = "#2a78d6")
+  })
+  output$tgt_style_ui <- renderUI({
+    req(input$target_source)
+    layer_style_controls("tgt", geom_kind(input$target_source), accent = "#1baf7a")
+  })
+
   nearest_result <- reactiveValues(table = NULL, source_sf = NULL, target_sf = NULL,
-    matched_target = NULL, connectors = NULL)
+    matched_target = NULL, connectors = NULL, preview_target = NULL)
+
+  # Retrieves and maps the uploaded source points and the selected target
+  # source without running the nearest match, so users can see both layers
+  # before committing to a (possibly slow) match. There is no matched_target
+  # or connectors yet - nearest_map() draws the target under its own
+  # "Target source" group (styled with the target accent) whenever
+  # preview_target is set and matched_target is NULL.
+  observeEvent(input$nearest_preview_btn, {
+    req(input$points_csv, input$target_source)
+    withProgress(message = "Retrieving layers", value = 0.2, {
+      tryCatch({
+        points <- utils::read.csv(input$points_csv$datapath)
+        if (!all(c("lon", "lat") %in% names(points))) {
+          rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
+        }
+        source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
+        incProgress(0.3)
+        target_sf <- ONgeoR::retrieve_source(input$target_source)
+        incProgress(0.5)
+
+        nearest_result$source_sf <- source_sf
+        nearest_result$preview_target <- target_sf
+        nearest_result$table <- NULL
+        nearest_result$matched_target <- NULL
+        nearest_result$connectors <- NULL
+      }, error = function(e) {
+        showNotification(conditionMessage(e), type = "error", duration = NULL)
+      })
+    })
+  })
 
   observeEvent(input$nearest_btn, {
     req(input$points_csv, input$target_source)
@@ -411,13 +969,15 @@ server <- function(input, output, session) {
         }
         source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
         incProgress(0.2)
-        target_sf <- ONgeoR:::retrieve_by_source_id(input$target_source)
+        target_sf <- ONgeoR::retrieve_source(input$target_source)
         incProgress(0.3)
         built <- nearest_layers(source_sf, target_sf, k = input$k, max_dist_km = input$max_dist_km)
         nearest_result$table <- built$table
         nearest_result$source_sf <- built$source
         nearest_result$matched_target <- built$matched_target
         nearest_result$connectors <- built$connectors
+        # A completed match supersedes any preview target layer.
+        nearest_result$preview_target <- NULL
         incProgress(0.3)
       }, error = function(e) {
         showNotification(conditionMessage(e), type = "error", duration = NULL)
@@ -427,13 +987,24 @@ server <- function(input, output, session) {
 
   nearest_map <- reactive({
     req(nearest_result$source_sf)
-    style <- read_style(input, "nearest")
     layers <- list("Source" = nearest_result$source_sf)
+    styles <- list("Source" = read_layer_style(input, "src", layer_geom(nearest_result$source_sf), accent = "#2a78d6"))
     if (!is.null(nearest_result$matched_target) && nrow(nearest_result$matched_target) > 0) {
       layers[["Matched targets"]] <- nearest_result$matched_target
+      styles[["Matched targets"]] <-
+        read_layer_style(input, "tgt", layer_geom(nearest_result$matched_target), accent = "#1baf7a")
+    } else if (!is.null(nearest_result$preview_target)) {
+      layers[["Target source"]] <- nearest_result$preview_target
+      styles[["Target source"]] <-
+        read_layer_style(input, "tgt", layer_geom(nearest_result$preview_target), accent = "#1baf7a")
     }
-    map <- render_styled_map(layers, style)
-    add_nearest_connectors(map, layers, nearest_result$connectors)
+    map <- render_styled_map(layers, styles)
+    conn_style <- list(
+      color = input$conn_color %||% "#52514e",
+      weight = input$conn_weight %||% 1,
+      opacity = input$conn_opacity %||% 0.7
+    )
+    add_nearest_connectors(map, layers, nearest_result$connectors, conn_style)
   })
 
   output$nearest_map <- renderLeaflet({
@@ -461,9 +1032,9 @@ server <- function(input, output, session) {
 
   output$nearest_downloads_ui <- renderUI({
     ready <- !is.null(nearest_result$table)
-    download_or_disabled(ready, list(
-      list(id = "dl_nearest_map", label = "map.html"),
-      list(id = "dl_nearest_csv", label = "nearest.csv")
+    download_or_disabled(list(
+      list(id = "dl_nearest_map", label = "map.html", ready = ready),
+      list(id = "dl_nearest_csv", label = "nearest.csv", ready = ready)
     ))
   })
 }

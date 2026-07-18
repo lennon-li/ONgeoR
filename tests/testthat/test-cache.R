@@ -139,6 +139,14 @@ test_that("clear_cache removes all cached files when source_id is NULL", {
   expect_equal(list.files(cache_dir), character())
 })
 
+test_that("clear_cache returns zero for an empty cache", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  expect_message(removed <- clear_cache(), "Removed 0 cached entries")
+  expect_equal(removed, 0)
+})
+
 test_that("clear_cache removes only entries matching a source id", {
   cache_dir <- use_temp_cache()
   on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
@@ -178,7 +186,7 @@ test_that("list_cache reports cached entries and handles an empty cache", {
 
   empty <- list_cache()
   expect_s3_class(empty, "tbl_df")
-  expect_named(empty, c("source_name", "retrieved_at", "file_size_kb"))
+  expect_named(empty, c("source_name", "retrieved_at", "age_days", "file_size_kb"))
   expect_equal(nrow(empty), 0)
 
   layer <- make_cache_layer()
@@ -200,11 +208,27 @@ test_that("list_cache reports cached entries and handles an empty cache", {
   listed <- list_cache()
 
   expect_s3_class(listed, "tbl_df")
-  expect_named(listed, c("source_name", "retrieved_at", "file_size_kb"))
+  expect_named(listed, c("source_name", "retrieved_at", "age_days", "file_size_kb"))
   expect_equal(nrow(listed), 2)
   expect_setequal(
     listed$source_name,
     c("MOH Public Health Unit Boundary", "Ontario Health Region")
   )
   expect_true(all(listed$file_size_kb > 0))
+})
+
+test_that("cache ages parse retrieved_at and unknown values as NA", {
+  now <- as.POSIXct("2026-07-18 00:00:00", tz = "UTC")
+  expect_lt(cache_age_days(
+    list(retrieved_at = "2026-07-17 12:00:00 UTC"), now
+  ), 1)
+  expect_true(is.na(cache_age_days(list(), now)))
+  expect_true(is.na(cache_age_days(list(retrieved_at = "not a date"), now)))
+})
+
+test_that("cache staleness decision handles age and unknown metadata", {
+  expect_false(cache_is_stale(2, NULL))
+  expect_false(cache_is_stale(2, 3))
+  expect_true(cache_is_stale(4, 3))
+  expect_true(cache_is_stale(NA_real_, 3))
 })

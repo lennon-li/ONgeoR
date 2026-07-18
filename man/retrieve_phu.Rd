@@ -4,7 +4,7 @@
 \alias{retrieve_phu}
 \title{Retrieve Public Health Unit boundaries}
 \usage{
-retrieve_phu(simplify = FALSE, refresh = FALSE)
+retrieve_phu(simplify = FALSE, refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE}, requests generalized geometry from the
@@ -16,6 +16,9 @@ precision, so simplification is opt-in rather than default.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of PHU boundary polygons, with \code{source_url},

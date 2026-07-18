@@ -4,7 +4,11 @@
 \alias{retrieve_conservation_authority}
 \title{Retrieve Conservation Authority administrative areas}
 \usage{
-retrieve_conservation_authority(simplify = TRUE, refresh = FALSE)
+retrieve_conservation_authority(
+  simplify = TRUE,
+  refresh = FALSE,
+  max_age = NULL
+)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
@@ -14,6 +18,9 @@ losing analytic utility for most crosswalk use-cases.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of Conservation Authority boundary polygons, with

@@ -17,6 +17,40 @@ abort_lio_retrieval <- function(message, parent = NULL) {
   )
 }
 
+lio_response_truncated <- function(geojson_string) {
+  grepl(
+    "\"exceededTransferLimit\"[[:space:]]*:[[:space:]]*true",
+    geojson_string
+  )
+}
+
+validate_lio_feature_count <- function(n, registry_entry) {
+  if (is.null(registry_entry) || !is.numeric(registry_entry$feature_count) ||
+      length(registry_entry$feature_count) != 1 ||
+      is.na(registry_entry$feature_count)) {
+    return(invisible(NULL))
+  }
+
+  expected <- registry_entry$feature_count
+  deviation <- if (expected == 0) n != 0 else abs(n - expected) / expected > 0.2
+  if (deviation) {
+    rlang::warn(
+      sprintf(
+        paste(
+          "Retrieved %d features but the registry expects %d for '%s';",
+          "the registry may be stale or retrieval may be incomplete."
+        ),
+        n,
+        expected,
+        registry_entry$name %||% "this source"
+      ),
+      class = "ongeor_feature_count_mismatch"
+    )
+  }
+
+  invisible(NULL)
+}
+
 lio_simplify_guidance <- function(simplify) {
   if (simplify) {
     "Generalized geometry is already requested (simplify = TRUE)."
@@ -75,7 +109,12 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API, overwriting the cache entry. Defaults to `FALSE`.
 #' @param paginate Logical. If `TRUE`, retrieve pages with `resultOffset`
-#'   until the service returns fewer rows than `result_record_count`.
+#'   until the service reports that the response is not truncated. Pages
+#'   request 2000 features by default; pagination has a 20-page hard cap,
+#'   allowing at most 40,000 features. Truncation is detected through the
+#'   ArcGIS `exceededTransferLimit` response flag.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object with `source_url`, `source_name`, and `retrieved_at`
 #'   attributes attached.
@@ -83,7 +122,7 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
 #' @noRd
 fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
                          simplify = TRUE, result_record_count = 2000,
-                         refresh = FALSE, paginate = FALSE) {
+                         refresh = FALSE, paginate = FALSE, max_age = NULL) {
   key <- cache_key(
     source_name = source_name,
     service_layer = service_layer,
@@ -93,6 +132,8 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
     paginate = paginate
   )
   if (!refresh) {
+    cache_meta <- cache_read_meta(key)
+    cache_age <- cache_age_days(cache_meta %||% list())
     cached <- tryCatch(
       cache_read(key),
       error = function(cnd) {
@@ -110,7 +151,15 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       }
     )
     if (!is.null(cached)) {
-      return(cached)
+      inform_lio_progress(sprintf(
+        "Cache hit for source '%s' (cache age: %s).",
+        source_name,
+        if (is.na(cache_age)) "unknown age" else sprintf("%.1f days", cache_age)
+      ))
+      if (!cache_is_stale(cache_age, max_age)) {
+        return(cached)
+      }
+      refresh <- TRUE
     }
   }
 
@@ -143,6 +192,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
           ) |>
           httr2::req_perform()
         geojson <- httr2::resp_body_string(resp)
+        truncated <- lio_response_truncated(geojson)
 
         temp_file <- tempfile(fileext = ".geojson")
         on.exit(unlink(temp_file), add = TRUE)
@@ -167,7 +217,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       }
     )
 
-    list(url = url, sf_obj = sf_obj)
+    list(url = url, sf_obj = sf_obj, truncated = truncated)
   }
 
   first_url <- lio_query_url(
@@ -216,7 +266,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       if (n > 0) {
         pages[[length(pages) + 1]] <- page$sf_obj
       }
-      if (n < result_record_count) {
+      if (!page$truncated) {
         break
       }
 
@@ -233,6 +283,16 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
     url <- first_url
   } else {
     page <- read_lio_page()
+    if (page$truncated) {
+      abort_lio_retrieval(sprintf(
+        paste(
+          "Source '%s' (layer '%s') exceeds one page;",
+          "retrieve it with paginate = TRUE."
+        ),
+        source_name,
+        service_layer
+      ))
+    }
     sf_obj <- page$sf_obj
     url <- page$url
   }
@@ -240,6 +300,19 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
   attr(sf_obj, "source_url") <- url
   attr(sf_obj, "source_name") <- source_name
   attr(sf_obj, "retrieved_at") <- Sys.time()
+
+  registry <- load_source_registry()
+  matching_entries <- which(vapply(
+    registry,
+    function(entry) identical(entry$name, source_name),
+    logical(1)
+  ))
+  registry_entry <- if (length(matching_entries) == 0) {
+    NULL
+  } else {
+    registry[[matching_entries[[1]]]]
+  }
+  validate_lio_feature_count(nrow(sf_obj), registry_entry)
 
   cache_write(
     key,
@@ -317,6 +390,41 @@ guess_name_col <- function(x) {
     return(eng_cols[1])
   }
   name_cols[1]
+}
+
+registry_entry_for <- function(layer) {
+  source_name <- provenance_attr(layer, "source_name")
+  if (length(source_name) != 1 || is.na(source_name)) {
+    return(NULL)
+  }
+
+  registry <- load_source_registry()
+  matches <- vapply(
+    registry,
+    function(entry) identical(entry$name, source_name),
+    logical(1)
+  )
+  if (!any(matches)) NULL else registry[[which(matches)[1]]]
+}
+
+layer_id_col <- function(layer) {
+  entry <- registry_entry_for(layer)
+  key_fields <- entry$key_fields %||% character()
+  present <- key_fields[key_fields %in% colnames(layer)]
+  if (length(present) > 0) present[1] else guess_id_col(layer)
+}
+
+layer_name_col <- function(layer) {
+  entry <- registry_entry_for(layer)
+  key_fields <- entry$key_fields %||% character()
+  name_fields <- key_fields[
+    grepl("NAME", key_fields, ignore.case = TRUE) &
+      key_fields %in% colnames(layer)
+  ]
+  eng_fields <- name_fields[grepl("ENG", name_fields, ignore.case = TRUE)]
+  if (length(eng_fields) > 0) return(eng_fields[1])
+  if (length(name_fields) > 0) return(name_fields[1])
+  guess_name_col(layer)
 }
 
 #' Check whether a layer's geometry is entirely points

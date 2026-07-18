@@ -156,3 +156,15 @@ test_that("nearest with max_dist_km acts as a radius search and omits empty sour
   expect_equal(result$facility_name, c("Facility A", "Facility B"))
   expect_true(result$distance_km[1] <= result$distance_km[2])
 })
+
+test_that("nearest aborts before allocating an oversized distance matrix", {
+  source <- data.frame(lon = rep(0, 4000), lat = rep(0, 4000))
+  target <- data.frame(lon = rep(1, 3000), lat = rep(1, 3000))
+
+  error <- expect_error(
+    nearest(source, target),
+    class = "ongeor_nearest_too_large"
+  )
+  expect_match(conditionMessage(error), "dense distance-matrix", fixed = TRUE)
+  expect_match(conditionMessage(error), "ROADMAP", fixed = TRUE)
+})

@@ -8,7 +8,7 @@ list_cache()
 }
 \value{
 A tibble::tibble() with columns source_name, retrieved_at,
-file_size_kb -- one row per cached entry.
+age_days, file_size_kb -- one row per cached entry.
 }
 \description{
 Lists the source metadata currently stored in ONgeoR's on-disk cache.

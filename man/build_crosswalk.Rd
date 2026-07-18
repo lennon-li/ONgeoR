@@ -7,7 +7,7 @@
 build_crosswalk(
   from,
   to,
-  method = c("within", "intersects", "point_on_surface", "largest_overlap")
+  method = c("within", "intersects", "point_on_surface", "largest_overlap", "weighted")
 )
 }
 \arguments{
@@ -33,6 +33,11 @@ centroid, which can fall outside a concave polygon) and joined
 largest intersection area with, and the \code{coverage} column reports that
 winner's share of the \code{from} polygon's area. Both layers must be
 polygonal.
+\item \code{"weighted"}: polygon-to-polygon apportionment. Every intersecting
+\code{to} polygon is retained, with \code{coverage} reporting its share of the
+\code{from} polygon's area. Coverage values for a \code{from} polygon sum to at
+most 1, and equal 1 only when the \code{to} layer fully covers it. The
+\code{largest_overlap} result is the argmax row of the weighted result.
 }
 
 \code{build_crosswalk()} returns an assignment table only: it never emits or
@@ -44,8 +49,9 @@ A \code{\link[tibble:tibble]{tibble::tibble()}} with columns \code{from_id}, \co
 \code{from_source}, \code{to_id}, \code{to_name}, \code{to_source}, \code{match_method},
 \code{match_distance_km} (always \code{NA}, reserved for nearest-neighbour
 matching in a future version), \code{coverage} (the winner's area share for
-\code{"largest_overlap"}, otherwise \code{NA}), \code{source_url_from}, \code{source_url_to},
-and \code{retrieved_at}.
+\code{"largest_overlap"}, each intersecting pair's area share for \code{"weighted"},
+otherwise \code{NA}), \code{from_id_col}, \code{to_id_col}, \code{source_url_from},
+\code{source_url_to}, and \code{retrieved_at}.
 }
 \description{
 Joins two \code{sf} layers (e.g. municipalities to Public Health Units) and

@@ -26,6 +26,19 @@ test_that("resolve auto-detects the *_IDENT column over the generic OGF_ID", {
   expect_equal(result$AIRPORT_IDENT, "CYYZ")
 })
 
+test_that("resolve prefers registry key fields over decoy identifiers", {
+  layer <- sf::st_sf(
+    OGF_ID = "decoy", PHU_ID = "PHU-1", PHU_NAME_ENG = "Registry PHU",
+    PHU_NAME_FR = "USI registre",
+    geometry = sf::st_sfc(sf::st_point(c(0, 0)), crs = 4326)
+  )
+  attr(layer, "source_name") <- "MOH Public Health Unit Boundary"
+
+  expect_equal(resolve(layer, "PHU-1")$PHU_ID, "PHU-1")
+  expect_equal(resolve(layer, "registry phu", by = "name")$PHU_NAME_ENG,
+    "Registry PHU")
+})
+
 test_that("resolve matches the ident column exactly, ignoring case, by default", {
   airports <- make_synthetic_airports()
 
@@ -46,6 +59,24 @@ test_that("resolve matches the name column by case-insensitive substring", {
 
   expect_equal(nrow(result), 2)
   expect_equal(result$AIRPORT_IDENT, c("CYYZ", "CYTZ"))
+})
+
+test_that("resolve treats substring queries as literal and NA-safe", {
+  layer <- sf::st_sf(
+    NAME = c("St. Mary's (Site 2)", "CXY", NA_character_),
+    geometry = sf::st_sfc(sf::st_point(c(0, 0)), sf::st_point(c(1, 1)),
+      sf::st_point(c(2, 2)), crs = 4326
+    )
+  )
+
+  literal <- resolve(layer, "St. Mary's (Site 2)", by = "name")
+  expect_equal(nrow(literal), 1)
+  expect_equal(literal$NAME, "St. Mary's (Site 2)")
+  expect_warning(no_match <- resolve(layer, "C.Y.", by = "name"),
+    "no match found")
+  expect_true(all(is.na(no_match$NAME)))
+  expect_equal(resolve(layer, "st. mary's", by = "name")$NAME,
+    "St. Mary's (Site 2)")
 })
 
 test_that("resolve targets an arbitrary column via column=/match=", {

@@ -23,7 +23,9 @@ range contributes zero rows.}
 A \code{\link[tibble:tibble]{tibble::tibble()}} with the source columns, \code{rank} (1 = nearest),
 the matched target columns, \code{distance_km}, and \code{source_url} / \code{target_url}
 / \code{retrieved_at} provenance columns. Uses a full source-by-target distance
-matrix (not spatial-indexed); adequate at current scale.
+matrix (not spatial-indexed); requests over 10 million distances abort as
+unsuitable at this scale. See the nearest-neighbour performance item in
+\code{ROADMAP.md}.
 }
 \description{
 For each source geometry, returns the \code{k} nearest targets in ascending

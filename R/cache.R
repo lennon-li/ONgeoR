@@ -42,6 +42,40 @@ cache_read <- function(key) {
   readRDS(rds_path)
 }
 
+cache_read_meta <- function(key) {
+  yaml_path <- file.path(ongeor_cache_dir(), paste0(key, ".yaml"))
+  if (!file.exists(yaml_path)) {
+    return(NULL)
+  }
+
+  tryCatch(yaml::read_yaml(yaml_path), error = function(cnd) NULL)
+}
+
+cache_age_days <- function(meta, now = Sys.time()) {
+  retrieved_at <- tryCatch(
+    as.POSIXct(meta$retrieved_at, tz = "UTC"),
+    warning = function(cnd) NA,
+    error = function(cnd) NA
+  )
+  if (length(retrieved_at) == 0 || is.na(retrieved_at)) {
+    return(NA_real_)
+  }
+
+  as.numeric(difftime(now, retrieved_at, units = "days"))
+}
+
+cache_is_stale <- function(age_days, max_age) {
+  if (is.null(max_age)) {
+    return(FALSE)
+  }
+  if (!is.numeric(max_age) || length(max_age) != 1 || is.na(max_age) ||
+      max_age < 0) {
+    rlang::abort("max_age must be a non-negative numeric scalar.")
+  }
+
+  is.na(age_days) || age_days > max_age
+}
+
 #' Write an sf object and sidecar metadata to cache
 #'
 #' @return Invisibly, `NULL`.
@@ -100,26 +134,16 @@ clear_cache <- function(source_id = NULL) {
   }
 
   existing_files <- files[file.exists(files)]
-  files_removed <- length(existing_files)
-  removed <- if (length(existing_files) > 0) {
+  if (length(existing_files) > 0) {
     unlink(existing_files)
-  } else {
-    0
   }
-  if (removed != 0) {
-    files_removed <- 0
-  }
-
-  entries_removed <- if (is.null(source_id)) {
-    sum(grepl("\\.rds$", existing_files))
-  } else {
-    length(sidecars)
-  }
+  deleted_files <- existing_files[!file.exists(existing_files)]
+  entries_removed <- sum(grepl("\\.rds$", deleted_files))
   message(sprintf("Removed %d cached entr%s.", entries_removed,
     if (entries_removed == 1) "y" else "ies"
   ))
 
-  invisible(files_removed)
+  invisible(length(deleted_files))
 }
 
 #' List Cached ONgeoR Data
@@ -128,7 +152,7 @@ clear_cache <- function(source_id = NULL) {
 #' Lists the source metadata currently stored in ONgeoR's on-disk cache.
 #'
 #' @return A tibble::tibble() with columns source_name, retrieved_at,
-#'   file_size_kb -- one row per cached entry.
+#'   age_days, file_size_kb -- one row per cached entry.
 #'
 #' @examples
 #' if (interactive()) {
@@ -144,6 +168,7 @@ list_cache <- function() {
     return(tibble::tibble(
       source_name = character(),
       retrieved_at = character(),
+      age_days = numeric(),
       file_size_kb = numeric()
     ))
   }
@@ -156,6 +181,7 @@ list_cache <- function() {
     tibble::tibble(
       source_name = meta$source_name %||% NA_character_,
       retrieved_at = meta$retrieved_at %||% NA_character_,
+      age_days = round(cache_age_days(meta), 1),
       file_size_kb = round(file.size(rds_path) / 1024, 1)
     )
   })

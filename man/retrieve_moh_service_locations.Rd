@@ -4,7 +4,11 @@
 \alias{retrieve_moh_service_locations}
 \title{Retrieve MOH service locations}
 \usage{
-retrieve_moh_service_locations(service_type = NULL, refresh = FALSE)
+retrieve_moh_service_locations(
+  service_type = NULL,
+  refresh = FALSE,
+  max_age = NULL
+)
 }
 \arguments{
 \item{service_type}{Character or \code{NULL}. If supplied, filters results to
@@ -13,6 +17,9 @@ no filter is applied.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of MOH service location points, with \code{source_url},

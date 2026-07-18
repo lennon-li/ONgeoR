@@ -11,6 +11,8 @@
 #'   precision, so simplification is opt-in rather than default.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of PHU boundary polygons, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached for provenance.
@@ -21,12 +23,12 @@
 #' }
 #'
 #' @export
-retrieve_phu <- function(simplify = FALSE, refresh = FALSE) {
+retrieve_phu <- function(simplify = FALSE, refresh = FALSE, max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open09/44",
     source_name = "MOH Public Health Unit Boundary",
     simplify = simplify,
-    refresh = refresh
+    refresh = refresh, max_age = max_age
   )
 }
 
@@ -45,6 +47,8 @@ retrieve_phu <- function(simplify = FALSE, refresh = FALSE) {
 #'   failure.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of Ontario Health Region boundary polygons, with
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
@@ -55,12 +59,12 @@ retrieve_phu <- function(simplify = FALSE, refresh = FALSE) {
 #' }
 #'
 #' @export
-retrieve_health_region <- function(simplify = TRUE, refresh = FALSE) {
+retrieve_health_region <- function(simplify = TRUE, refresh = FALSE, max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open09/52",
     source_name = "Ontario Health Region",
     simplify = simplify,
-    refresh = refresh
+    refresh = refresh, max_age = max_age
   )
 }
 
@@ -77,6 +81,8 @@ retrieve_health_region <- function(simplify = TRUE, refresh = FALSE) {
 #'   geometry from the service.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of municipal boundary polygons, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached.
@@ -88,7 +94,7 @@ retrieve_health_region <- function(simplify = TRUE, refresh = FALSE) {
 #'
 #' @export
 retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
-                               refresh = FALSE) {
+                               refresh = FALSE, max_age = NULL) {
   tier <- match.arg(tier)
 
   if (tier == "upper") {
@@ -96,14 +102,14 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
       service_layer = "LIO_Open03/13",
       source_name = "Municipal Bnd Upper And Dist",
       simplify = simplify,
-      refresh = refresh
+      refresh = refresh, max_age = max_age
     )
   } else {
     fetch_lio_sf(
       service_layer = "LIO_Open03/14",
       source_name = "Municipal Bnd Lower And Single",
       simplify = simplify,
-      refresh = refresh
+      refresh = refresh, max_age = max_age
     )
   }
 }
@@ -123,6 +129,8 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
 #'   live.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of airport boundary polygons, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached.
@@ -133,12 +141,12 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
 #' }
 #'
 #' @export
-retrieve_airport <- function(simplify = FALSE, refresh = FALSE) {
+retrieve_airport <- function(simplify = FALSE, refresh = FALSE, max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open05/0",
     source_name = "Airport Official",
     simplify = simplify,
-    refresh = refresh
+    refresh = refresh, max_age = max_age
   )
 }
 
@@ -157,6 +165,8 @@ retrieve_airport <- function(simplify = FALSE, refresh = FALSE) {
 #'   live.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of waste management site boundary polygons, with
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
@@ -167,12 +177,12 @@ retrieve_airport <- function(simplify = FALSE, refresh = FALSE) {
 #' }
 #'
 #' @export
-retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE) {
+retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE, max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open08/9",
     source_name = "Waste Management Site",
     simplify = simplify,
-    refresh = refresh
+    refresh = refresh, max_age = max_age
   )
 }
 
@@ -253,6 +263,8 @@ retrieve_synthetic_raster <- function(refresh = FALSE) {
 #'   no filter is applied.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of MOH service location points, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached.
@@ -264,10 +276,11 @@ retrieve_synthetic_raster <- function(refresh = FALSE) {
 #'
 #' @export
 retrieve_moh_service_locations <- function(service_type = NULL,
-                                           refresh = FALSE) {
+                                           refresh = FALSE, max_age = NULL) {
   where <- "1=1"
   if (!is.null(service_type)) {
-    where <- sprintf("SERVICE_TYPE = '%s'", service_type)
+    escaped_service_type <- gsub("'", "''", service_type)
+    where <- sprintf("SERVICE_TYPE = '%s'", escaped_service_type)
   }
 
   fetch_lio_sf(
@@ -276,7 +289,8 @@ retrieve_moh_service_locations <- function(service_type = NULL,
     where = where,
     simplify = FALSE,
     refresh = refresh,
-    paginate = TRUE
+    paginate = TRUE,
+    max_age = max_age
   )
 }
 
@@ -291,6 +305,8 @@ retrieve_moh_service_locations <- function(service_type = NULL,
 #'   losing analytic utility for most crosswalk use-cases.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of Conservation Authority boundary polygons, with
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached for
@@ -302,12 +318,13 @@ retrieve_moh_service_locations <- function(service_type = NULL,
 #' }
 #'
 #' @export
-retrieve_conservation_authority <- function(simplify = TRUE, refresh = FALSE) {
+retrieve_conservation_authority <- function(simplify = TRUE, refresh = FALSE,
+                                            max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open03/11",
     source_name = "Conservation Authority Admin Area",
     simplify = simplify,
-    refresh = refresh
+    refresh = refresh, max_age = max_age
   )
 }
 
@@ -318,6 +335,8 @@ retrieve_conservation_authority <- function(simplify = TRUE, refresh = FALSE) {
 #'
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
 #'
 #' @return An `sf` object of ORWN station points, with `source_url`,
 #'   `source_name`, and `retrieved_at` attributes attached for provenance.
@@ -328,12 +347,12 @@ retrieve_conservation_authority <- function(simplify = TRUE, refresh = FALSE) {
 #' }
 #'
 #' @export
-retrieve_orwn_station <- function(refresh = FALSE) {
+retrieve_orwn_station <- function(refresh = FALSE, max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open04/15",
     source_name = "ORWN Station",
     simplify = FALSE,
-    refresh = refresh
+    refresh = refresh, max_age = max_age
   )
 }
 
@@ -361,6 +380,18 @@ retrieve_orwn_station <- function(refresh = FALSE) {
 #'
 #' @export
 retrieve_hive <- function(refresh = FALSE) {
-  path <- system.file("extdata", "hive.rds", package = "ONgeoR")
+  path <- hive_data_path()
+  if (!nzchar(path)) {
+    rlang::abort(
+      "hive.rds is missing from the installed ONgeoR package; reinstall ONgeoR.",
+      class = "ongeor_hive_missing"
+    )
+  }
   readRDS(path)
+}
+
+#' @keywords internal
+#' @noRd
+hive_data_path <- function() {
+  system.file("extdata", "hive.rds", package = "ONgeoR")
 }

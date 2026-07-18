@@ -4,7 +4,7 @@
 \alias{retrieve_airport}
 \title{Retrieve airport boundaries}
 \usage{
-retrieve_airport(simplify = FALSE, refresh = FALSE)
+retrieve_airport(simplify = FALSE, refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE}, requests generalized geometry from the
@@ -18,6 +18,9 @@ live.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of airport boundary polygons, with \code{source_url},

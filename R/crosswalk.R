@@ -22,6 +22,11 @@
 #'     largest intersection area with, and the `coverage` column reports that
 #'     winner's share of the `from` polygon's area. Both layers must be
 #'     polygonal.
+#'   * `"weighted"`: polygon-to-polygon apportionment. Every intersecting
+#'     `to` polygon is retained, with `coverage` reporting its share of the
+#'     `from` polygon's area. Coverage values for a `from` polygon sum to at
+#'     most 1, and equal 1 only when the `to` layer fully covers it. The
+#'     `largest_overlap` result is the argmax row of the weighted result.
 #'
 #'   `build_crosswalk()` returns an assignment table only: it never emits or
 #'   contains geometry. `"largest_overlap"` uses intersection internally as
@@ -31,8 +36,9 @@
 #'   `from_source`, `to_id`, `to_name`, `to_source`, `match_method`,
 #'   `match_distance_km` (always `NA`, reserved for nearest-neighbour
 #'   matching in a future version), `coverage` (the winner's area share for
-#'   `"largest_overlap"`, otherwise `NA`), `source_url_from`, `source_url_to`,
-#'   and `retrieved_at`.
+#'   `"largest_overlap"`, each intersecting pair's area share for `"weighted"`,
+#'   otherwise `NA`), `from_id_col`, `to_id_col`, `source_url_from`,
+#'   `source_url_to`, and `retrieved_at`.
 #'
 #' @seealso The "What linking does, by layer types" section of
 #'   `vignette("building-crosswalks", package = "ONgeoR")` tabulates which
@@ -49,24 +55,33 @@
 #' @export
 build_crosswalk <- function(from, to,
                             method = c("within", "intersects",
-                                       "point_on_surface", "largest_overlap")) {
+                                       "point_on_surface", "largest_overlap",
+                                       "weighted")) {
   method <- match.arg(method)
 
-  from_id_col <- guess_id_col(from)
-  from_name_col <- guess_name_col(from)
-  to_id_col <- guess_id_col(to)
-  to_name_col <- guess_name_col(to)
+  from_id_col <- layer_id_col(from)
+  from_name_col <- layer_name_col(from)
+  to_id_col <- layer_id_col(to)
+  to_name_col <- layer_name_col(to)
 
   coverage <- NA_real_
 
-  if (method == "largest_overlap") {
-    assignment <- crosswalk_largest_overlap(from, to)
-    winner <- assignment$winner
-    from_id <- as.character(from[[from_id_col]])
-    from_name <- as.character(from[[from_name_col]])
-    to_id <- as.character(to[[to_id_col]])[winner]
-    to_name <- as.character(to[[to_name_col]])[winner]
-    coverage <- assignment$coverage
+  if (method %in% c("largest_overlap", "weighted")) {
+    if (method == "weighted") {
+      assignment <- crosswalk_weighted_overlap(from, to)
+      from_index <- assignment$from_index
+      to_index <- assignment$to_index
+      coverage <- assignment$coverage
+    } else {
+      assignment <- crosswalk_largest_overlap(from, to)
+      from_index <- seq_len(nrow(from))
+      to_index <- assignment$winner
+      coverage <- assignment$coverage
+    }
+    from_id <- as.character(from[[from_id_col]])[from_index]
+    from_name <- as.character(from[[from_name_col]])[from_index]
+    to_id <- as.character(to[[to_id_col]])[to_index]
+    to_name <- as.character(to[[to_name_col]])[to_index]
   } else if (method == "point_on_surface") {
     if (!is_polygon_geom(to)) {
       rlang::abort(
@@ -115,6 +130,8 @@ build_crosswalk <- function(from, to,
     match_method = method,
     match_distance_km = NA_real_,
     coverage = coverage,
+    from_id_col = from_id_col,
+    to_id_col = to_id_col,
     source_url_from = provenance_attr(from, "source_url"),
     source_url_to = provenance_attr(to, "source_url"),
     retrieved_at = provenance_attr(to, "retrieved_at")
@@ -205,4 +222,51 @@ crosswalk_largest_overlap <- function(from, to) {
   }
 
   list(winner = winner, coverage = coverage)
+}
+
+crosswalk_weighted_overlap <- function(from, to) {
+  if (!is_polygon_geom(from) || !is_polygon_geom(to)) {
+    rlang::abort(
+      paste(
+        "method = \"weighted\" requires both `from` and `to` to be",
+        "polygon layers. For a point layer, use method = \"within\" /",
+        "\"intersects\" (or nearest()) instead."
+      ),
+      class = "ongeor_crosswalk_weighted_needs_polygons"
+    )
+  }
+
+  from_geom <- sf::st_transform(sf::st_geometry(from), 3347)
+  to_geom <- sf::st_transform(sf::st_geometry(to), 3347)
+  candidates <- sf::st_intersects(from_geom, to_geom)
+  from_areas <- as.numeric(sf::st_area(from_geom))
+  from_index <- integer()
+  to_index <- integer()
+  coverage <- numeric()
+
+  for (i in seq_along(candidates)) {
+    cand <- candidates[[i]]
+    if (length(cand) > 0) {
+      inter_areas <- vapply(cand, function(j) {
+        inter <- sf::st_intersection(from_geom[i], to_geom[j])
+        if (length(inter) == 0) return(0)
+        sum(as.numeric(sf::st_area(inter)))
+      }, numeric(1))
+      positive <- which(inter_areas > 0)
+    } else {
+      positive <- integer()
+    }
+
+    if (length(positive) == 0) {
+      from_index <- c(from_index, i)
+      to_index <- c(to_index, NA_integer_)
+      coverage <- c(coverage, NA_real_)
+    } else {
+      from_index <- c(from_index, rep(i, length(positive)))
+      to_index <- c(to_index, cand[positive])
+      coverage <- c(coverage, inter_areas[positive] / from_areas[i])
+    }
+  }
+
+  list(from_index = from_index, to_index = to_index, coverage = coverage)
 }

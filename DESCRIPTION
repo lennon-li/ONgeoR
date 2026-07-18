@@ -1,8 +1,8 @@
 Package: ONgeoR
 Title: Resolve Ontario Locations to Public Health Geography
-Version: 0.1.0
+Version: 0.3.0.9000
 Authors@R:
-    person("Lennon", "Li", email = "lennon.li@example.com", role = c("aut", "cre"))
+    person("Lennon", "Li", email = "lennon.yeli@gmail.com", role = c("aut", "cre"))
 Description: Provides a reproducible framework for retrieving Ontario
     geospatial boundaries and facility locations from authoritative external
     sources (such as the Ontario GeoHub LIO REST services), linking points

@@ -110,7 +110,9 @@ link <- function(source, target,
 #' @return A [tibble::tibble()] with the source columns, `rank` (1 = nearest),
 #'   the matched target columns, `distance_km`, and `source_url` / `target_url`
 #'   / `retrieved_at` provenance columns. Uses a full source-by-target distance
-#'   matrix (not spatial-indexed); adequate at current scale.
+#'   matrix (not spatial-indexed); requests over 10 million distances abort as
+#'   unsuitable at this scale. See the nearest-neighbour performance item in
+#'   `ROADMAP.md`.
 #'
 #' @examples
 #' if (interactive()) {
@@ -122,6 +124,15 @@ link <- function(source, target,
 nearest <- function(source, target, k = 1, max_dist_km = NULL) {
   if (inherits(source, "data.frame") && !inherits(source, "sf")) {
     source <- sf::st_as_sf(source, coords = c("lon", "lat"), crs = 4326)
+  }
+  if (as.double(nrow(source)) * nrow(target) > 1e7) {
+    rlang::abort(
+      paste(
+        "nearest()'s dense distance-matrix implementation is unsuitable",
+        "at this scale; see the nearest-neighbour performance item in ROADMAP.md."
+      ),
+      class = "ongeor_nearest_too_large"
+    )
   }
 
   source_data <- tibble::as_tibble(sf::st_drop_geometry(source))

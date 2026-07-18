@@ -34,6 +34,7 @@ test_that("build_crosswalk produces the documented output schema", {
     "from_id", "from_name", "from_source",
     "to_id", "to_name", "to_source",
     "match_method", "match_distance_km", "coverage",
+    "from_id_col", "to_id_col",
     "source_url_from", "source_url_to", "retrieved_at"
   )
   expect_equal(colnames(crosswalk), expected_cols)
@@ -53,6 +54,8 @@ test_that("build_crosswalk populates provenance fields correctly", {
   expect_equal(crosswalk$to_name, "Test Health Unit A")
   expect_equal(crosswalk$to_source, "MOH Public Health Unit Boundary")
   expect_equal(crosswalk$match_method, "within")
+  expect_equal(crosswalk$from_id_col, "MUNID")
+  expect_equal(crosswalk$to_id_col, "PHU_ID")
   expect_true(is.na(crosswalk$match_distance_km))
   expect_equal(crosswalk$source_url_from, "https://example.com/municipal")
   expect_equal(crosswalk$source_url_to, "https://example.com/phu")
@@ -130,6 +133,7 @@ test_that("build_crosswalk auto-reorder output has the documented column schema"
     "from_id", "from_name", "from_source",
     "to_id", "to_name", "to_source",
     "match_method", "match_distance_km", "coverage",
+    "from_id_col", "to_id_col",
     "source_url_from", "source_url_to", "retrieved_at"
   )
   expect_equal(colnames(crosswalk), expected_cols)
@@ -337,4 +341,67 @@ test_that("largest_overlap aborts when either layer is point-type", {
     build_crosswalk(points, base, method = "largest_overlap"),
     "polygon"
   )
+})
+
+test_that("weighted keeps every positive-area pair", {
+  layers <- fixture_overlap_layers()
+  weighted <- build_crosswalk(layers$from, layers$to, method = "weighted")
+  largest <- build_crosswalk(layers$from, layers$to, method = "largest_overlap")
+
+  expect_equal(nrow(weighted), 3)
+  expect_equal(weighted$match_method, rep("weighted", 3))
+  expect_equal(weighted$coverage, c(1, 0.25, 0.75), tolerance = 1e-6)
+  expect_equal(weighted$from_id_col, rep("from_id", 3))
+  expect_equal(weighted$to_id_col, rep("to_id", 3))
+  expect_true(all(tapply(weighted$coverage, weighted$from_id, sum) <= 1 + 1e-6))
+  expect_equal(weighted$to_id[c(1, 3)], largest$to_id)
+})
+
+test_that("weighted preserves an unmatched from row", {
+  layers <- fixture_overlap_layers()
+  unmatched_from <- sf::st_sf(
+    from_id = "F3", from_name = "From 3",
+    geometry = sf::st_sfc(sf::st_polygon(list(rbind(
+      c(5, 0), c(6, 0), c(6, 1), c(5, 1), c(5, 0)
+    ))), crs = 3347)
+  )
+  layers$from <- rbind(layers$from, fixture_provenance(unmatched_from))
+
+  result <- build_crosswalk(layers$from, layers$to, method = "weighted")
+  row <- result[result$from_id == "F3", ]
+  expect_equal(nrow(row), 1)
+  expect_true(is.na(row$to_id))
+  expect_true(is.na(row$to_name))
+  expect_true(is.na(row$coverage))
+})
+
+test_that("weighted aborts when either layer is point-type", {
+  layers <- fixture_overlap_layers()
+  points <- sf::st_as_sf(data.frame(x = 0.5, y = 0.5), coords = c("x", "y"), crs = 4326)
+
+  expect_error(
+    build_crosswalk(layers$from, points, method = "weighted"),
+    class = "ongeor_crosswalk_weighted_needs_polygons"
+  )
+  expect_error(
+    build_crosswalk(points, layers$to, method = "weighted"),
+    class = "ongeor_crosswalk_weighted_needs_polygons"
+  )
+})
+
+test_that("registry key fields drive crosswalk identifiers and names", {
+  phu <- sf::st_sf(
+    OGF_ID = "decoy", PHU_ID = "PHU-1", PHU_NAME_ENG = "Registry PHU",
+    PHU_NAME_FR = "USI registre",
+    geometry = sf::st_sfc(sf::st_polygon(list(rbind(
+      c(0, 0), c(1, 0), c(1, 1), c(0, 1), c(0, 0)
+    ))), crs = 4326)
+  )
+  attr(phu, "source_name") <- "MOH Public Health Unit Boundary"
+  target <- make_synthetic_layers()$municipal
+  result <- build_crosswalk(phu, target, method = "intersects")
+  expect_equal(result$from_id, "PHU-1")
+  expect_equal(result$from_name, "Registry PHU")
+  expect_equal(result$from_id_col, "PHU_ID")
+  expect_equal(result$to_id_col, "MUNID")
 })

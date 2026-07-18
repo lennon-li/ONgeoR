@@ -44,6 +44,7 @@ sources:
     service_layer: "LIO_OpenXX/0"
     geography_type: "boundary"
     feature_count: 123
+    update_frequency: "unknown"
     key_fields: ["DOMAIN_ID", "ENGLISH_NAME"]
     license: "Open Government Licence - Ontario"
     source_url: "https://.../MapServer/0"
@@ -86,6 +87,12 @@ cache entry. `refresh = TRUE` bypasses and replaces the matching cached entry.
 If a wrapper accepts a filter, validate or constrain it before interpolating a
 LIO `where` expression. Keep source-specific policy in the wrapper and common
 HTTP, conversion, provenance, and cache behavior in `fetch_lio_sf()`.
+
+Paginated retrieval requests 2,000 features per page and stops after 20 pages,
+so the safety ceiling is 40,000 features. Retrieved row counts are checked
+against the registry and warn when they differ by more than 20%. The optional
+`update_frequency` registry field records source-maintenance metadata; it is
+currently informational only.
 
 ## Wire the CLI dispatch
 

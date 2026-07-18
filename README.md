@@ -16,7 +16,7 @@ Public health analysts, epidemiologists, and health-system planners in Ontario f
 
 ONgeoR provides a standardized, reproducible framework for these tasks without bundling large geospatial datasets that become stale or require constant maintenance.
 
-## What ONgeoR Does (v0.1)
+## What ONgeoR Does (v0.3)
 
 - Provides a source registry with metadata for Tier 1 Ontario GeoHub (LIO) datasets
 - Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, and waste management sites at runtime
@@ -24,6 +24,7 @@ ONgeoR provides a standardized, reproducible framework for these tasks without b
 - Generates auditable crosswalk tables with full provenance metadata via `build_crosswalk()`
 - Draws interactive leaflet maps with `map_layers()` and nearest-match maps
   with `map_nearest()`
+- Ships a Shiny app launched with `run_app()`
 
 See [ROADMAP.md](ROADMAP.md) for planned raster linking, more maps, and additional sources.
 
@@ -126,4 +127,4 @@ MIT
 
 ## Contact
 
-Lennon Li — lennon.li@example.com
+Lennon Li — lennon.yeli@gmail.com

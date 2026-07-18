@@ -4,11 +4,14 @@
 \alias{retrieve_orwn_station}
 \title{Retrieve Ontario Railway Network (ORWN) station points}
 \usage{
-retrieve_orwn_station(refresh = FALSE)
+retrieve_orwn_station(refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of ORWN station points, with \code{source_url},

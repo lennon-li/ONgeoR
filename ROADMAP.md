@@ -12,11 +12,13 @@ crosswalk → map workflow is implemented and live-verified.
 ### Shipped
 
 - **Retrieval** — seven registered Ontario GeoHub sources with provenance,
-  bounded pagination, retry/backoff, actionable errors, progress messages, and
+  bounded pagination with truncation detection, retry/backoff, actionable
+  errors, progress messages, cache max_age, and
   source-specific simplification defaults.
 - **Caching** — on-disk cache at `~/.cache/R/ONgeoR`; `refresh = TRUE` and CLI
   `--refresh` bypass cached data.
-- **Core API** — `link()`, `nearest()`, `resolve()`, and `build_crosswalk()`.
+- **Core API** — `link()`, `nearest()`, `resolve()`, and `build_crosswalk()`;
+  weighted crosswalks and registry-driven column selection are shipped.
 - **Mapping** — `map_layers()`, `map_crosswalk()`, and `map_nearest()`.
 - **CLI** — creates `crosswalk.csv`, self-contained `map.html`, and a standalone
   `reproduce.R` script.
@@ -43,11 +45,14 @@ acceptance criteria pass and this roadmap is updated with evidence.
 ### P0 — Reconcile project state
 
 - [x] Remove completed v0.2 and Shiny MVP work from the pending task list.
-- [ ] Update `DESCRIPTION` to an appropriate development version, such as
+- [x] Update `DESCRIPTION` to an appropriate development version, such as
   `0.3.0.9000`, or document a different versioning convention.
-- [ ] Update the README version label and describe the Shiny MVP as shipped.
-- [ ] Replace or deliberately remove placeholder contact details in
+- Evidence: done in v0.3 bugfix pass, 2026-07-18.
+- [x] Update the README version label and describe the Shiny MVP as shipped.
+- Evidence: done in v0.3 bugfix pass, 2026-07-18.
+- [x] Replace or deliberately remove placeholder contact details in
   `DESCRIPTION` and README.
+- Evidence: done in v0.3 bugfix pass, 2026-07-18.
 - [ ] Define explicit v0.3 acceptance criteria and record the validation result
   when the milestone closes.
 

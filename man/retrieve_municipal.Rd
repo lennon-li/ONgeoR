@@ -7,7 +7,8 @@
 retrieve_municipal(
   tier = c("upper", "lower"),
   simplify = TRUE,
-  refresh = FALSE
+  refresh = FALSE,
+  max_age = NULL
 )
 }
 \arguments{
@@ -20,6 +21,9 @@ geometry from the service.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of municipal boundary polygons, with \code{source_url},

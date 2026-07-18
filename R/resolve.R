@@ -41,7 +41,7 @@ resolve <- function(layer, query,
   }
 
   if (is.null(column)) {
-    column <- if (by == "ident") guess_id_col(layer) else guess_name_col(layer)
+    column <- if (by == "ident") layer_id_col(layer) else layer_name_col(layer)
   }
   if (is.null(match)) {
     match <- if (by == "name") "substring" else "exact"
@@ -61,7 +61,9 @@ resolve <- function(layer, query,
     } else if (match == "exact") {
       matches <- which(!is.na(values) & tolower(values) == tolower(q))
     } else {
-      matches <- which(grepl(q, values, ignore.case = TRUE))
+      matches <- which(!is.na(values) & grepl(
+        tolower(q), tolower(values), fixed = TRUE
+      ))
     }
 
     if (length(matches) == 0) {

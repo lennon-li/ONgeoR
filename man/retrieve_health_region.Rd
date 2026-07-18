@@ -4,7 +4,7 @@
 \alias{retrieve_health_region}
 \title{Retrieve Ontario Health Region boundaries}
 \usage{
-retrieve_health_region(simplify = TRUE, refresh = FALSE)
+retrieve_health_region(simplify = TRUE, refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
@@ -18,6 +18,9 @@ failure.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Numeric or \code{NULL}. Maximum acceptable cache age in days;
+older entries are re-fetched. Defaults to \code{NULL}.}
 }
 \value{
 An \code{sf} object of Ontario Health Region boundary polygons, with

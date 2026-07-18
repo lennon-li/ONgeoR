@@ -46,7 +46,7 @@ synthetic_orwn_station_geojson <- paste0(
   "]}"
 )
 
-synthetic_point_geojson <- function(ids) {
+synthetic_point_geojson <- function(ids, truncated = FALSE) {
   features <- vapply(ids, function(id) {
     paste0(
       '{"type":"Feature","properties":{"OBJECTID":', id, ',"SERVICE_TYPE":"Test"},',
@@ -56,7 +56,7 @@ synthetic_point_geojson <- function(ids) {
   paste0(
     '{"type":"FeatureCollection","features":[',
     paste(features, collapse = ","),
-    "]}"
+    "],\"exceededTransferLimit\":", tolower(as.character(truncated)), "}"
   )
 }
 
@@ -90,6 +90,11 @@ use_temp_cache <- function() {
     .package = "ONgeoR",
     .env = parent.frame()
   )
+  testthat::local_mocked_bindings(
+    load_source_registry = function() list(),
+    .package = "ONgeoR",
+    .env = parent.frame()
+  )
   cache_dir
 }
 
@@ -119,6 +124,25 @@ test_that("lio_query_url builds encoded query and pagination parameters", {
   expect_match(url, "resultRecordCount=100", fixed = TRUE)
   expect_match(url, "resultOffset=200", fixed = TRUE)
   expect_no_match(url, "maxAllowableOffset", fixed = TRUE)
+})
+
+test_that("retrieve_moh_service_locations escapes apostrophes in WHERE values", {
+  service_type <- "Children's Hospital"
+  escaped_service_type <- gsub("'", "''", service_type)
+  where <- sprintf("SERVICE_TYPE = '%s'", escaped_service_type)
+
+  expect_equal(where, "SERVICE_TYPE = 'Children''s Hospital'")
+})
+
+test_that("retrieve_hive reports a missing bundled data file clearly", {
+  testthat::local_mocked_bindings(
+    hive_data_path = function() "",
+    .package = "ONgeoR"
+  )
+
+  error <- expect_error(retrieve_hive(), class = "ongeor_hive_missing")
+  expect_match(conditionMessage(error), "hive.rds", fixed = TRUE)
+  expect_match(conditionMessage(error), "reinstall", ignore.case = TRUE)
 })
 
 test_that("retrieve_phu returns an sf object with provenance attributes", {
@@ -249,7 +273,27 @@ test_that("fetch_lio_sf progress is silent for cache hits", {
     source_name = "MOH Service Location"
   ))
 
-  expect_length(progress$messages, 0)
+  expect_length(progress$messages, 1)
+  expect_match(progress$messages, "cache age", fixed = TRUE)
+})
+
+test_that("lio_response_truncated detects ArcGIS transfer-limit flags", {
+  expect_true(lio_response_truncated('{"exceededTransferLimit":true}'))
+  expect_true(lio_response_truncated('{"exceededTransferLimit" :  true}'))
+  expect_false(lio_response_truncated('{"exceededTransferLimit":false}'))
+  expect_false(lio_response_truncated('{"features": []}'))
+})
+
+test_that("feature-count validation warns outside tolerance", {
+  expect_warning(
+    validate_lio_feature_count(130, list(name = "Example", feature_count = 100)),
+    class = "ongeor_feature_count_mismatch"
+  )
+  expect_silent(validate_lio_feature_count(
+    120, list(name = "Example", feature_count = 100)
+  ))
+  expect_silent(validate_lio_feature_count(1, list(name = "Example")))
+  expect_silent(validate_lio_feature_count(1, NULL))
 })
 
 test_that("fetch_lio_sf emits one start message for a fast live fetch", {
@@ -341,7 +385,10 @@ test_that("fetch_lio_sf emits bounded page progress", {
   progress <- httr2::with_mocked_responses(
     function(req) {
       calls <<- calls + 1
-      mock_lio_response(200, synthetic_point_geojson(pages[[calls]]))
+      mock_lio_response(
+        200,
+        synthetic_point_geojson(pages[[calls]], truncated = calls < length(pages))
+      )
     },
     capture_lio_messages(fetch_lio_sf(
       service_layer = "LIO_Open09/26",
@@ -566,7 +613,9 @@ test_that("fetch_lio_sf combines paginated responses", {
       calls <<- calls + 1
       httr2::response(
         status_code = 200,
-        body = charToRaw(synthetic_point_geojson(pages[[calls]])),
+        body = charToRaw(synthetic_point_geojson(
+          pages[[calls]], truncated = calls < length(pages)
+        )),
         headers = list("Content-Type" = "application/json")
       )
     },
@@ -608,7 +657,7 @@ test_that("fetch_lio_sf aborts paginated requests after the hard cap", {
         }
         httr2::response(
           status_code = 200,
-          body = charToRaw(synthetic_point_geojson(1:2)),
+          body = charToRaw(synthetic_point_geojson(1:2, truncated = TRUE)),
           headers = list("Content-Type" = "application/json")
         )
       },

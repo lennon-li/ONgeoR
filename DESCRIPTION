@@ -33,6 +33,7 @@ Suggests:
     promises,
     rmarkdown,
     shiny (>= 1.8.0),
+    shinytest2,
     testthat (>= 3.0.0),
     withr
 VignetteBuilder: knitr

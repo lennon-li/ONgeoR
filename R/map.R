@@ -53,6 +53,93 @@ map_layers <- function(..., colors = NULL) {
   )
 }
 
+#' Build layers for a nearest-neighbour map
+#'
+#' Finds the nearest target features for each source feature, retains only
+#' matched targets, and constructs one connector line per match. This supports
+#' custom map renderers that need the same layers as [map_nearest()].
+#'
+#' @param source An `sf` object of source point geometries.
+#' @param target An `sf` object of candidate point or polygon geometries.
+#' @param k Integer. Number of nearest targets per source. Defaults to `1`;
+#'   `Inf` may be used with `max_dist_km` for a radius search.
+#' @param max_dist_km Numeric or `NULL`. If set, omit targets farther than this
+#'   distance in kilometres.
+#'
+#' @return A named list with four elements: `source`, the original source
+#'   layer; `matched_target`, the target features present in the matches;
+#'   `connectors`, an `sf` layer of connector lines or `NULL` when there are no
+#'   matches; and `table`, the tibble returned by [nearest()].
+#'
+#' @examples
+#' source <- sf::st_as_sf(
+#'   data.frame(id = "A", lon = -79, lat = 43),
+#'   coords = c("lon", "lat"), crs = 4326
+#' )
+#' target <- sf::st_as_sf(
+#'   data.frame(id = c("B", "C"), lon = c(-79.1, -79.2), lat = c(43, 43)),
+#'   coords = c("lon", "lat"), crs = 4326
+#' )
+#' build_nearest_layers(source, target)
+#'
+#' @family app support interfaces
+#' @export
+build_nearest_layers <- function(source, target, k = 1, max_dist_km = NULL) {
+  keyed_source <- source
+  keyed_target <- target
+  source_columns <- setdiff(names(source), attr(source, "sf_column"))
+  target_columns <- setdiff(names(target), attr(target, "sf_column"))
+  combined_columns <- make.unique(c(source_columns, target_columns))
+  names(keyed_target)[match(target_columns, names(keyed_target))] <-
+    combined_columns[length(source_columns) + seq_along(target_columns)]
+
+  key_names <- make.unique(c(
+    names(keyed_source), names(keyed_target),
+    ".ongeor_source_row", ".ongeor_target_row"
+  ))
+  source_key <- key_names[length(key_names) - 1]
+  target_key <- key_names[length(key_names)]
+  keyed_source[[source_key]] <- seq_len(nrow(source))
+  keyed_target[[target_key]] <- seq_len(nrow(target))
+
+  matches <- nearest(
+    keyed_source,
+    keyed_target,
+    k = k,
+    max_dist_km = max_dist_km
+  )
+  if (nrow(matches) == 0) {
+    return(list(
+      source = source,
+      matched_target = target[0, , drop = FALSE],
+      connectors = NULL,
+      table = matches
+    ))
+  }
+
+  source_rows <- matches[[source_key]]
+  target_rows <- matches[[target_key]]
+  matched_target <- target[unique(target_rows), , drop = FALSE]
+  connector_geometry <- lapply(seq_along(source_rows), function(i) {
+    sf::st_nearest_points(
+      source[source_rows[i], , drop = FALSE],
+      target[target_rows[i], , drop = FALSE],
+      pairwise = TRUE
+    )[[1]]
+  })
+  connectors <- sf::st_sf(
+    distance_km = matches$distance_km,
+    geometry = sf::st_sfc(connector_geometry, crs = sf::st_crs(source))
+  )
+
+  list(
+    source = source,
+    matched_target = matched_target,
+    connectors = connectors,
+    table = matches
+  )
+}
+
 #' Map nearest targets and their connections to source points
 #'
 #' Combines [nearest()] with [map_layers()] to show source points, the targets
@@ -111,54 +198,25 @@ map_nearest <- function(source, target, k = 1, max_dist_km = NULL) {
     rlang::abort("`max_dist_km` must be a single non-negative number or NULL.")
   }
 
-  keyed_source <- source
-  keyed_target <- target
-  source_columns <- setdiff(names(source), attr(source, "sf_column"))
-  target_columns <- setdiff(names(target), attr(target, "sf_column"))
-  combined_columns <- make.unique(c(source_columns, target_columns))
-  names(keyed_target)[match(target_columns, names(keyed_target))] <-
-    combined_columns[length(source_columns) + seq_along(target_columns)]
-
-  key_names <- make.unique(c(
-    names(keyed_source), names(keyed_target),
-    ".ongeor_source_row", ".ongeor_target_row"
-  ))
-  source_key <- key_names[length(key_names) - 1]
-  target_key <- key_names[length(key_names)]
-  keyed_source[[source_key]] <- seq_len(nrow(source))
-  keyed_target[[target_key]] <- seq_len(nrow(target))
-
-  matches <- nearest(
-    keyed_source,
-    keyed_target,
+  layers <- build_nearest_layers(
+    source,
+    target,
     k = k,
     max_dist_km = max_dist_km
   )
-  if (nrow(matches) == 0) {
-    return(map_layers(Source = source))
+  if (nrow(layers$table) == 0) {
+    return(map_layers(Source = layers$source))
   }
 
-  source_rows <- matches[[source_key]]
-  target_rows <- matches[[target_key]]
-  matched_target <- target[unique(target_rows), , drop = FALSE]
-  connector_geometry <- lapply(seq_along(source_rows), function(i) {
-    sf::st_nearest_points(
-      source[source_rows[i], , drop = FALSE],
-      target[target_rows[i], , drop = FALSE],
-      pairwise = TRUE
-    )[[1]]
-  })
-  connectors <- sf::st_sf(
-    distance_km = matches$distance_km,
-    geometry = sf::st_sfc(connector_geometry, crs = sf::st_crs(source))
+  map <- map_layers(
+    Source = layers$source,
+    `Matched targets` = layers$matched_target
   )
-
-  map <- map_layers(Source = source, `Matched targets` = matched_target)
   map <- leaflet::addPolylines(
     map,
-    data = connectors,
+    data = layers$connectors,
     group = "Connections",
-    popup = sprintf("%.2f km", connectors$distance_km),
+    popup = sprintf("%.2f km", layers$connectors$distance_km),
     weight = 2,
     color = "#666666",
     opacity = 0.7
@@ -287,8 +345,20 @@ add_raster_layer <- function(map, raster, group) {
 #' @param layer An `sf` object that may contain `GEOMETRYCOLLECTION` geometries.
 #' @return The `sf` object with each `GEOMETRYCOLLECTION` replaced by its
 #'   combined polygon parts (empty polygon if it has none).
-#' @keywords internal
-#' @noRd
+#'
+#' @examples
+#' polygon <- sf::st_polygon(list(rbind(
+#'   c(0, 0), c(1, 0), c(1, 1), c(0, 0)
+#' )))
+#' collection <- sf::st_geometrycollection(list(polygon))
+#' layer <- sf::st_sf(
+#'   name = "Example",
+#'   geometry = sf::st_sfc(collection, crs = 4326)
+#' )
+#' extract_polygon_collection(layer)
+#'
+#' @family app support interfaces
+#' @export
 extract_polygon_collection <- function(layer) {
   geometries <- sf::st_geometry(layer)
   polygon_geometries <- lapply(geometries, function(geometry) {

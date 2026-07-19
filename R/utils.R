@@ -377,8 +377,12 @@ guess_id_col <- function(x) {
 #' @return Character scalar: the guessed name column name. Prefers an
 #'   English name column, then any `*NAME*` column, then falls back to the
 #'   first non-geometry column.
-#' @keywords internal
-#' @noRd
+#'
+#' @examples
+#' guess_name_col(data.frame(feature_id = 1, feature_name_eng = "Example"))
+#'
+#' @family app support interfaces
+#' @export
 guess_name_col <- function(x) {
   cols <- setdiff(colnames(x), attr(x, "sf_column"))
   name_cols <- cols[grepl("NAME", cols, ignore.case = TRUE)]

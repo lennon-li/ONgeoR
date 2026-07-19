@@ -367,7 +367,7 @@ add_styled_sf_layer <- function(map, layer, group, style) {
     return(map)
   }
 
-  name_col <- ONgeoR:::guess_name_col(layer)
+  name_col <- ONgeoR::guess_name_col(layer)
   geometry_types <- unique(as.character(sf::st_geometry_type(layer)))
   polygon_types <- c("POLYGON", "MULTIPOLYGON", "GEOMETRYCOLLECTION")
 
@@ -394,7 +394,7 @@ add_styled_sf_layer <- function(map, layer, group, style) {
     }
   } else if (all(geometry_types %in% polygon_types)) {
     polygon_layer <- if ("GEOMETRYCOLLECTION" %in% geometry_types) {
-      ONgeoR:::extract_polygon_collection(layer)
+      ONgeoR::extract_polygon_collection(layer)
     } else {
       layer
     }
@@ -417,7 +417,7 @@ add_styled_sf_layer <- function(map, layer, group, style) {
 
 # `styles` is a named list parallel to `layers`: styles[[nm]] is the per-layer
 # style for layers[[nm]].
-render_styled_map <- function(layers, styles) {
+render_styled_map <- function(layers, styles, add_control = TRUE) {
   map <- base_leaflet_layers(leaflet::leaflet())
   for (nm in names(layers)) {
     map <- add_styled_sf_layer(map, layers[[nm]], nm, styles[[nm]])
@@ -432,75 +432,35 @@ render_styled_map <- function(layers, styles) {
       "Topographic", "Streets", "Voyager"
     )
   )
-  leaflet::addLayersControl(
-    map,
-    baseGroups = basemap_groups,
-    overlayGroups = names(layers),
-    options = leaflet::layersControlOptions(collapsed = FALSE)
-  )
+  if (add_control) {
+    map <- leaflet::addLayersControl(
+      map,
+      baseGroups = basemap_groups,
+      overlayGroups = names(layers),
+      options = leaflet::layersControlOptions(collapsed = FALSE)
+    )
+  }
+  map
 }
 
 add_nearest_connectors <- function(map, layers, connectors, conn_style) {
-  if (is.null(connectors) || nrow(connectors) == 0) {
-    return(map)
+  overlay_groups <- names(layers)
+  if (!is.null(connectors) && nrow(connectors) > 0) {
+    map <- leaflet::addPolylines(
+      map,
+      data = connectors, group = "Connections",
+      color = conn_style$color, weight = conn_style$weight,
+      opacity = conn_style$opacity, dashArray = "4,4"
+    )
+    overlay_groups <- c(overlay_groups, "Connections")
   }
 
-  map <- leaflet::addPolylines(
-    map,
-    data = connectors, group = "Connections",
-    color = conn_style$color, weight = conn_style$weight,
-    opacity = conn_style$opacity, dashArray = "4,4"
-  )
   leaflet::addLayersControl(
     map,
     baseGroups = basemap_groups,
-    overlayGroups = c(names(layers), "Connections"),
+    overlayGroups = overlay_groups,
     options = leaflet::layersControlOptions(collapsed = FALSE)
   )
-}
-
-# Reproduces the keyed nearest-match + connector-line construction from the
-# package's internal map_nearest() (R/map.R), so this app can style each
-# layer independently instead of taking map_nearest()'s baked-in colors.
-nearest_layers <- function(source, target, k, max_dist_km) {
-  keyed_source <- source
-  keyed_target <- target
-  source_columns <- setdiff(names(source), attr(source, "sf_column"))
-  target_columns <- setdiff(names(target), attr(target, "sf_column"))
-  combined_columns <- make.unique(c(source_columns, target_columns))
-  names(keyed_target)[match(target_columns, names(keyed_target))] <-
-    combined_columns[length(source_columns) + seq_along(target_columns)]
-
-  key_names <- make.unique(c(
-    names(keyed_source), names(keyed_target),
-    ".ongeor_source_row", ".ongeor_target_row"
-  ))
-  source_key <- key_names[length(key_names) - 1]
-  target_key <- key_names[length(key_names)]
-  keyed_source[[source_key]] <- seq_len(nrow(source))
-  keyed_target[[target_key]] <- seq_len(nrow(target))
-
-  matches <- ONgeoR::nearest(keyed_source, keyed_target, k = k, max_dist_km = max_dist_km)
-  if (nrow(matches) == 0) {
-    return(list(source = source, matched_target = target[0, , drop = FALSE], connectors = NULL, table = matches))
-  }
-
-  source_rows <- matches[[source_key]]
-  target_rows <- matches[[target_key]]
-  matched_target <- target[unique(target_rows), , drop = FALSE]
-  connector_geometry <- lapply(seq_along(source_rows), function(i) {
-    sf::st_nearest_points(
-      source[source_rows[i], , drop = FALSE],
-      target[target_rows[i], , drop = FALSE],
-      pairwise = TRUE
-    )[[1]]
-  })
-  connectors <- sf::st_sf(
-    distance_km = matches$distance_km,
-    geometry = sf::st_sfc(connector_geometry, crs = sf::st_crs(source))
-  )
-
-  list(source = source, matched_target = matched_target, connectors = connectors, table = matches)
 }
 
 ui <- bslib::page_navbar(
@@ -716,7 +676,12 @@ server <- function(input, output, session) {
       }
       source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
       target_sf <- ONgeoR::retrieve_source(target_id)
-      nearest_layers(source_sf, target_sf, k = k_val, max_dist_km = max_dist_km_val)
+      ONgeoR::build_nearest_layers(
+        source_sf,
+        target_sf,
+        k = k_val,
+        max_dist_km = max_dist_km_val
+      )
     })
   })
 
@@ -953,15 +918,16 @@ server <- function(input, output, session) {
     content = function(file) {
       req(input$base_layer, input$overlay_source)
       writeLines(
-        ONgeoR:::render_reproducer_script(input$base_layer, input$overlay_source, "."),
+        ONgeoR::render_reproducer_script(input$base_layer, input$overlay_source, "."),
         file
       )
     }
   )
 
   output$link_downloads_ui <- renderUI({
+    has_rows <- function(x) !is.null(x) && nrow(x) > 0
     linked_run <- !is.null(cw_result$linked)
-    link_ready <- !is.null(cw_result$crosswalk) || linked_run
+    link_ready <- has_rows(cw_result$crosswalk) || has_rows(cw_result$linked)
     csv_label <- if (linked_run) "linked.csv" else "crosswalk.csv"
     download_or_disabled(list(
       list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),
@@ -1062,7 +1028,7 @@ server <- function(input, output, session) {
       styles[["Target source"]] <-
         read_layer_style(input, "tgt", layer_geom(nearest_result$preview_target), accent = "#1baf7a")
     }
-    map <- render_styled_map(layers, styles)
+    map <- render_styled_map(layers, styles, add_control = FALSE)
     conn_style <- list(
       color = input$conn_color %||% "#52514e",
       weight = input$conn_weight %||% 1,
@@ -1095,7 +1061,7 @@ server <- function(input, output, session) {
   )
 
   output$nearest_downloads_ui <- renderUI({
-    ready <- !is.null(nearest_result$table)
+    ready <- !is.null(nearest_result$table) && nrow(nearest_result$table) > 0
     download_or_disabled(list(
       list(id = "dl_nearest_map", label = "map.html", ready = ready),
       list(id = "dl_nearest_csv", label = "nearest.csv", ready = ready)

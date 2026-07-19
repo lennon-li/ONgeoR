@@ -139,8 +139,12 @@ map_crosswalk <- function(layers, from_ids, to_ids) {
 #' @param output_dir Character scalar output directory.
 #'
 #' @return A character vector containing valid R code.
-#' @keywords internal
-#' @noRd
+#'
+#' @examples
+#' render_reproducer_script("airport_official", "phu_boundaries", "output")
+#'
+#' @family app support interfaces
+#' @export
 render_reproducer_script <- function(from_ids, to_ids, output_dir) {
   source_ids <- unique(c(from_ids, to_ids))
   layer_calls <- vapply(source_ids, source_retrieve_call, character(1))

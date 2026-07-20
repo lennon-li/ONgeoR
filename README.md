@@ -1,5 +1,7 @@
 # ONgeoR
 
+[![R-CMD-check](https://github.com/lennon-li/ONgeoR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lennon-li/ONgeoR/actions/workflows/R-CMD-check.yaml)
+
 ONgeoR is a lightweight R package for resolving Ontario locations, facilities, and infrastructure to public-health and health-system geography.
 
 It helps users retrieve external source data, link locations to Public Health Units and Ontario Health Regions, build auditable crosswalk files, and create simple maps.

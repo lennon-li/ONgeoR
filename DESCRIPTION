@@ -5,11 +5,12 @@ Authors@R:
     person("Lennon", "Li", email = "lennon.yeli@gmail.com", role = c("aut", "cre"))
 Description: Provides a reproducible framework for retrieving Ontario
     geospatial boundaries and facility locations from authoritative external
-    sources (such as the Ontario GeoHub LIO REST services), linking points
-    and polygons to public-health geography (Public Health Units, Ontario
-    Health Regions), and building auditable crosswalk tables with full
-    source provenance. ONgeoR does not bundle geospatial data; all data is
-    retrieved at runtime from external sources.
+    sources (such as the Ontario GeoHub Land Information Ontario (LIO)
+    representational state transfer (REST) services), linking points and
+    polygons to public-health geography (Public Health Units, Ontario Health
+    Regions), and building auditable crosswalk tables with full source
+    provenance. ONgeoR does not bundle geospatial data; all data is retrieved
+    at runtime from external sources.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: 
@@ -31,6 +32,7 @@ Suggests:
     future,
     knitr,
     later,
+    pkgdown,
     promises,
     rmarkdown,
     shiny (>= 1.8.0),

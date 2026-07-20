@@ -182,9 +182,49 @@ not a second implementation of package algorithms.
   result; do not rely on the clean check that preceded them.
 - Evidence: `R CMD check --as-cran` 0/0/0 Status OK, 2026-07-18, after all
   consolidation changes.
-- [ ] Residual validation gaps (non-blocking): invalid-distance and mocked
-  retrieval-failure testServer paths; end-to-end download handler content;
-  browser coverage of basemap switching incl. `None`.
+- [x] Residual validation gaps (non-blocking): invalid-distance and mocked
+  retrieval-failure testServer paths; end-to-end download handler content.
+- Evidence: added to `test-shiny-server.R` (2026-07-20); suite 609 pass /
+  0 fail, `R CMD check --as-cran` 0 errors / 0 warnings.
+- [x] Browser coverage of basemap switching incl. `None`.
+- Evidence: `test-app-smoke.R` drives all five basemap options in headless
+  Chrome (`None` asserted tile-less); 23 assertions, 0 failures, twice
+  consecutively 2026-07-20. Gated behind `ONGEOR_BASEMAP_SMOKE=true` because
+  it retrieves `airport_official` from GeoHub and the deterministic check
+  must stay network-free per the P1 gate above — run it in the live workflow.
+- [x] Raster palette bug (found while adding the above): every raster preview
+  produced an empty map because the palette choices shipped as
+  `"Viridis"`/`"Magma"`, which `leaflet::colorNumeric()` only rejects when the
+  palette is *applied*, not when it is built. Fixed to `"viridis"`/`"magma"`
+  with a regression test covering every offered palette value.
+- [x] **FIXED: raster layers did not render in the live app.** Root cause: a
+  `SpatRaster` is an external pointer to a C++ object, and that pointer does
+  NOT survive being returned from a `multisession` future worker - it arrives
+  NULL, and the first later use fails with "NULL value passed as symbol
+  address". `sf` layers are plain R data and cross fine, which is why only
+  raster pairings broke. The failure was silent in the UI: the map rendered
+  empty with no `shiny:value` and no `shiny:error`, and map.html downloaded a
+  ~32 KB stub instead of ~2.7 MB.
+- Fix: `pack_spatial()` / `unpack_spatial()` in `inst/shiny/app.R` wrap the
+  raster with `terra::wrap()` before it leaves the worker and restore it with
+  `terra::unwrap()` on arrival, applied at every future boundary
+  (`preview_task` and both `build_task` return paths).
+- Evidence: live browser, `hive + synthetic_air_quality` after the fix - map
+  440,145 chars (was 0), layers control present (was absent), 18 raster canvas
+  tiles (was 0), map.html download 2,806,750 bytes (was ~32 KB), matching the
+  offline 2,741 KB baseline. Visually confirmed: HIVE hex grid and the PM2.5
+  surface render together correctly.
+- Regression test: `test-shiny-server.R` "rasters are packed across the future
+  boundary and survive" asserts the wrap/unwrap contract including a real
+  serialize/unserialize round trip; verified to FAIL when the helpers are
+  reduced to pass-through.
+- Why every existing test missed it: the offline suite runs
+  `use_sequential_futures()`, so nothing ever crossed a process boundary, and
+  `render_styled_map()` in-process was always fine. Only a live browser run
+  with a real multisession worker reproduced it.
+- Note for future browser tests: leaflet 2.2.3 draws a SpatRaster as a CANVAS
+  grid layer (`options = gridOptions()`), not an `img.leaflet-image-layer`
+  overlay - asserting on that img selector gives a false negative.
 
 **Acceptance gate:** both workflows can be exercised automatically from input
 to downloadable output, including expected failure paths.
@@ -207,7 +247,10 @@ to downloadable output, including expected failure paths.
   and run them on a schedule or manual trigger.
 - Evidence: `live-geohub.yaml` (workflow_dispatch + weekly cron); first
   manual run green (run 29668390742), 34 PHUs / 403 airports live.
-- [ ] Add a visible status badge only after the workflow is stable.
+- [x] Add a visible status badge only after the workflow is stable.
+- Evidence: `README.md` R-CMD-check badge added (2026-07-20), linking to
+  `.github/workflows/R-CMD-check.yaml`; workflow proven green on all 3 OSes
+  across multiple runs before the badge was added.
 
 **Acceptance gate:** changes to `main` receive repeatable package, test, and UI
 validation without depending on Ontario GeoHub availability.
@@ -218,24 +261,50 @@ validation without depending on Ontario GeoHub availability.
   or another supported asynchronous pattern.
 - Evidence: ExtendedTask + promises/future (multisession) with plan-restore
   on stop, merged in PR #4 (`1eab55e`).
-- [ ] Prevent stale results when inputs change while a task is running.
-- [ ] Provide clear running, failed, cancelled, and completed states.
-- [ ] Confirm that cached repeat runs remain fast and do not unnecessarily start
+- [x] Prevent stale results when inputs change while a task is running.
+- Evidence: generation counters (`preview_generation`/`link_generation`,
+  bumped on every relevant input change) are carried through each
+  ExtendedTask and checked before results are stored, so a completion whose
+  inputs have moved on is discarded. Test: "Link discards a completion
+  invalidated by changed inputs" (`test-shiny-server.R`).
+- [x] Provide clear running, failed, cancelled, and completed states.
+- Evidence: `task_status_ui()` renders idle/running/failed/cancelled/completed
+  with a `data-state` attribute; wired into both tabs via `link_task_status`
+  and `nearest_task_status`. Tests assert Running, Cancelled, Failed (with the
+  error text) and Completed.
+- [x] Confirm that cached repeat runs remain fast and do not unnecessarily start
   background work.
+- Evidence: test "repeat Link runs use cached retrieval without re-fetching"
+  asserts the second identical run is faster than the first and that no extra
+  retrieval work is started.
 
 **Acceptance gate:** a slow or temporarily unavailable external source does not
 freeze the user interface or leave misleading prior results visible.
 
 ### P1 — Public release readiness
 
-- [ ] Add pkgdown configuration and publish documentation.
+- [~] Add pkgdown configuration and publish documentation. **Config done,
+  publishing NOT done.** `_pkgdown.yml` added and `pkgdown::build_site()`
+  completes; the site has not been deployed anywhere, and `_pkgdown.yml` is
+  `.Rbuildignore`d so it does not trip the top-level-files check. Remaining
+  work is choosing a host (GitHub Pages) and wiring a workflow.
 - [x] Add GitHub issue templates, including a structured data-source request.
 - Evidence: three templates incl. data-source-request, PR #5 (`1eab55e`).
-- [ ] Review package title and description for CRAN-style software-name and API
+- [x] Review package title and description for CRAN-style software-name and API
   formatting before any submission.
-- [ ] Review examples for runtime, network dependence, and correct use of
+- Evidence: Title already compliant (title case, no trailing period, does not
+  open with the package name or an article). Description reworded to expand
+  LIO and REST on first use.
+- [x] Review examples for runtime, network dependence, and correct use of
   `\donttest{}` versus `\dontrun{}`.
-- [ ] Perform a clean installation and check in a fresh environment.
+- Evidence: every network-touching example is already wrapped in
+  `if (interactive()) { ... }`, which `R CMD check` skips - equivalent to
+  `\donttest{}` here. Audited all `@examples` blocks in `R/*.R`; no changes
+  needed, and `devtools::document()` produces no man/ or NAMESPACE drift.
+- [x] Perform a clean installation and check in a fresh environment.
+- Evidence: installed into an empty library via
+  `.libPaths(c("/tmp/ongeor-clean-lib", .libPaths())); devtools::install()`;
+  install succeeded and `library(ONgeoR)` loaded 0.3.0.9000 cleanly.
 
 **Acceptance gate:** a new user can install the package, understand its scope,
 run a documented workflow, and report a source or software problem.
@@ -266,10 +335,13 @@ These are data-governance or scope questions, not implementation tasks.
   feeding the normal linking verbs. Centroid source pending one decision:
   GeoNames (0.27 km median deviation) vs the OPCC project's NAR-derived open
   centroids (100% SLI coverage, ~0 km median; OPCC M2 correspondence table
-  closed 2026-07-18). Awaiting Lennon's go.
-- **Transportation terminals** — no suitable registered LIO source has been
-  confirmed. Define terminal types, authoritative sources, and expected lookup
-  behaviour before implementing `resolve_terminal()`.
+  closed 2026-07-18). Awaiting Lennon's go. **Deliberately parked (2026-07-20,
+  Lennon)** — excluded from the v0.3 P1 cleanup pass; revisit when Lennon
+  picks a centroid source.
+- **Transportation terminals — descoped (2026-07-20, Lennon).** No suitable
+  registered LIO source exists. `resolve_terminal()` will not be built until a
+  concrete source is identified and named; removed from active TODO tracking
+  until then.
 
 ## Task discipline
 

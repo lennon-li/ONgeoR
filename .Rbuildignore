@@ -12,6 +12,7 @@
 ^geohub-inventory\.html$
 ^\.claude$
 ^docs$
+^_pkgdown\.yml$
 ^ONgeoR\.png$
 ^data$
 ^data-raw$

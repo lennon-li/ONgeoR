@@ -47,7 +47,7 @@ shiny_app_file <- function() {
   normalizePath(existing[[1]], mustWork = TRUE)
 }
 
-load_shiny_server <- function() {
+load_shiny_app_env <- function() {
   previous_plan <- future::plan()
   on.exit(future::plan(previous_plan), add = TRUE)
 
@@ -68,7 +68,11 @@ load_shiny_server <- function() {
       }
     }
   )
-  env$server
+  env
+}
+
+load_shiny_server <- function() {
+  load_shiny_app_env()$server
 }
 
 use_sequential_futures <- function(env = parent.frame()) {

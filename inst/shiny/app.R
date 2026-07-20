@@ -20,6 +20,20 @@ shiny::onStop(function() future::plan(.previous_future_plan))
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+# A SpatRaster is an external pointer to a C++ object, and that pointer does
+# NOT survive being returned from a background future worker: it arrives NULL,
+# and the first later use dies with "NULL value passed as symbol address".
+# sf layers are plain R data and cross the boundary fine, which is why only
+# raster pairings were affected. terra's supported way to move a raster
+# between processes is to pack it with wrap() before it leaves the worker and
+# restore it with unwrap() on arrival. Apply these at every future boundary.
+pack_spatial <- function(x) {
+  if (inherits(x, "SpatRaster")) terra::wrap(x) else x
+}
+unpack_spatial <- function(x) {
+  if (inherits(x, "PackedSpatRaster")) terra::unwrap(x) else x
+}
+
 source_choices <- function() {
   sources <- ONgeoR::list_sources()
   stats::setNames(sources$source_id, source_choice_labels(sources))
@@ -257,8 +271,14 @@ basemap_groups <- c(
 layer_style_controls <- function(prefix, geom, accent = "#2a78d6") {
   if (identical(geom, "raster")) {
     tagList(
+      # Values must be spelled exactly as leaflet::colorNumeric() expects:
+      # viridis palettes are lowercase ("viridis"/"magma"), while RColorBrewer
+      # names are capitalized ("Blues"). A wrong case does NOT fail when the
+      # palette function is built - only later, when addRasterImage() applies
+      # it - so the map silently renders empty. Labels stay title-case.
       selectInput(paste0(prefix, "_raster_palette"), "Palette",
-        choices = c("Viridis", "Magma", "Blues"), selected = "Viridis"),
+        choices = c("Viridis" = "viridis", "Magma" = "magma", "Blues" = "Blues"),
+        selected = "viridis"),
       sliderInput(paste0(prefix, "_raster_opacity"), "Layer opacity",
         min = 0, max = 1, value = 0.8, step = 0.05, ticks = FALSE)
     )
@@ -305,7 +325,7 @@ read_layer_style <- function(input, prefix, geom, accent = "#2a78d6") {
   g <- function(suffix) input[[paste0(prefix, "_", suffix)]]
   if (identical(geom, "raster")) {
     list(
-      raster_palette = g("raster_palette") %||% "Viridis",
+      raster_palette = g("raster_palette") %||% "viridis",
       raster_opacity = g("raster_opacity") %||% 0.8
     )
   } else if (identical(geom, "point")) {
@@ -339,6 +359,23 @@ download_or_disabled <- function(items) {
       )
     }
   }))
+}
+
+task_status_ui <- function(state, detail = NULL) {
+  labels <- c(
+    idle = "Idle",
+    running = "Running",
+    failed = "Failed",
+    cancelled = "Cancelled",
+    completed = "Completed"
+  )
+  label <- unname(labels[[state]])
+  tags$p(
+    class = paste("task-status text-muted", paste0("task-status-", state)),
+    `data-state` = state,
+    tags$strong(paste0(label, ".")),
+    if (!is.null(detail)) paste(" ", detail)
+  )
 }
 
 # Adds every real basemap choice as its own named tile group. "Light" is
@@ -509,6 +546,7 @@ ui <- bslib::page_navbar(
         uiOutput("link_method_ui"),
         actionButton("preview_btn", "Preview on map", class = "btn-preview w-100 mb-1"),
         uiOutput("build_btn_ui"),
+        uiOutput("link_task_status"),
         tags$hr(),
         bslib::accordion(
           open = FALSE,
@@ -568,6 +606,7 @@ ui <- bslib::page_navbar(
         helpText("Leave blank for no distance cap."),
         actionButton("nearest_preview_btn", "Preview on map", class = "btn-preview w-100 mb-1"),
         actionButton("nearest_btn", "Find nearest", class = "btn-primary"),
+        uiOutput("nearest_task_status"),
         tags$hr(),
         bslib::accordion(
           open = FALSE,
@@ -605,16 +644,20 @@ server <- function(input, output, session) {
 
   # --- Async tasks (ExtendedTask; requires shiny >= 1.8.0) -----------
 
-  preview_task <- shiny::ExtendedTask$new(function(base_id, overlay_id) {
+  preview_task <- shiny::ExtendedTask$new(function(base_id, overlay_id,
+                                                     generation) {
     promises::future_promise({
       base_sf    <- ONgeoR::retrieve_source(base_id)
       overlay_sf <- ONgeoR::retrieve_source(overlay_id)
-      list(base_sf = base_sf, overlay_sf = overlay_sf,
-           base_id = base_id, overlay_id = overlay_id)
+      list(base_sf = pack_spatial(base_sf),
+           overlay_sf = pack_spatial(overlay_sf),
+           base_id = base_id, overlay_id = overlay_id,
+           generation = generation)
     })
   })
 
-  build_task <- shiny::ExtendedTask$new(function(base_id, overlay_id, method) {
+  build_task <- shiny::ExtendedTask$new(function(base_id, overlay_id, method,
+                                                   generation) {
     promises::future_promise({
       base_sf    <- ONgeoR::retrieve_source(base_id)
       overlay_sf <- ONgeoR::retrieve_source(overlay_id)
@@ -643,7 +686,9 @@ server <- function(input, output, session) {
         }
         linked <- ONgeoR::link(from_sf, to_sf, predicate = "within")
         list(crosswalk = NULL, linked = linked,
-             base_sf = base_sf, overlay_sf = overlay_sf)
+             base_sf = pack_spatial(base_sf),
+             overlay_sf = pack_spatial(overlay_sf),
+             generation = generation)
       } else {
         # Universal direction rule: every crosswalk row assigns an overlay
         # unit to the base polygon it belongs to (overlay is always from,
@@ -653,12 +698,15 @@ server <- function(input, output, session) {
         to_sf     <- base_sf
         crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = method)
         list(crosswalk = crosswalk, linked = NULL,
-             base_sf = base_sf, overlay_sf = overlay_sf)
+             base_sf = pack_spatial(base_sf),
+             overlay_sf = pack_spatial(overlay_sf),
+             generation = generation)
       }
     })
   })
 
-  nearest_preview_task <- shiny::ExtendedTask$new(function(csv_path, target_id) {
+  nearest_preview_task <- shiny::ExtendedTask$new(function(csv_path, target_id,
+                                                             generation) {
     promises::future_promise({
       points <- utils::read.csv(csv_path)
       if (!all(c("lon", "lat") %in% names(points))) {
@@ -666,11 +714,17 @@ server <- function(input, output, session) {
       }
       source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
       target_sf <- ONgeoR::retrieve_source(target_id)
-      list(source_sf = source_sf, target_sf = target_sf)
+      list(
+        source_sf = source_sf,
+        target_sf = target_sf,
+        generation = generation
+      )
     })
   })
 
-  nearest_task <- shiny::ExtendedTask$new(function(csv_path, target_id, k_val, max_dist_km_val) {
+  nearest_task <- shiny::ExtendedTask$new(function(csv_path, target_id, k_val,
+                                                     max_dist_km_val,
+                                                     generation) {
     promises::future_promise({
       points <- utils::read.csv(csv_path)
       if (!all(c("lon", "lat") %in% names(points))) {
@@ -678,12 +732,14 @@ server <- function(input, output, session) {
       }
       source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
       target_sf <- ONgeoR::retrieve_source(target_id)
-      ONgeoR::build_nearest_layers(
+      result <- ONgeoR::build_nearest_layers(
         source_sf,
         target_sf,
         k = k_val,
         max_dist_km = max_dist_km_val
       )
+      result$generation <- generation
+      result
     })
   })
 
@@ -783,6 +839,47 @@ server <- function(input, output, session) {
 
   cw_result <- reactiveValues(crosswalk = NULL, linked = NULL,
     base_sf = NULL, overlay_sf = NULL, previewed = NULL)
+  preview_generation <- reactiveVal(0L)
+  preview_active_generation <- reactiveVal(NULL)
+  link_generation <- reactiveVal(0L)
+  link_active_generation <- reactiveVal(NULL)
+  link_active_inputs <- reactiveVal(NULL)
+  link_state <- reactiveVal("idle")
+  link_state_detail <- reactiveVal(NULL)
+
+  output$link_task_status <- renderUI({
+    task_status_ui(link_state(), link_state_detail())
+  })
+
+  observeEvent(list(input$base_layer, input$overlay_source), {
+    preview_generation(preview_generation() + 1L)
+    link_generation(link_generation() + 1L)
+    if (identical(link_state(), "running")) {
+      link_state("cancelled")
+      link_state_detail("Inputs changed; the previous run was discarded.")
+    } else if (!identical(link_state(), "cancelled")) {
+      link_state("idle")
+      link_state_detail(NULL)
+    }
+    cw_result$crosswalk <- NULL
+    cw_result$linked <- NULL
+    cw_result$base_sf <- NULL
+    cw_result$overlay_sf <- NULL
+    cw_result$previewed <- NULL
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$method, {
+    link_generation(link_generation() + 1L)
+    if (identical(link_state(), "running")) {
+      link_state("cancelled")
+      link_state_detail("Inputs changed; the previous run was discarded.")
+    } else if (!identical(link_state(), "cancelled")) {
+      link_state("idle")
+      link_state_detail(NULL)
+    }
+    cw_result$crosswalk <- NULL
+    cw_result$linked <- NULL
+  }, ignoreInit = TRUE)
 
   # Link is gated on having previewed the CURRENT pair: enabled only when a
   # preview succeeded for exactly today's base_layer/overlay_source values
@@ -795,7 +892,7 @@ server <- function(input, output, session) {
     point_point <- is_facility_source(input$base_layer) && is_facility_source(input$overlay_source)
     previewed_current <- identical(cw_result$previewed, c(input$base_layer, input$overlay_source))
     enabled <- previewed_current && !point_point
-    build_running <- identical(build_task$status(), "running")
+    build_running <- identical(link_state(), "running")
 
     if (build_running) {
       tags$button("Running...", type = "button",
@@ -825,19 +922,23 @@ server <- function(input, output, session) {
 
   observeEvent(input$preview_btn, {
     req(input$base_layer, input$overlay_source)
-    preview_task$invoke(input$base_layer, input$overlay_source)
+    generation <- preview_generation()
+    preview_active_generation(generation)
+    preview_task$invoke(input$base_layer, input$overlay_source, generation)
   })
 
   observeEvent(preview_task$status(), {
     s <- preview_task$status()
     if (!s %in% c("success", "error")) return()
+    if (!identical(preview_active_generation(), preview_generation())) return()
     result <- tryCatch(preview_task$result(), error = function(e) e)
     if (inherits(result, "error")) {
       showNotification(conditionMessage(result), type = "error", duration = NULL)
       return()
     }
-    cw_result$base_sf <- result$base_sf
-    cw_result$overlay_sf <- result$overlay_sf
+    if (!identical(result$generation, preview_generation())) return()
+    cw_result$base_sf <- unpack_spatial(result$base_sf)
+    cw_result$overlay_sf <- unpack_spatial(result$overlay_sf)
     # A fresh preview invalidates any stale link results - the Data tab
     # goes empty and the crosswalk/linked-csv and reproduce.R downloads
     # disable until Link is run again.
@@ -862,21 +963,64 @@ server <- function(input, output, session) {
     # on-click redirect notice that used to live here is no longer reachable
     # and has been removed - see link_method_ui for the still-shown
     # point-point explanatory message.
-    build_task$invoke(input$base_layer, input$overlay_source, input$method %||% "within")
+    requested_inputs <- list(
+      base_layer = input$base_layer,
+      overlay_source = input$overlay_source,
+      method = input$method %||% "within"
+    )
+    has_current_result <- !is.null(cw_result$crosswalk) ||
+      !is.null(cw_result$linked)
+    if (identical(link_state(), "completed") &&
+        identical(link_active_inputs(), requested_inputs) &&
+        has_current_result) {
+      link_state_detail("Current results are already ready; no work restarted.")
+      return()
+    }
+    generation <- link_generation()
+    link_active_generation(generation)
+    link_active_inputs(requested_inputs)
+    link_state("running")
+    link_state_detail("Linking selected layers.")
+    cw_result$crosswalk <- NULL
+    cw_result$linked <- NULL
+    build_task$invoke(
+      input$base_layer,
+      input$overlay_source,
+      input$method %||% "within",
+      generation
+    )
   })
 
   observeEvent(build_task$status(), {
     s <- build_task$status()
     if (!s %in% c("success", "error")) return()
+    current_inputs <- list(
+      base_layer = input$base_layer,
+      overlay_source = input$overlay_source,
+      method = input$method %||% "within"
+    )
+    if (!identical(link_active_inputs(), current_inputs)) {
+      link_state("cancelled")
+      link_state_detail("Inputs changed; the previous run was discarded.")
+      cw_result$crosswalk <- NULL
+      cw_result$linked <- NULL
+      return()
+    }
+    if (!identical(link_active_generation(), link_generation())) return()
     result <- tryCatch(build_task$result(), error = function(e) e)
     if (inherits(result, "error")) {
+      link_state("failed")
+      link_state_detail(conditionMessage(result))
       showNotification(conditionMessage(result), type = "error", duration = NULL)
       return()
     }
+    if (!identical(result$generation, link_generation())) return()
     cw_result$crosswalk   <- result$crosswalk
     cw_result$linked      <- result$linked
-    cw_result$base_sf     <- result$base_sf
-    cw_result$overlay_sf  <- result$overlay_sf
+    cw_result$base_sf     <- unpack_spatial(result$base_sf)
+    cw_result$overlay_sf  <- unpack_spatial(result$overlay_sf)
+    link_state("completed")
+    link_state_detail("Results and downloads are ready.")
   }, ignoreInit = TRUE)
 
   link_map <- reactive({
@@ -968,6 +1112,40 @@ server <- function(input, output, session) {
 
   nearest_result <- reactiveValues(table = NULL, source_sf = NULL, target_sf = NULL,
     matched_target = NULL, connectors = NULL, preview_target = NULL)
+  nearest_preview_generation <- reactiveVal(0L)
+  nearest_preview_active_generation <- reactiveVal(NULL)
+  nearest_generation <- reactiveVal(0L)
+  nearest_active_generation <- reactiveVal(NULL)
+  nearest_active_inputs <- reactiveVal(NULL)
+  nearest_state <- reactiveVal("idle")
+  nearest_state_detail <- reactiveVal(NULL)
+
+  output$nearest_task_status <- renderUI({
+    task_status_ui(nearest_state(), nearest_state_detail())
+  })
+
+  observeEvent(list(
+    input$points_csv,
+    input$target_source,
+    input$k,
+    input$max_dist_km
+  ), {
+    nearest_preview_generation(nearest_preview_generation() + 1L)
+    nearest_generation(nearest_generation() + 1L)
+    if (identical(nearest_state(), "running")) {
+      nearest_state("cancelled")
+      nearest_state_detail("Inputs changed; the previous run was discarded.")
+    } else if (!identical(nearest_state(), "cancelled")) {
+      nearest_state("idle")
+      nearest_state_detail(NULL)
+    }
+    nearest_result$table <- NULL
+    nearest_result$source_sf <- NULL
+    nearest_result$target_sf <- NULL
+    nearest_result$matched_target <- NULL
+    nearest_result$connectors <- NULL
+    nearest_result$preview_target <- NULL
+  }, ignoreInit = TRUE)
 
   # Retrieves and maps the uploaded source points and the selected target
   # source without running the nearest match, so users can see both layers
@@ -982,17 +1160,31 @@ server <- function(input, output, session) {
 
   observeEvent(input$nearest_preview_btn, {
     req(input$points_csv, input$target_source)
-    nearest_preview_task$invoke(input$points_csv$datapath, input$target_source)
+    generation <- nearest_preview_generation()
+    nearest_preview_active_generation(generation)
+    nearest_preview_task$invoke(
+      input$points_csv$datapath,
+      input$target_source,
+      generation
+    )
   })
 
   observeEvent(nearest_preview_task$status(), {
     s <- nearest_preview_task$status()
     if (!s %in% c("success", "error")) return()
+    if (!identical(
+      nearest_preview_active_generation(),
+      nearest_preview_generation()
+    )) return()
     result <- tryCatch(nearest_preview_task$result(), error = function(e) e)
     if (inherits(result, "error")) {
       showNotification(conditionMessage(result), type = "error", duration = NULL)
       return()
     }
+    if (!identical(
+      result$generation,
+      nearest_preview_generation()
+    )) return()
     nearest_result$source_sf     <- result$source_sf
     nearest_result$preview_target <- result$target_sf
     nearest_result$table         <- NULL
@@ -1001,30 +1193,87 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   observe({
-    label <- if (identical(nearest_task$status(), "running")) "Running..." else "Find nearest"
+    label <- if (identical(nearest_state(), "running")) "Running..." else "Find nearest"
     updateActionButton(session, "nearest_btn", label = label)
   })
 
   observeEvent(input$nearest_btn, {
     req(input$points_csv, input$target_source)
-    max_dist_km_val <- if (is.na(input$max_dist_km) || is.null(input$max_dist_km)) NULL else input$max_dist_km
-    nearest_task$invoke(input$points_csv$datapath, input$target_source, input$k, max_dist_km_val)
+    max_dist_input <- input$max_dist_km
+    blank_distance <- is.null(max_dist_input) || length(max_dist_input) == 0L ||
+      (length(max_dist_input) == 1L && is.na(max_dist_input))
+    valid_distance <- blank_distance ||
+      (is.numeric(max_dist_input) && length(max_dist_input) == 1L &&
+        is.finite(max_dist_input) && max_dist_input >= 0)
+    if (!valid_distance) {
+      message <- "max_dist_km must be non-negative or blank."
+      nearest_state("failed")
+      nearest_state_detail(message)
+      showNotification(message, type = "error", duration = NULL)
+      return()
+    }
+    max_dist_km_val <- if (blank_distance) NULL else max_dist_input
+    generation <- nearest_generation()
+    nearest_active_generation(generation)
+    nearest_active_inputs(list(
+      csv_path = input$points_csv$datapath,
+      target_source = input$target_source,
+      k = input$k,
+      max_dist_km = max_dist_km_val
+    ))
+    nearest_state("running")
+    nearest_state_detail("Finding nearest targets.")
+    nearest_result$table <- NULL
+    nearest_result$matched_target <- NULL
+    nearest_result$connectors <- NULL
+    nearest_task$invoke(
+      input$points_csv$datapath,
+      input$target_source,
+      input$k,
+      max_dist_km_val,
+      generation
+    )
   })
 
   observeEvent(nearest_task$status(), {
     s <- nearest_task$status()
     if (!s %in% c("success", "error")) return()
+    current_distance <- input$max_dist_km
+    current_distance <- if (
+      is.null(current_distance) || length(current_distance) == 0L ||
+        (length(current_distance) == 1L && is.na(current_distance))
+    ) NULL else current_distance
+    current_inputs <- list(
+      csv_path = input$points_csv$datapath,
+      target_source = input$target_source,
+      k = input$k,
+      max_dist_km = current_distance
+    )
+    if (!identical(nearest_active_inputs(), current_inputs)) {
+      nearest_state("cancelled")
+      nearest_state_detail("Inputs changed; the previous run was discarded.")
+      nearest_result$table <- NULL
+      nearest_result$matched_target <- NULL
+      nearest_result$connectors <- NULL
+      return()
+    }
+    if (!identical(nearest_active_generation(), nearest_generation())) return()
     result <- tryCatch(nearest_task$result(), error = function(e) e)
     if (inherits(result, "error")) {
+      nearest_state("failed")
+      nearest_state_detail(conditionMessage(result))
       showNotification(conditionMessage(result), type = "error", duration = NULL)
       return()
     }
+    if (!identical(result$generation, nearest_generation())) return()
     nearest_result$table          <- result$table
     nearest_result$source_sf      <- result$source
     nearest_result$matched_target <- result$matched_target
     nearest_result$connectors     <- result$connectors
     # A completed match supersedes any preview target layer.
     nearest_result$preview_target <- NULL
+    nearest_state("completed")
+    nearest_state_detail("Results and downloads are ready.")
   }, ignoreInit = TRUE)
 
   nearest_map <- reactive({

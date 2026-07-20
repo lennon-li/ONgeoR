@@ -338,10 +338,6 @@ These are data-governance or scope questions, not implementation tasks.
   closed 2026-07-18). Awaiting Lennon's go. **Deliberately parked (2026-07-20,
   Lennon)** — excluded from the v0.3 P1 cleanup pass; revisit when Lennon
   picks a centroid source.
-- **Transportation terminals — descoped (2026-07-20, Lennon).** No suitable
-  registered LIO source exists. `resolve_terminal()` will not be built until a
-  concrete source is identified and named; removed from active TODO tracking
-  until then.
 
 ## Task discipline
 

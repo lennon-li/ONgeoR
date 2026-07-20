@@ -140,7 +140,8 @@ pairing_explanation_text <- function(kinds) {
       "polygon to an interior point for a fast one-to-one assignment;",
       "\"Assign by largest overlap\" gives each overlay polygon to the",
       "boundary it shares the most area with (the coverage column reports",
-      "that share).")
+      "that share); \"Apportion across overlaps\" keeps every overlapping",
+      "boundary with its share.")
   }
 }
 
@@ -202,10 +203,11 @@ link_matrix_table <- function() {
           "Point-in-boundary containment (within); points are always the from side internally.",
           "Crosswalk"),
         row("Polygon x Polygon",
-          paste("Your choice of four rules: within / intersects /",
+          paste("Your choice of five rules: within / intersects /",
             "point_on_surface (interior representative point, not centroid) /",
             "largest_overlap (majority shared area; coverage 0-1 reports the",
-            "winner's share)."),
+            "winner's share) / weighted (keeps every positive-area overlap;",
+            "coverage reports each pair's share)."),
           "Crosswalk"),
         row("Point x Raster (either slot order)",
           paste("Sampling - each point gets the value of the cell containing",
@@ -227,9 +229,9 @@ link_matrix_table <- function() {
     ),
     tags$p(class = "text-muted",
       paste("Linking never creates or emits geometry - overlap areas are",
-        "internal arithmetic only. The coverage column is populated only by",
-        "largest_overlap, where it reports the winning boundary's share (0-1)",
-        "of the source polygon's area."))
+        "internal arithmetic only. The coverage column is populated by",
+        "largest_overlap (the winning boundary's share, 0-1, of the source",
+        "polygon's area) and by weighted (each retained pair's share)."))
   )
 }
 
@@ -763,7 +765,8 @@ server <- function(input, output, session) {
           "Fully inside (within)" = "within",
           "Any overlap (intersects)" = "intersects",
           "Treat overlay as points (fast)" = "point_on_surface",
-          "Assign by largest overlap (accurate)" = "largest_overlap"
+          "Assign by largest overlap (accurate)" = "largest_overlap",
+          "Apportion across overlaps (weighted)" = "weighted"
         )),
         help_link
       )
@@ -917,8 +920,14 @@ server <- function(input, output, session) {
     filename = function() "reproduce.R",
     content = function(file) {
       req(input$base_layer, input$overlay_source)
+      # Mirror the build task's universal direction rule (overlay is always
+      # `from`, base always `to`) and the user's chosen match rule, so the
+      # script rebuilds the same crosswalk the app displayed.
       writeLines(
-        ONgeoR::render_reproducer_script(input$base_layer, input$overlay_source, "."),
+        ONgeoR::render_reproducer_script(
+          input$overlay_source, input$base_layer, ".",
+          method = input$method %||% "within"
+        ),
         file
       )
     }
@@ -932,7 +941,10 @@ server <- function(input, output, session) {
     download_or_disabled(list(
       list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),
       list(id = "dl_cw_csv", label = csv_label, ready = link_ready),
-      list(id = "dl_cw_script", label = "reproduce.R", ready = link_ready)
+      # reproduce.R renders a crosswalk script only; raster runs produce a
+      # linked values table through link(), which the script cannot rebuild,
+      # so it stays disabled for them.
+      list(id = "dl_cw_script", label = "reproduce.R", ready = has_rows(cw_result$crosswalk))
     ))
   })
 

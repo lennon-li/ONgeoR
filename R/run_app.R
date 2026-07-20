@@ -17,7 +17,10 @@
 #'
 #' @export
 run_app <- function(...) {
-  rlang::check_installed(c("shiny", "bslib"), reason = "to run the ONgeoR Shiny app.")
+  rlang::check_installed(
+    c("shiny", "bslib", "DT", "promises", "future"),
+    reason = "to run the ONgeoR Shiny app."
+  )
   app_dir <- system.file("shiny", package = "ONgeoR")
   if (!nzchar(app_dir)) {
     rlang::abort("Could not find the ONgeoR Shiny app directory. Try re-installing the package.")

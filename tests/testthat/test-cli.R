@@ -201,3 +201,65 @@ test_that("render_reproducer_script includes new registry retrieve calls", {
   expect_match(script, "airport_official = retrieve_airport()", fixed = TRUE)
   expect_match(script, "waste_management_site = retrieve_waste_management()", fixed = TRUE)
 })
+
+test_that("every registered source id dispatches through retrieve_source", {
+  testthat::local_mocked_bindings(
+    fetch_lio_sf = function(service_layer, source_name, ...) {
+      layer <- sf::st_sf(
+        SOME_ID = 1,
+        geometry = sf::st_sfc(sf::st_point(c(-79, 44)), crs = 4326)
+      )
+      attr(layer, "source_name") <- source_name
+      layer
+    },
+    .package = "ONgeoR"
+  )
+
+  ids <- list_sources()$source_id
+  for (id in ids) {
+    result <- tryCatch(retrieve_source(id), error = function(e) e)
+    expect_false(inherits(result, "error"), label = paste0("retrieve_source failed for id: ", id))
+  }
+})
+
+test_that("every registered source id has a source_retrieve_call entry", {
+  ids <- list_sources()$source_id
+  for (id in ids) {
+    result <- tryCatch(source_retrieve_call(id), error = function(e) e)
+    expect_false(inherits(result, "error"), label = paste0("source_retrieve_call failed for id: ", id))
+    if (!inherits(result, "error")) {
+      expect_type(result, "character")
+      expect_length(result, 1)
+      expect_gt(nchar(result), 0)
+    }
+  }
+})
+
+test_that("cross_crosswalk passes the method through to build_crosswalk", {
+  layers <- make_cli_layers()
+  testthat::local_mocked_bindings(
+    retrieve_layers = function(source_ids, refresh = FALSE) layers[source_ids],
+    .package = "ONgeoR"
+  )
+
+  crosswalk <- cross_crosswalk("municipal_upper", "phu_boundaries",
+    method = "within")
+
+  expect_equal(unique(crosswalk$match_method), "within")
+})
+
+test_that("render_reproducer_script records the crosswalk method", {
+  script <- render_reproducer_script(
+    from_ids = "airport_official",
+    to_ids = "phu_boundaries",
+    output_dir = tempfile("ongeor-output-"),
+    method = "largest_overlap"
+  )
+
+  expect_match(script, 'method <- "largest_overlap"', fixed = TRUE)
+  expect_match(script, "cross_crosswalk(from_ids, to_ids, method = method)", fixed = TRUE)
+  expect_match(script,
+    "render_reproducer_script(from_ids, to_ids, output_dir, method = method)",
+    fixed = TRUE
+  )
+})

@@ -4,7 +4,7 @@
 \alias{render_reproducer_script}
 \title{Render a reproducible R script for a CLI run}
 \usage{
-render_reproducer_script(from_ids, to_ids, output_dir)
+render_reproducer_script(from_ids, to_ids, output_dir, method = "intersects")
 }
 \arguments{
 \item{from_ids}{Character vector of source ids used as crosswalk sources.}
@@ -12,6 +12,11 @@ render_reproducer_script(from_ids, to_ids, output_dir)
 \item{to_ids}{Character vector of source ids used as crosswalk targets.}
 
 \item{output_dir}{Character scalar output directory.}
+
+\item{method}{Character. Crosswalk assignment rule recorded in the script
+and passed to \code{\link[=build_crosswalk]{build_crosswalk()}} for every pair, so the script rebuilds
+the crosswalk with the same rule as the run it documents. Defaults to
+\code{"intersects"}.}
 }
 \value{
 A character vector containing valid R code.

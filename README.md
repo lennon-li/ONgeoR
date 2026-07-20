@@ -19,14 +19,14 @@ ONgeoR provides a standardized, reproducible framework for these tasks without b
 ## What ONgeoR Does (v0.3)
 
 - Provides a source registry with metadata for Tier 1 Ontario GeoHub (LIO) datasets
-- Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, and waste management sites at runtime
-- Links geometries by type with `link()` (point-in-polygon and polygon-to-polygon) and `nearest()` (k-nearest and radius search), and resolves records by identifier or name with `resolve()`
-- Generates auditable crosswalk tables with full provenance metadata via `build_crosswalk()`
+- Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, waste management sites, conservation authorities, and ORWN railway stations at runtime, plus a bundled HIVE grid and a synthetic raster surface
+- Links geometries by type with `link()` (point-in-polygon, polygon-to-polygon, and raster sampling) and `nearest()` (k-nearest and radius search), and resolves records by identifier or name with `resolve()`
+- Generates auditable crosswalk tables with full provenance metadata via `build_crosswalk()`, including weighted apportionment
 - Draws interactive leaflet maps with `map_layers()` and nearest-match maps
   with `map_nearest()`
 - Ships a Shiny app launched with `run_app()`
 
-See [ROADMAP.md](ROADMAP.md) for planned raster linking, more maps, and additional sources.
+See [ROADMAP.md](ROADMAP.md) for planned additional sources and performance work.
 
 ## What ONgeoR Does Not Do
 
@@ -95,13 +95,16 @@ map_layers(phu, retrieve_moh_service_locations(service_type = "Hospital"))
 - [Getting started](vignettes/getting-started.Rmd)
 - [Building crosswalks](vignettes/building-crosswalks.Rmd)
 - [Adding data sources](vignettes/adding-data-sources.Rmd)
+- [Launching and using the Shiny app](vignettes/shiny-app.Rmd)
 
 ## Data Sources
 
 ONgeoR retrieves data from authoritative Ontario sources including:
 - **Ontario GeoHub** (geohub.lio.gov.on.ca) — provincial boundaries, facilities, infrastructure
-- **Statistics Canada** — census geographies (when available as open data)
-- **Ministry of Health** — health facility locations
+- **Ministry of Health** — health facility locations (via the GeoHub LIO services)
+
+Statistics Canada census geographies are planned for a future release (see the
+roadmap).
 
 All sources are documented in the package's source registry with metadata including:
 - Source owner and jurisdiction

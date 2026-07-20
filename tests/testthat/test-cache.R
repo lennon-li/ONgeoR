@@ -232,3 +232,18 @@ test_that("cache staleness decision handles age and unknown metadata", {
   expect_true(cache_is_stale(4, 3))
   expect_true(cache_is_stale(NA_real_, 3))
 })
+
+test_that("cache timestamps round-trip timezone-safely", {
+  withr::local_timezone("America/Toronto")
+
+  meta <- list(retrieved_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S UTC", tz = "UTC"))
+  expect_lt(abs(cache_age_days(meta)), 0.001)
+
+  expect_equal(
+    cache_age_days(
+      list(retrieved_at = format(as.POSIXct("2026-07-08 00:00:00", tz = "UTC"), "%Y-%m-%d %H:%M:%S %Z", tz = "UTC")),
+      now = as.POSIXct("2026-07-09 00:00:00", tz = "UTC")
+    ),
+    1
+  )
+})

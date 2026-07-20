@@ -31,6 +31,8 @@ retrieve_source <- function(source_id, refresh = FALSE) {
     moh_service_locations = retrieve_moh_service_locations(refresh = refresh),
     synthetic_air_quality = retrieve_synthetic_raster(refresh = refresh),
     hive = retrieve_hive(refresh = refresh),
+    conservation_authority = retrieve_conservation_authority(refresh = refresh),
+    orwn_station = retrieve_orwn_station(refresh = refresh),
     {
       valid_ids <- list_sources()$source_id
       rlang::abort(sprintf(
@@ -76,11 +78,14 @@ retrieve_layers <- function(source_ids, refresh = FALSE) {
 #' @param to_ids Character vector of source ids.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API.
+#' @param method Character. Crosswalk assignment rule passed to
+#'   [build_crosswalk()] for every pair. Defaults to `"intersects"`.
 #'
 #' @return A [tibble::tibble()] containing all pairwise crosswalk rows.
 #' @keywords internal
 #' @noRd
-cross_crosswalk <- function(from_ids, to_ids, refresh = FALSE) {
+cross_crosswalk <- function(from_ids, to_ids, refresh = FALSE,
+                            method = "intersects") {
   pairs <- expand.grid(
     from_id = from_ids,
     to_id = to_ids,
@@ -94,7 +99,7 @@ cross_crosswalk <- function(from_ids, to_ids, refresh = FALSE) {
     crosswalk <- build_crosswalk(
       layers[[from_id]],
       layers[[to_id]],
-      method = "intersects"
+      method = method
     )
     crosswalk$from_source_id <- from_id
     crosswalk$to_source_id <- to_id
@@ -137,6 +142,10 @@ map_crosswalk <- function(layers, from_ids, to_ids) {
 #' @param from_ids Character vector of source ids used as crosswalk sources.
 #' @param to_ids Character vector of source ids used as crosswalk targets.
 #' @param output_dir Character scalar output directory.
+#' @param method Character. Crosswalk assignment rule recorded in the script
+#'   and passed to [build_crosswalk()] for every pair, so the script rebuilds
+#'   the crosswalk with the same rule as the run it documents. Defaults to
+#'   `"intersects"`.
 #'
 #' @return A character vector containing valid R code.
 #'
@@ -145,7 +154,8 @@ map_crosswalk <- function(layers, from_ids, to_ids) {
 #'
 #' @family app support interfaces
 #' @export
-render_reproducer_script <- function(from_ids, to_ids, output_dir) {
+render_reproducer_script <- function(from_ids, to_ids, output_dir,
+                                     method = "intersects") {
   source_ids <- unique(c(from_ids, to_ids))
   layer_calls <- vapply(source_ids, source_retrieve_call, character(1))
   layer_lines <- sprintf("  %s = %s", source_ids, layer_calls)
@@ -154,17 +164,18 @@ render_reproducer_script <- function(from_ids, to_ids, output_dir) {
     "library(ONgeoR)\n\n",
     "from_ids <- ", deparse_chr(from_ids), "\n",
     "to_ids <- ", deparse_chr(to_ids), "\n",
+    "method <- ", deparse_chr(method), "\n",
     "output_dir <- ", deparse_chr(output_dir), "\n\n",
     "layers <- list(\n",
     paste(layer_lines, collapse = ",\n"),
     "\n)\n\n",
-    "cw <- ONgeoR:::cross_crosswalk(from_ids, to_ids)\n",
+    "cw <- ONgeoR:::cross_crosswalk(from_ids, to_ids, method = method)\n",
     "map <- map_crosswalk(layers, from_ids, to_ids)\n\n",
     "dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\n",
     "write.csv(cw, file.path(output_dir, \"crosswalk.csv\"), row.names = FALSE)\n",
     "htmlwidgets::saveWidget(map, file.path(output_dir, \"map.html\"), selfcontained = TRUE)\n",
     "writeLines(\n",
-    "  ONgeoR:::render_reproducer_script(from_ids, to_ids, output_dir),\n",
+    "  ONgeoR:::render_reproducer_script(from_ids, to_ids, output_dir, method = method),\n",
     "  file.path(output_dir, \"reproduce.R\")\n",
     ")\n"
   )
@@ -179,6 +190,10 @@ source_retrieve_call <- function(source_id) {
     airport_official = "retrieve_airport()",
     waste_management_site = "retrieve_waste_management()",
     moh_service_locations = "retrieve_moh_service_locations()",
+    conservation_authority = "retrieve_conservation_authority()",
+    orwn_station = "retrieve_orwn_station()",
+    synthetic_air_quality = "retrieve_synthetic_raster()",
+    hive = "retrieve_hive()",
     {
       valid_ids <- list_sources()$source_id
       rlang::abort(sprintf(

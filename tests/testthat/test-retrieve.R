@@ -728,3 +728,58 @@ test_that("retrieve_orwn_station returns an sf object with provenance attributes
   expect_equal(attr(stations, "source_name"), "ORWN Station")
   expect_match(attr(stations, "source_url"), "LIO_Open04/MapServer/15")
 })
+
+test_that("fetch_lio_sf advances pagination by rows actually returned", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  offsets <- integer(0)
+  handler <- function(req) {
+    offset <- httr2::url_parse(req$url)$query$resultOffset
+    offset <- if (is.null(offset)) 0L else as.integer(offset)
+    offsets <<- c(offsets, offset)
+    mock_lio_response(
+      200,
+      synthetic_point_geojson(offset + 1, truncated = offset < 2)
+    )
+  }
+
+  layer <- httr2::with_mocked_responses(handler, fetch_lio_sf(
+    service_layer = "LIO_Open09/26",
+    source_name = "MOH Service Location",
+    simplify = FALSE,
+    result_record_count = 2,
+    refresh = TRUE,
+    paginate = TRUE
+  ))
+
+  expect_equal(offsets, c(0L, 1L, 2L))
+  expect_equal(nrow(layer), 3)
+  expect_equal(layer$OBJECTID, 1:3)
+})
+
+test_that("fetch_lio_sf aborts on an empty truncated page", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  calls <- 0
+  error <- expect_error(
+    httr2::with_mocked_responses(
+      function(req) {
+        calls <<- calls + 1
+        mock_lio_response(200, synthetic_point_geojson(integer(0), truncated = TRUE))
+      },
+      fetch_lio_sf(
+        service_layer = "LIO_Open09/26",
+        source_name = "MOH Service Location",
+        simplify = FALSE,
+        result_record_count = 2,
+        refresh = TRUE,
+        paginate = TRUE
+      )
+    ),
+    class = "ongeor_retrieval_error"
+  )
+  expect_equal(calls, 1)
+  expect_match(conditionMessage(error), "empty truncated page", fixed = TRUE)
+})

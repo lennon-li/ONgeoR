@@ -231,6 +231,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
     max_pages <- 20
     pages <- list()
     result_offset <- 0
+    page_number <- 1
 
     repeat {
       if (length(pages) >= max_pages) {
@@ -250,8 +251,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
         ))
       }
 
-      if (result_offset > 0) {
-        page_number <- result_offset %/% result_record_count + 1
+      if (page_number > 1) {
         inform_lio_progress(sprintf(
           "Retrieving page %d for source '%s' (layer '%s').",
           page_number,
@@ -269,8 +269,22 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       if (!page$truncated) {
         break
       }
+      if (n == 0) {
+        abort_lio_retrieval(sprintf(
+          paste(
+            "Server returned an empty truncated page for source '%s'",
+            "(layer '%s'); cannot advance pagination safely. Retry later."
+          ),
+          source_name,
+          service_layer
+        ))
+      }
 
-      result_offset <- result_offset + result_record_count
+      # Advance by the rows actually returned, not the requested page size:
+      # the server may cap pages below result_record_count, and skipping the
+      # difference would silently drop features.
+      result_offset <- result_offset + n
+      page_number <- page_number + 1
     }
 
     sf_obj <- if (length(pages) == 0) {
@@ -322,7 +336,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       source_url = url,
       where = where,
       simplify = simplify,
-      retrieved_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S %Z")
+      retrieved_at = format(Sys.time(), "%Y-%m-%d %H:%M:%S UTC", tz = "UTC")
     )
   )
 

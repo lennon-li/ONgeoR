@@ -11,7 +11,8 @@ crosswalk → map workflow is implemented and live-verified.
 
 ### Shipped
 
-- **Retrieval** — seven registered Ontario GeoHub sources with provenance,
+- **Retrieval** — nine registered Ontario GeoHub sources (plus the bundled
+  HIVE grid and a synthetic raster) with provenance,
   bounded pagination with truncation detection, retry/backoff, actionable
   errors, progress messages, cache max_age, and
   source-specific simplification defaults.
@@ -40,6 +41,47 @@ sources or raster support.
 is complete (commits `9dda143`, `bed1602`); evidence is recorded per item
 below. Residual validation gaps are listed as new unchecked items — close
 them opportunistically, they do not block v0.4.
+
+### v0.3.1 registry-drift fix pass (2026-07-19)
+
+An audit found that the v0.3 "same product state" gate had regressed when the
+conservation authority and ORWN station sources were added: the registry, the
+`retrieve_source()` dispatch, the reproducer's call table, and the app/vignette
+prose had drifted apart. Fixed in this pass:
+
+- [x] `retrieve_source()` dispatches `conservation_authority` and
+  `orwn_station`; `source_retrieve_call()` covers those plus
+  `synthetic_air_quality` and `hive`.
+- [x] Registry-dispatch completeness tests: every `list_sources()` id must
+  dispatch through `retrieve_source()` and `source_retrieve_call()`, so a
+  future registry addition fails tests until both switches are extended.
+- [x] `reproduce.R` now reproduces the app run: overlay-as-from direction and
+  the user's chosen match rule are recorded (`render_reproducer_script()` and
+  `cross_crosswalk()` gained a `method` argument); the download is disabled
+  for raster runs, whose linked-values output the script cannot rebuild.
+- [x] Cache `retrieved_at` metadata written in UTC (was local time parsed as
+  UTC, inflating cache ages by the UTC offset), with a timezone round-trip
+  test.
+- [x] Pagination advances by rows actually returned, not requested page size,
+  and aborts on an empty truncated page — guards against silent feature loss
+  if the server caps pages below `resultRecordCount`.
+- [x] `weighted` match rule exposed in the app; app help modal, vignette, and
+  roxygen tell the same five-rule story again.
+- [x] `run_app()` checks all app dependencies (`shiny`, `bslib`, `DT`,
+  `promises`, `future`) up front.
+- [x] README/ROADMAP staleness: raster linking described as shipped, all
+  eleven registry sources listed, Statistics Canada marked planned, shiny-app
+  vignette linked, source count corrected.
+- Evidence: suite 568 pass / 0 fail / 0 skip after changes (2026-07-19);
+  baseline before changes 471 pass / 0 fail. Implementation: venQ-supervised
+  worker packets for the mechanical fixes plus direct edits for multi-file
+  changes; full trial log in the agent memory repo.
+
+Residual (non-blocking, fold into existing residual item): raster runs still
+have no reproducer story; `nearest()` does not validate `k`;
+`clear_cache(source_id)` fails on a corrupt sidecar; registry YAML re-read on
+every call (memoization); app "Use my own file" controls are inert
+placeholders — hide or implement.
 
 ### P0 — Reconcile project state
 

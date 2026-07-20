@@ -395,3 +395,46 @@ retrieve_hive <- function(refresh = FALSE) {
 hive_data_path <- function() {
   system.file("extdata", "hive.rds", package = "ONgeoR")
 }
+
+#' Retrieve simplified Public Health Unit boundaries
+#'
+#' Returns the built-in simplified Ontario Public Health Unit (PHU) boundary
+#' layer shipped in `inst/extdata/phu_simple.rds`.  This layer is intended as
+#' a lightweight, always-on reference outline for the Shiny app and other
+#' mapping code.  It is NOT a substitute for [retrieve_phu()]: use
+#' [retrieve_phu()] when you need full-resolution, authoritative PHU
+#' boundaries or up-to-date provenance.
+#'
+#' The built-in file was produced by fetching full-resolution PHU boundaries
+#' from the LIO Open Data REST service, reprojecting to EPSG:3161
+#' (Ontario MNR Lambert), simplifying with `sf::st_simplify(dTolerance = 250,
+#' preserveTopology = TRUE)`, reprojecting back to the source CRS, and
+#' casting to `MULTIPOLYGON`.  The source data are distributed under the
+#' Open Government Licence - Ontario.
+#'
+#' @return An `sf` object of 34 simplified PHU boundary `MULTIPOLYGON`s, with
+#'   `source_url`, `source_name`, and `retrieved_at` attributes inherited from
+#'   the full-resolution source.
+#'
+#' @examples
+#' if (interactive()) {
+#'   phu_simple <- retrieve_phu_simple()
+#' }
+#'
+#' @export
+retrieve_phu_simple <- function() {
+  path <- phu_simple_data_path()
+  if (!nzchar(path)) {
+    rlang::abort(
+      "phu_simple.rds is missing from the installed ONgeoR package; reinstall ONgeoR.",
+      class = "ongeor_phu_simple_missing"
+    )
+  }
+  readRDS(path)
+}
+
+#' @keywords internal
+#' @noRd
+phu_simple_data_path <- function() {
+  system.file("extdata", "phu_simple.rds", package = "ONgeoR")
+}

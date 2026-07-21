@@ -188,10 +188,47 @@ not a second implementation of package algorithms.
   0 fail, `R CMD check --as-cran` 0 errors / 0 warnings.
 - [x] Browser coverage of basemap switching incl. `None`.
 - Evidence: `test-app-smoke.R` drives all five basemap options in headless
-  Chrome (`None` asserted tile-less); 23 assertions, 0 failures, twice
-  consecutively 2026-07-20. Gated behind `ONGEOR_BASEMAP_SMOKE=true` because
-  it retrieves `airport_official` from GeoHub and the deterministic check
-  must stay network-free per the P1 gate above — run it in the live workflow.
+  Chrome (`None` asserted tile-less). **Runs offline and ungated as of
+  2026-07-20**: 22 assertions, 0 failures, 0 skips.
+  `R CMD check --as-cran`: 0 errors, 0 warnings, 1 NOTE.
+- Known NOTE (accepted, 2026-07-20): "detritus in the temp directory -
+  com.google.Chrome.*". Chrome leaves scoped temp dirs behind; the NOTE is
+  new only because the browser test now actually runs during check. It does
+  not reach CRAN (`skip_on_cran()` is the first line of the file) and does
+  not fail CI (`check-r-package@v2` defaults to `error-on: warning`).
+  Deliberately not chased: cleaning up after Chrome risks destabilising a
+  suite that currently passes 22/22 for a cosmetic gain.
+- [x] **Basemap smoke no longer needs network or an opt-in gate.** It was
+  gated behind `ONGEOR_BASEMAP_SMOKE=true` because switching basemaps needed
+  a rendered Leaflet widget, a widget needed a successful preview, a preview
+  needed two sources, and only one source (`hive`) was bundled — so the
+  second always came from GeoHub. Resolved by bundling
+  `inst/extdata/phu_simple.rds` (PHU boundaries simplified at 250 m, 202 KB)
+  and drawing it as an always-on map furniture layer, so the widget exists at
+  app load with no preview and no retrieval. The gate and the preview/modal
+  scaffolding it required are deleted.
+- [x] **App startup broke on furniture payload size, then was fixed.**
+  Established by measurement 2026-07-20, varying one factor at a time:
+  drawing `hive` as a second furniture layer produced a 2.19 MB widget and
+  the app failed to start within AppDriver's 90 s limit (0 pass / 2 fail);
+  simplifying `hive` to 1.46 MB let it boot (7 pass); removing it from
+  startup entirely gives the current 22 pass / 0 fail. Note this failure was
+  invisible to `devtools::test()`, which stayed green at 634 passes
+  throughout — the browser test is the only thing that starts a real Shiny
+  process.
+- Fixes applied: `hive` simplified in place at 250 m
+  (`data-raw/hive_simplify.R`, 575 KB -> 354 KB on disk, all 1629 cells and
+  the all-MULTIPOLYGON contract preserved), and `hive` is no longer drawn at
+  load at all. `leaflet::hideGroup()` only hides client-side, so an
+  "unchecked" furniture layer still ships its full geometry to every browser;
+  `hive` is now reached through the source pickers, where its cost is paid on
+  request. Guarded by a test asserting no `addPolygons` call for `hive`
+  exists in the load-time widget.
+- NOT established: why 2.19 MB exceeded a 90 s startup budget when the
+  geometry serialises in ~2.8 s. The differential is unambiguous and
+  reproducible; the mechanism is not explained, and AppDriver's readiness
+  detection is the untested part. Do not cite a specific mechanism here
+  without measuring it.
 - [x] Raster palette bug (found while adding the above): every raster preview
   produced an empty map because the palette choices shipped as
   `"Viridis"`/`"Magma"`, which `leaflet::colorNumeric()` only rejects when the

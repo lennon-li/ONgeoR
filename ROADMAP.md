@@ -191,13 +191,12 @@ not a second implementation of package algorithms.
   Chrome (`None` asserted tile-less). **Runs offline and ungated as of
   2026-07-20**: 22 assertions, 0 failures, 0 skips.
   `R CMD check --as-cran`: 0 errors, 0 warnings, 1 NOTE.
-- Known NOTE (accepted, 2026-07-20): "detritus in the temp directory -
-  com.google.Chrome.*". Chrome leaves scoped temp dirs behind; the NOTE is
-  new only because the browser test now actually runs during check. It does
-  not reach CRAN (`skip_on_cran()` is the first line of the file) and does
-  not fail CI (`check-r-package@v2` defaults to `error-on: warning`).
-  Deliberately not chased: cleaning up after Chrome risks destabilising a
-  suite that currently passes 22/22 for a cosmetic gain.
+- The "detritus in the temp directory - com.google.Chrome.*" NOTE was
+  **first dismissed as cosmetic, and that was a mistake**: it was reporting
+  the exact leak that caused the startup timeouts below. Resolved by the
+  teardown in `test-app-smoke.R`, which removes the NOTE and the flakiness
+  together. A check NOTE about leftover state is evidence about the
+  environment, not a formatting complaint.
 - [x] **Basemap smoke no longer needs network or an opt-in gate.** It was
   gated behind `ONGEOR_BASEMAP_SMOKE=true` because switching basemaps needed
   a rendered Leaflet widget, a widget needed a successful preview, a preview
@@ -207,15 +206,35 @@ not a second implementation of package algorithms.
   and drawing it as an always-on map furniture layer, so the widget exists at
   app load with no preview and no retrieval. The gate and the preview/modal
   scaffolding it required are deleted.
-- [x] **App startup broke on furniture payload size, then was fixed.**
-  Established by measurement 2026-07-20, varying one factor at a time:
-  drawing `hive` as a second furniture layer produced a 2.19 MB widget and
-  the app failed to start within AppDriver's 90 s limit (0 pass / 2 fail);
-  simplifying `hive` to 1.46 MB let it boot (7 pass); removing it from
-  startup entirely gives the current 22 pass / 0 fail. Note this failure was
-  invisible to `devtools::test()`, which stayed green at 634 passes
-  throughout — the browser test is the only thing that starts a real Shiny
-  process.
+- [ ] **OPEN: browser-suite startup timeouts, cause UNKNOWN.** `AppDriver`
+  intermittently reports "app failed to start up within N seconds". The app
+  starts normally and never signals ready: no R error, no traceback, no
+  `shiny:error`. Measured 2026-07-20 at roughly a **50% failure rate on
+  unchanged code**, same commit and same machine.
+- Five mechanisms proposed and each **falsified by measurement**: map-layer
+  payload size (2.19 vs 1.46 MB), feature count (34 -> 1629 features moves
+  serialisation only 1.0 s -> 2.0 s), vertex count, SVG-vs-canvas rendering
+  (0.3 s either way), and accumulated `TMPDIR/com.google.Chrome.*` dirs (a run
+  failed with a completely clean TMPDIR). Whole render path costs ~5 s against
+  a 90 s budget, so the time is not going into the map.
+- **RETRACTION.** Commits 4b0b8ef / 59cc4f0 claim hive's 2.19 MB widget caused
+  this. That claim is WRONG. It rested on single runs per condition through an
+  instrument later shown to be ~50% flaky. Dropping hive from startup is still
+  correct — users should not pay for a layer they did not request — but the
+  stated reason was not established.
+- **The test also SKIPS in CI**, so removing the `ONGEOR_BASEMAP_SMOKE` gate
+  bought nothing there: all three platforms report "AppDriver can not be
+  initialized as {chromote} can not be started" and the matrix stays green.
+  Making it genuinely run in CI needs `chromote::set_chrome_args("--no-sandbox")`
+  or equivalent — but it should NOT be enabled until the flakiness above is
+  understood, or CI goes red half the time.
+- Chrome does leak ~2 temp dirs per launch (this is what the `R CMD check`
+  "detritus in the temp directory" NOTE reports); `test-app-smoke.R` now cleans
+  up after itself. Worth doing on its own merits, but it does NOT fix the
+  flakiness - that was tested and disproved.
+- Still true and worth keeping: this failure was invisible to
+  `devtools::test()`, which stayed green at 634+ passes throughout. The
+  browser test is the only thing that starts a real Shiny process.
 - Fixes applied: `hive` simplified in place at 250 m
   (`data-raw/hive_simplify.R`, 575 KB -> 354 KB on disk, all 1629 cells and
   the all-MULTIPOLYGON contract preserved), and `hive` is no longer drawn at

@@ -148,3 +148,5 @@ shiny::onStop(function() {
           git diff --cached --check
           git commit -m "fix(shiny): defer future workers until task invocation"
           git push
+
+# Second push activates the workflow after it already exists on main.

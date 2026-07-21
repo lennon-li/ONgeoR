@@ -527,10 +527,17 @@ render_styled_map <- function(layers, styles, add_control = TRUE, furniture = li
     )
   )
   if (add_control) {
+    # names() on an empty list is NULL, and c(NULL, NULL) stays NULL, which
+    # leaflet renders as a single checkbox labelled "null". Normalise to
+    # character(0) so an empty overlay set produces no overlay entries.
+    overlay_groups <- c(names(layers), names(furniture))
+    if (is.null(overlay_groups)) {
+      overlay_groups <- character(0)
+    }
     map <- leaflet::addLayersControl(
       map,
       baseGroups = basemap_groups,
-      overlayGroups = c(names(layers), names(furniture)),
+      overlayGroups = overlay_groups,
       options = leaflet::layersControlOptions(collapsed = FALSE)
     )
   }
@@ -1094,9 +1101,15 @@ server <- function(input, output, session) {
         "Overlay source" = read_layer_style(input, "overlay", layer_geom(cw_result$overlay_sf), accent = "#1baf7a")
       )
     }
+    # Suppress PHU_simple only when phu_boundaries is actually DRAWN, not
+    # merely selected in a picker. phu_boundaries is the app's default base
+    # layer, so keying suppression off the selection hid the furniture on
+    # every fresh load - the exact case it exists for. Nothing is drawn from
+    # a selection until a preview succeeds.
+    drawn_ids <- if (length(layers)) cw_result$previewed else character(0)
     map <- render_styled_map(
       layers, styles,
-      furniture = furniture_layers(c(input$base_layer, input$overlay_source))
+      furniture = furniture_layers(drawn_ids)
     )
     ontario <- sf::st_bbox(furniture_layer("PHU_simple"))
     leaflet::fitBounds(

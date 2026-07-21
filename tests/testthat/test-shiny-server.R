@@ -645,11 +645,76 @@ test_that("PHU_simple furniture is on the map at load with no user input", {
   server <- load_shiny_server()
 
   shiny::testServer(server, {
+    # testServer starts with inputs UNSET, which is NOT the app's startup
+    # state: the real UI initialises base_layer to "phu_boundaries" (its
+    # selectInput default). Setting the real defaults here is the whole point
+    # of this test - an earlier version left inputs NULL, passed, and missed a
+    # bug where the app hid this layer on every fresh load because the
+    # suppression rule keyed off the SELECTION rather than what was drawn.
+    session$setInputs(
+      base_layer = "phu_boundaries",
+      overlay_source = "moh_service_locations"
+    )
     map <- link_map()
-    # No preview, no input: PHU_simple furniture only.
+    # Defaults selected but nothing previewed: furniture must still be drawn.
     expect_identical(furniture_test_overlay_groups(map), "PHU_simple")
     # PHU_simple starts checked.
     expect_false("PHU_simple" %in% furniture_test_hidden_groups(map))
+  })
+})
+
+# An empty overlay set used to reach addLayersControl as NULL, because
+# names(list()) is NULL and c(NULL, NULL) stays NULL. Leaflet renders that as
+# a single checkbox labelled "null" - visible in the running app, invisible to
+# every test that only asked whether specific groups were present.
+test_that("an empty overlay set produces no overlay entries, not a 'null' one", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    .package = "ONgeoR"
+  )
+  app_env <- load_shiny_app_env()
+
+  map <- app_env$render_styled_map(list(), list(), furniture = list())
+  control <- Filter(
+    function(call) identical(call$method, "addLayersControl"),
+    map$x$calls
+  )[[1]]
+  raw_overlay <- control$args[[2]]
+
+  # Assert on the RAW argument, not on unlist(): NULL and character(0) both
+  # unlist to length zero, so a length check cannot tell them apart. The
+  # difference is only visible in the browser, where leaflet renders a NULL
+  # overlayGroups as a checkbox labelled "null". A length-only version of this
+  # test passed against the bug it was written for.
+  expect_false(is.null(raw_overlay))
+  expect_type(raw_overlay, "character")
+  expect_length(raw_overlay, 0L)
+})
+
+# No layer control anywhere may carry a literal "null" group, whatever the
+# selection state.
+test_that("no overlay group is ever literally 'null'", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+
+  shiny::testServer(server, {
+    for (base in c("phu_boundaries", "base_polygon")) {
+      session$setInputs(base_layer = base, overlay_source = "overlay_point")
+      groups <- furniture_test_overlay_groups(link_map())
+      expect_false(any(tolower(as.character(groups)) == "null"))
+      expect_false(any(is.na(groups)))
+    }
   })
 })
 
@@ -664,23 +729,34 @@ test_that("PHU_simple furniture is suppressed when phu_boundaries is selected", 
   )
   server <- load_shiny_server()
 
+  # The rule is keyed on what is DRAWN, so exercise it where it lives. Passing
+  # a preview of phu_boundaries through testServer is not possible: the fixture
+  # registry defines only base_polygon/overlay_point/other_polygon.
+  app_env <- load_shiny_app_env()
+
+  expect_named(app_env$furniture_layers(character(0)), "PHU_simple")
+  expect_length(
+    app_env$furniture_layers(c("phu_boundaries", "moh_service_locations")),
+    0L
+  )
+  expect_length(
+    app_env$furniture_layers(c("base_polygon", "phu_boundaries")),
+    0L
+  )
+
+  # REGRESSION GUARD for the bug found by running the app 2026-07-20:
+  # phu_boundaries is the app's DEFAULT base layer, so keying suppression off
+  # the selection hid the furniture on every fresh load. Selecting it without
+  # a preview must NOT suppress - nothing is drawn until a preview succeeds.
   shiny::testServer(server, {
     session$setInputs(
       base_layer = "phu_boundaries",
       overlay_source = "overlay_point"
     )
-    overlay <- furniture_test_overlay_groups(link_map())
-    expect_false("PHU_simple" %in% overlay)
-    # Suppressing PHU_simple leaves no furniture at all.
-    expect_length(overlay, 0L)
-  })
-
-  shiny::testServer(server, {
-    session$setInputs(
-      base_layer = "base_polygon",
-      overlay_source = "phu_boundaries"
+    expect_identical(
+      furniture_test_overlay_groups(link_map()),
+      "PHU_simple"
     )
-    expect_false("PHU_simple" %in% furniture_test_overlay_groups(link_map()))
   })
 })
 

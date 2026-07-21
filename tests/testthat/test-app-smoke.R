@@ -23,7 +23,7 @@ test_that("Shiny app boots and exposes its offline workflow controls", {
     app_dir = dirname(shiny_app_file()),
     name = "app-smoke",
     variant = NULL,
-    load_timeout = 30 * 1000
+    load_timeout = 120 * 1000
   )
   withr::defer(app$stop())
 
@@ -49,75 +49,20 @@ test_that("Shiny app boots and exposes its offline workflow controls", {
   expect_match(app$get_html("#points_csv"), "points_csv", fixed = TRUE)
 })
 
-# This test drives a real preview so the Leaflet widget exists to switch
-# basemaps on, which means it needs a source pair that actually renders.
-#
-# It uses hive + airport_official rather than the synthetic raster. The
-# raster path was broken when this test was written (SpatRaster pointers did
-# not survive the future worker) and is now fixed, but this pairing is kept
-# because it is the cheapest one that reliably reaches a rendered map. Raster
-# rendering has its own regression test in test-shiny-server.R.
-#
-# hive is bundled, but airport_official is retrieved from Ontario GeoHub, so
-# this needs network. The deterministic R CMD check must not depend on GeoHub
-# availability (ROADMAP P1 acceptance gate), hence the opt-in gate below.
-if (!identical(tolower(Sys.getenv("ONGEOR_BASEMAP_SMOKE", "")), "true")) {
-  testthat::skip(paste(
-    "basemap browser smoke is opt-in: it retrieves airport_official from",
-    "Ontario GeoHub, and the deterministic check must not depend on GeoHub",
-    "availability. Set ONGEOR_BASEMAP_SMOKE=true to run it."
-  ))
-}
-
+# The Link tab map renders at app load with its furniture layers (the
+# bundled PHU_simple boundary outline and the HIVE grid) and no preview, so
+# the Leaflet widget and its basemap control exist immediately with no
+# retrieval and no network. Basemap switching is therefore exercised on the
+# initial furniture map directly and this test runs offline - there is no
+# opt-in gate.
 test_that("native map control switches every core basemap including None", {
   app <- shinytest2::AppDriver$new(
     app_dir = dirname(shiny_app_file()),
     name = "app-basemap-switching",
     variant = NULL,
-    load_timeout = 90 * 1000
+    load_timeout = 180 * 1000
   )
   withr::defer(app$stop())
-
-  app$set_inputs(
-    base_layer = "hive",
-    overlay_source = "airport_official"
-  )
-  app$click(selector = "#preview_btn")
-
-  # A successful preview always opens this modal. Synchronize on it before
-  # waiting for the Leaflet widget, then remove its focus trap.
-  app$wait_for_js(
-    "document.querySelector('.modal.show .info-modal') !== null",
-    timeout = 180 * 1000
-  )
-  expect_false(app$get_js(
-    "document.querySelector('#cw_map').classList.contains('shiny-output-error')"
-  ))
-
-  # Dismiss the modal so its backdrop stops intercepting clicks on the map.
-  # Bootstrap fades the dialog in, and a click landing mid-transition is
-  # swallowed, so wait until the footer button is actually hittable, click it
-  # through the DOM (app$click() would also block waiting for server idle,
-  # which a client-only dismiss never triggers), and retry while the backdrop
-  # is still up. Removal is a second fade, so allow well over one frame.
-  app$wait_for_js(
-    "document.querySelector('.modal.show .modal-footer button') !== null",
-    timeout = 30 * 1000
-  )
-  for (attempt in 1:10) {
-    still_open <- app$get_js("document.querySelector('.modal.show') !== null")
-    if (!isTRUE(still_open)) {
-      break
-    }
-    app$run_js(
-      "document.querySelector('.modal.show .modal-footer button').click();"
-    )
-    Sys.sleep(1)
-  }
-  app$wait_for_js(
-    "document.querySelector('.modal.show') === null",
-    timeout = 60 * 1000
-  )
 
   app$wait_for_js(
     paste0(

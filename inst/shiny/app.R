@@ -454,16 +454,71 @@ add_styled_sf_layer <- function(map, layer, group, style) {
   map
 }
 
+# --- Map furniture -------------------------------------------------------
+# "Furniture" layers are bundled reference outlines drawn on the Link tab
+# map at all times: they render at app load, before any preview, so the
+# Leaflet widget exists immediately with no retrieval and no network call
+# (both datasets ship in inst/extdata). They use a fixed context style -
+# thin grey outline, no fill, no popup - and are deliberately NOT routed
+# through layer_style_controls()/read_layer_style(): those controls belong
+# to user-selected sources. Data is loaded once per R process and cached.
+.furniture_cache <- new.env(parent = emptyenv())
+
+furniture_layer <- function(id) {
+  if (!exists(id, envir = .furniture_cache)) {
+    .furniture_cache[[id]] <- switch(id,
+      PHU_simple = ONgeoR::retrieve_phu_simple(),
+      rlang::abort(sprintf("Unknown furniture layer '%s'.", id))
+    )
+  }
+  .furniture_cache[[id]]
+}
+
+# PHU_simple is the only furniture layer. HIVE is deliberately NOT drawn at
+# load: leaflet::hideGroup() only hides a layer client-side, so an unchecked
+# HIVE would still ship its full geometry to every browser on every load. At
+# full resolution that alone pushed app startup past AppDriver's 90 s limit
+# (measured 2026-07-20: 2.19 MB widget, boot failed; 1.46 MB simplified, boot
+# passed; absent, boot passed). HIVE stays available as an ordinary selectable
+# source via the source pickers, where its cost is paid only on request.
+#
+# PHU_simple is suppressed whenever the live, full-resolution phu_boundaries
+# source is selected as either layer, so the same boundary is never drawn
+# twice at two resolutions.
+furniture_layers <- function(selected_ids = character()) {
+  layers <- list()
+  if (!"phu_boundaries" %in% selected_ids) {
+    layers[["PHU_simple"]] <- furniture_layer("PHU_simple")
+  }
+  layers
+}
+
+add_furniture_layer <- function(map, layer, group) {
+  leaflet::addPolygons(
+    map,
+    data = layer, group = group,
+    weight = 1, color = "#898781", fill = FALSE
+  )
+}
+
 # `styles` is a named list parallel to `layers`: styles[[nm]] is the per-layer
-# style for layers[[nm]].
-render_styled_map <- function(layers, styles, add_control = TRUE) {
+# style for layers[[nm]]. `furniture` is an optional named list of bundled
+# reference layers, drawn in the fixed furniture style and appended after
+# the styled source layers so furniture always sits at the bottom of the
+# overlay list.
+render_styled_map <- function(layers, styles, add_control = TRUE, furniture = list()) {
   map <- base_leaflet_layers(leaflet::leaflet())
   for (nm in names(layers)) {
     map <- add_styled_sf_layer(map, layers[[nm]], nm, styles[[nm]])
   }
+  for (nm in names(furniture)) {
+    map <- add_furniture_layer(map, furniture[[nm]], nm)
+  }
   # Only "Light" (added first, above) starts visible; hide the other real
   # tile groups so the layers control's radio behavior starts from a single
-  # clean default instead of stacking all tile layers.
+  # clean default instead of stacking all tile layers. Furniture layers are
+  # all drawn checked - a furniture layer that starts hidden would still ship
+  # its geometry to the browser, which is the cost this design avoids.
   map <- leaflet::hideGroup(
     map,
     c(
@@ -475,7 +530,7 @@ render_styled_map <- function(layers, styles, add_control = TRUE) {
     map <- leaflet::addLayersControl(
       map,
       baseGroups = basemap_groups,
-      overlayGroups = names(layers),
+      overlayGroups = c(names(layers), names(furniture)),
       options = leaflet::layersControlOptions(collapsed = FALSE)
     )
   }
@@ -1023,14 +1078,32 @@ server <- function(input, output, session) {
     link_state_detail("Results and downloads are ready.")
   }, ignoreInit = TRUE)
 
+  # The Link tab map renders at app load - before any preview - carrying
+  # only the furniture layers, so the Leaflet widget always exists. After a
+  # preview the two styled sources join it, above the tiles and above the
+  # furniture in the overlay list. The view is pinned to the Ontario-wide
+  # extent of the bundled PHU outline on every render and is never re-fit
+  # to the selected sources' extent.
   link_map <- reactive({
-    req(cw_result$base_sf, cw_result$overlay_sf)
-    layers <- list("Base layer" = cw_result$base_sf, "Overlay source" = cw_result$overlay_sf)
-    styles <- list(
-      "Base layer" = read_layer_style(input, "base", layer_geom(cw_result$base_sf), accent = "#2a78d6"),
-      "Overlay source" = read_layer_style(input, "overlay", layer_geom(cw_result$overlay_sf), accent = "#1baf7a")
+    layers <- list()
+    styles <- list()
+    if (!is.null(cw_result$base_sf) && !is.null(cw_result$overlay_sf)) {
+      layers <- list("Base layer" = cw_result$base_sf, "Overlay source" = cw_result$overlay_sf)
+      styles <- list(
+        "Base layer" = read_layer_style(input, "base", layer_geom(cw_result$base_sf), accent = "#2a78d6"),
+        "Overlay source" = read_layer_style(input, "overlay", layer_geom(cw_result$overlay_sf), accent = "#1baf7a")
+      )
+    }
+    map <- render_styled_map(
+      layers, styles,
+      furniture = furniture_layers(c(input$base_layer, input$overlay_source))
     )
-    render_styled_map(layers, styles)
+    ontario <- sf::st_bbox(furniture_layer("PHU_simple"))
+    leaflet::fitBounds(
+      map,
+      lng1 = ontario[["xmin"]], lat1 = ontario[["ymin"]],
+      lng2 = ontario[["xmax"]], lat2 = ontario[["ymax"]]
+    )
   })
 
   output$cw_map <- renderLeaflet({
@@ -1082,14 +1155,22 @@ server <- function(input, output, session) {
     linked_run <- !is.null(cw_result$linked)
     link_ready <- has_rows(cw_result$crosswalk) || has_rows(cw_result$linked)
     csv_label <- if (linked_run) "linked.csv" else "crosswalk.csv"
-    download_or_disabled(list(
-      list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),
-      list(id = "dl_cw_csv", label = csv_label, ready = link_ready),
-      # reproduce.R renders a crosswalk script only; raster runs produce a
-      # linked values table through link(), which the script cannot rebuild,
-      # so it stays disabled for them.
-      list(id = "dl_cw_script", label = "reproduce.R", ready = has_rows(cw_result$crosswalk))
-    ))
+    tagList(
+      download_or_disabled(list(
+        list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),
+        list(id = "dl_cw_csv", label = csv_label, ready = link_ready),
+        # reproduce.R renders a crosswalk script only; raster runs produce a
+        # linked values table through link(), which the script cannot rebuild,
+        # so it stays disabled for them.
+        list(id = "dl_cw_script", label = "reproduce.R", ready = has_rows(cw_result$crosswalk))
+      )),
+      # The exported map carries the furniture layers too; say so here so
+      # the addition is not silent.
+      tags$p(class = "text-muted",
+        paste("map.html also includes the bundled PHU_simple reference",
+          "layer (hidden only while the full-resolution PHU boundary",
+          "source is selected)."))
+    )
   })
 
   # --- Find Nearest tab ------------------------------------------------

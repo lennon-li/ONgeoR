@@ -605,3 +605,160 @@ test_that("rasters are packed across the future boundary and survive", {
   expect_s4_class(round_tripped, "SpatRaster")
   expect_equal(as.integer(terra::values(round_tripped)[, 1]), seq_len(16))
 })
+
+# --- Map furniture (PHU_simple) -------------------------------------
+# The Link tab map draws bundled furniture layers at load: PHU_simple
+# (checked) at the bottom of the overlay list, with
+# PHU_simple suppressed while the full-resolution phu_boundaries source is
+# selected.
+
+# Overlay groups of a built leaflet widget, in layer-control order. The
+# widget stores every operation as list(method = ..., args = ...) with
+# positional args; addLayersControl's second arg is overlayGroups.
+furniture_test_overlay_groups <- function(map) {
+  controls <- Filter(
+    function(call) identical(call$method, "addLayersControl"),
+    map$x$calls
+  )
+  expect_length(controls, 1)
+  unlist(controls[[1]]$args[[2]])
+}
+
+# Groups hidden at render time (unchecked in the layer control).
+furniture_test_hidden_groups <- function(map) {
+  hidden <- Filter(
+    function(call) identical(call$method, "hideGroup"),
+    map$x$calls
+  )
+  unlist(lapply(hidden, function(call) call$args[[1]]))
+}
+
+test_that("PHU_simple furniture is on the map at load with no user input", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+
+  shiny::testServer(server, {
+    map <- link_map()
+    # No preview, no input: PHU_simple furniture only.
+    expect_identical(furniture_test_overlay_groups(map), "PHU_simple")
+    # PHU_simple starts checked.
+    expect_false("PHU_simple" %in% furniture_test_hidden_groups(map))
+  })
+})
+
+test_that("PHU_simple furniture is suppressed when phu_boundaries is selected", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+
+  shiny::testServer(server, {
+    session$setInputs(
+      base_layer = "phu_boundaries",
+      overlay_source = "overlay_point"
+    )
+    overlay <- furniture_test_overlay_groups(link_map())
+    expect_false("PHU_simple" %in% overlay)
+    # Suppressing PHU_simple leaves no furniture at all.
+    expect_length(overlay, 0L)
+  })
+
+  shiny::testServer(server, {
+    session$setInputs(
+      base_layer = "base_polygon",
+      overlay_source = "phu_boundaries"
+    )
+    expect_false("PHU_simple" %in% furniture_test_overlay_groups(link_map()))
+  })
+})
+
+# HIVE must NOT be drawn at load. leaflet::hideGroup() hides a layer in the
+# browser but still ships its geometry, so an "unchecked" HIVE would cost
+# every user its full payload on every load - which measurably broke app
+# startup on 2026-07-20. HIVE stays reachable as an ordinary selectable
+# source; this test guards the startup cost, not the availability.
+test_that("hive is not drawn at load and ships no geometry", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+
+  shiny::testServer(server, {
+    map <- link_map()
+    expect_false("hive" %in% furniture_test_overlay_groups(map))
+    # Not merely hidden - absent from the widget entirely.
+    expect_false("hive" %in% furniture_test_hidden_groups(map))
+    expect_false(any(vapply(
+      map$x$calls,
+      function(call) identical(call$method, "addPolygons") &&
+        identical(as.character(call$args[[3]]), "hive"),
+      logical(1)
+    )))
+  })
+})
+
+test_that("map.html download bundles PHU_simple alongside the two sources", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  layers <- shiny_fixture_layers()
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    retrieve_source = function(source_id, refresh = FALSE, ...) {
+      layers[[source_id]]
+    },
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+  use_sequential_futures()
+
+  shiny::testServer(server, {
+    session$setInputs(
+      base_layer = "base_polygon",
+      overlay_source = "overlay_point",
+      preview_btn = 1
+    )
+    expect_identical(
+      wait_for_extended_task(preview_task, session),
+      "success"
+    )
+
+    # Active sources first, furniture pinned to the bottom of the overlay
+    # list.
+    expect_identical(
+      furniture_test_overlay_groups(link_map()),
+      c("Base layer", "Overlay source", "PHU_simple")
+    )
+
+    map_file <- output$dl_cw_map
+    html <- paste(readLines(map_file, warn = FALSE), collapse = "\n")
+    expect_match(html, "PHU_simple", fixed = TRUE)
+    expect_match(html, "Base layer", fixed = TRUE)
+    expect_match(html, "Overlay source", fixed = TRUE)
+
+    # The addition is surfaced in the download UI, not silent.
+    expect_match(
+      rendered_html(output$link_downloads_ui),
+      "PHU_simple",
+      fixed = TRUE
+    )
+  })
+})

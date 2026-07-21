@@ -18,6 +18,42 @@ if (exists(".__DEVTOOLS__", envir = asNamespace("ONgeoR"))) {
   )
 }
 
+# Chrome leaves a scoped temp directory behind for every launch and never
+# reaps it. These accumulate at ~2 per run, and once enough of them pile up in
+# TMPDIR, Chrome startup slows until AppDriver's load_timeout expires - the app
+# starts fine and simply never signals ready, with no error anywhere.
+#
+# Measured 2026-07-20, same commit and same machine, varying only TMPDIR
+# contents: with 221 leftover directories the suite failed 3 runs out of 3
+# (1, 2 and 1 failures); with 0 it passed 22/22 three times running. This is
+# also the "detritus in the temp directory" NOTE from R CMD check - that NOTE
+# was reporting the fault, not cosmetic noise.
+#
+# Only directories created during this file are removed, so a developer's own
+# Chrome session (which uses the same TMPDIR prefix on Linux) is left alone.
+# NB: Chrome writes into TMPDIR itself, not into R's per-session tempdir()
+# subdirectory, so clean dirname(tempdir()) - cleaning tempdir() finds nothing.
+chrome_tmp_pattern <- "^\\.?com\\.google\\.Chrome"
+chrome_tmp_root <- dirname(tempdir())
+chrome_tmp_dirs <- function() {
+  list.files(
+    chrome_tmp_root,
+    pattern = chrome_tmp_pattern,
+    all.files = TRUE,
+    full.names = TRUE
+  )
+}
+chrome_tmp_before <- chrome_tmp_dirs()
+withr::defer(
+  {
+    leaked <- setdiff(chrome_tmp_dirs(), chrome_tmp_before)
+    if (length(leaked)) {
+      unlink(leaked, recursive = TRUE, force = TRUE)
+    }
+  },
+  envir = testthat::teardown_env()
+)
+
 test_that("Shiny app boots and exposes its offline workflow controls", {
   app <- shinytest2::AppDriver$new(
     app_dir = dirname(shiny_app_file()),

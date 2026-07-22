@@ -9,6 +9,15 @@ if (is.null(chrome) || !nzchar(chrome)) {
   testthat::skip("Chrome is not available to chromote.")
 }
 
+# CI runners run Chrome in a sandboxed/containerized environment where the
+# SUID sandbox cannot start, so chromote times out launching it. Append the
+# standard CI flags only there - local runs keep chromote's defaults.
+if (nzchar(Sys.getenv("CI"))) {
+  chromote::set_default_chrome_args(
+    c(chromote::default_chrome_args(), "--no-sandbox", "--disable-dev-shm-usage")
+  )
+}
+
 # AppDriver launches the app in a child R process, which resolves ONgeoR from
 # the installed library, not from devtools::load_all() in this session. Under
 # R CMD check (and CI) the package is installed, so the smoke runs there.

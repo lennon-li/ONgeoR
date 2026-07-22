@@ -30,6 +30,8 @@ Thumbs.db
 # Deliberately-untracked source/derived assets (see .Rbuildignore)
 /ONgeoR.png
 docs/superpowers/specs/*.html
+# pkgdown build output (deployed to gh-pages by CI; not source)
+docs/site/
 
 # HIVE source data (contains licensed PCCF + full-resolution shapefile) - never commit
 /data/

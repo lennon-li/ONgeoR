@@ -1,3 +1,4 @@
 url: https://lennon-li.github.io/ONgeoR/
+destination: docs/site
 template:
   bootstrap: 5

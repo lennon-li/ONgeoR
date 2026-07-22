@@ -347,11 +347,12 @@ read_layer_style <- function(input, prefix, geom, accent = "#2a78d6") {
 # TRUE, otherwise visually-matching but non-functional disabled buttons - so
 # each sidebar download is only ever clickable once the map/data it points to
 # exists. Readiness is per-item (item$ready) so, e.g., map.html can be ready
-# before crosswalk.csv is.
+# before crosswalk.csv is. A ready button lights up in the primary accent so
+# the user can see at a glance which downloads are available.
 download_or_disabled <- function(items) {
   tagList(lapply(items, function(item) {
     if (isTRUE(item$ready)) {
-      downloadButton(item$id, item$label, class = "btn-outline-secondary w-100 mb-1")
+      downloadButton(item$id, item$label, class = "btn-primary w-100 mb-1")
     } else {
       tags$button(
         item$label, type = "button", class = "btn btn-outline-secondary w-100 mb-1",
@@ -468,27 +469,25 @@ furniture_layer <- function(id) {
   if (!exists(id, envir = .furniture_cache)) {
     .furniture_cache[[id]] <- switch(id,
       PHU_simple = ONgeoR::retrieve_phu_simple(),
+      HIVE = ONgeoR::retrieve_hive(),
       rlang::abort(sprintf("Unknown furniture layer '%s'.", id))
     )
   }
   .furniture_cache[[id]]
 }
 
-# PHU_simple is the only furniture layer. HIVE is deliberately NOT drawn at
-# load: leaflet::hideGroup() only hides a layer client-side, so an unchecked
-# HIVE would still ship its full geometry to every browser on every load. At
-# full resolution that alone pushed app startup past AppDriver's 90 s limit
-# (measured 2026-07-20: 2.19 MB widget, boot failed; 1.46 MB simplified, boot
-# passed; absent, boot passed). HIVE stays available as an ordinary selectable
-# source via the source pickers, where its cost is paid only on request.
-#
-# PHU_simple is suppressed whenever the live, full-resolution phu_boundaries
-# source is selected as either layer, so the same boundary is never drawn
-# twice at two resolutions.
+# Furniture layers ship in inst/extdata and render at app load with no
+# network call. PHU_simple starts visible; HIVE starts hidden (unchecked
+# in the layers control) but is always present so the user can toggle it
+# on without a retrieval round-trip. Each is suppressed when its live,
+# full-resolution counterpart is actually drawn as a selected source.
 furniture_layers <- function(selected_ids = character()) {
   layers <- list()
   if (!"phu_boundaries" %in% selected_ids) {
     layers[["PHU_simple"]] <- furniture_layer("PHU_simple")
+  }
+  if (!"hive" %in% selected_ids) {
+    layers[["HIVE"]] <- furniture_layer("HIVE")
   }
   layers
 }
@@ -516,14 +515,15 @@ render_styled_map <- function(layers, styles, add_control = TRUE, furniture = li
   }
   # Only "Light" (added first, above) starts visible; hide the other real
   # tile groups so the layers control's radio behavior starts from a single
-  # clean default instead of stacking all tile layers. Furniture layers are
-  # all drawn checked - a furniture layer that starts hidden would still ship
-  # its geometry to the browser, which is the cost this design avoids.
+  # clean default instead of stacking all tile layers. HIVE furniture also
+  # starts hidden (unchecked) - its geometry ships to the browser but is
+  # not rendered until the user toggles it on.
   map <- leaflet::hideGroup(
     map,
     c(
       "Dark", "OpenStreetMap", "Satellite",
-      "Topographic", "Streets", "Voyager"
+      "Topographic", "Streets", "Voyager",
+      "HIVE"
     )
   )
   if (add_control) {
@@ -1180,9 +1180,9 @@ server <- function(input, output, session) {
       # The exported map carries the furniture layers too; say so here so
       # the addition is not silent.
       tags$p(class = "text-muted",
-        paste("map.html also includes the bundled PHU_simple reference",
-          "layer (hidden only while the full-resolution PHU boundary",
-          "source is selected)."))
+        paste("map.html also includes the bundled PHU_simple and HIVE",
+          "reference layers (each hidden only while its full-resolution",
+          "source counterpart is selected)."))
     )
   })
 

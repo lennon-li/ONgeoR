@@ -657,9 +657,10 @@ test_that("PHU_simple furniture is on the map at load with no user input", {
     )
     map <- link_map()
     # Defaults selected but nothing previewed: furniture must still be drawn.
-    expect_identical(furniture_test_overlay_groups(map), "PHU_simple")
-    # PHU_simple starts checked.
+    expect_identical(furniture_test_overlay_groups(map), c("PHU_simple", "HIVE"))
+    # PHU_simple starts checked; HIVE starts hidden.
     expect_false("PHU_simple" %in% furniture_test_hidden_groups(map))
+    expect_true("HIVE" %in% furniture_test_hidden_groups(map))
   })
 })
 
@@ -734,13 +735,17 @@ test_that("PHU_simple furniture is suppressed when phu_boundaries is selected", 
   # registry defines only base_polygon/overlay_point/other_polygon.
   app_env <- load_shiny_app_env()
 
-  expect_named(app_env$furniture_layers(character(0)), "PHU_simple")
-  expect_length(
+  expect_named(app_env$furniture_layers(character(0)), c("PHU_simple", "HIVE"))
+  expect_named(
     app_env$furniture_layers(c("phu_boundaries", "moh_service_locations")),
-    0L
+    "HIVE"
+  )
+  expect_named(
+    app_env$furniture_layers(c("base_polygon", "phu_boundaries")),
+    "HIVE"
   )
   expect_length(
-    app_env$furniture_layers(c("base_polygon", "phu_boundaries")),
+    app_env$furniture_layers(c("phu_boundaries", "hive")),
     0L
   )
 
@@ -755,17 +760,15 @@ test_that("PHU_simple furniture is suppressed when phu_boundaries is selected", 
     )
     expect_identical(
       furniture_test_overlay_groups(link_map()),
-      "PHU_simple"
+      c("PHU_simple", "HIVE")
     )
   })
 })
 
-# HIVE must NOT be drawn at load. leaflet::hideGroup() hides a layer in the
-# browser but still ships its geometry, so an "unchecked" HIVE would cost
-# every user its full payload on every load - which measurably broke app
-# startup on 2026-07-20. HIVE stays reachable as an ordinary selectable
-# source; this test guards the startup cost, not the availability.
-test_that("hive is not drawn at load and ships no geometry", {
+# HIVE is drawn as furniture (unchecked) so the user can toggle it on
+# without a retrieval round-trip. It is suppressed when the live hive
+# source is actually drawn as a selected layer.
+test_that("hive furniture is present but hidden at load", {
   skip_if_not_installed("shiny")
   skip_if_not_installed("bslib")
 
@@ -778,15 +781,8 @@ test_that("hive is not drawn at load and ships no geometry", {
 
   shiny::testServer(server, {
     map <- link_map()
-    expect_false("hive" %in% furniture_test_overlay_groups(map))
-    # Not merely hidden - absent from the widget entirely.
-    expect_false("hive" %in% furniture_test_hidden_groups(map))
-    expect_false(any(vapply(
-      map$x$calls,
-      function(call) identical(call$method, "addPolygons") &&
-        identical(as.character(call$args[[3]]), "hive"),
-      logical(1)
-    )))
+    expect_true("HIVE" %in% furniture_test_overlay_groups(map))
+    expect_true("HIVE" %in% furniture_test_hidden_groups(map))
   })
 })
 
@@ -821,7 +817,7 @@ test_that("map.html download bundles PHU_simple alongside the two sources", {
     # list.
     expect_identical(
       furniture_test_overlay_groups(link_map()),
-      c("Base layer", "Overlay source", "PHU_simple")
+      c("Base layer", "Overlay source", "PHU_simple", "HIVE")
     )
 
     map_file <- output$dl_cw_map

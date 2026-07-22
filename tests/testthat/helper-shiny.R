@@ -51,9 +51,9 @@ load_shiny_app_env <- function() {
   previous_plan <- future::plan()
   on.exit(future::plan(previous_plan), add = TRUE)
 
-  # app.R selects multisession at source time. Keep test tasks in-process so
-  # mocked ONgeoR bindings are visible and no background workers outlive a
-  # testServer session.
+  # app.R defers the multisession plan to ensure_async_plan() at invoke time.
+  # Neutralize it so test tasks stay in-process (sequential plan set by
+  # use_sequential_futures()) and mocked ONgeoR bindings remain visible.
   testthat::local_mocked_bindings(
     multisession = future::sequential,
     .package = "future"
@@ -68,6 +68,9 @@ load_shiny_app_env <- function() {
       }
     }
   )
+  if (exists("ensure_async_plan", envir = env, inherits = FALSE)) {
+    env$ensure_async_plan <- function() invisible(NULL)
+  }
   env
 }
 

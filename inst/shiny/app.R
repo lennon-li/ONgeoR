@@ -6,7 +6,18 @@
 
 .app_file <- tryCatch(
   normalizePath(sys.frame(1)$ofile, mustWork = TRUE),
-  error = function(cnd) normalizePath(file.path(getwd(), "app.R"), mustWork = TRUE)
+  error = function(cnd) {
+    .candidates <- c(
+      file.path(getwd(), "app.R"),
+      file.path(getwd(), "..", "..", "inst", "shiny", "app.R"),
+      system.file("shiny", "app.R", package = "ONgeoR")
+    )
+    .existing <- .candidates[file.exists(.candidates)]
+    if (length(.existing) == 0L) {
+      stop("Cannot locate inst/shiny/app.R.")
+    }
+    normalizePath(.existing[[1]], mustWork = TRUE)
+  }
 )
 .app_impl <- file.path(dirname(.app_file), "app_impl.R")
 .app_source <- paste(readLines(.app_impl, warn = FALSE), collapse = "\n")
@@ -51,17 +62,19 @@ for (.task in c(
   "nearest_preview_task$invoke(",
   "nearest_task$invoke("
 )) {
-  .hits <- gregexpr(.task, .app_source, fixed = TRUE)[[1]]
+  .task_re <- paste0("(?<![a-zA-Z_])", gsub("([$().])", "\\\\\\1", .task))
+  .hits <- gregexpr(.task_re, .app_source, perl = TRUE)[[1]]
   if (length(.hits) != 1L || .hits[1] < 0L) {
     stop(sprintf("ONgeoR Shiny launcher expected exactly one '%s'.", .task))
   }
   .app_source <- sub(
-    .task,
+    .task_re,
     paste0("ensure_async_plan()\n    ", .task),
     .app_source,
-    fixed = TRUE
+    perl = TRUE
   )
 }
 
-eval(parse(text = .app_source, keep.source = TRUE), envir = environment())
+.app_obj <- eval(parse(text = .app_source, keep.source = TRUE), envir = environment())
 rm(.app_file, .app_impl, .app_source, .old_startup, .new_startup, .task, .hits)
+.app_obj

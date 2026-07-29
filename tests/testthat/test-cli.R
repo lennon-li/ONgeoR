@@ -95,6 +95,85 @@ test_that("retrieve_source errors clearly on unknown ids", {
   )
 })
 
+test_that("retrieve_source fetches registry-only LIO sources", {
+  calls <- list()
+  testthat::local_mocked_bindings(
+    list_sources = function() tibble::tibble(
+      source_id = "registry_only",
+      name = "Registry-only Layer",
+      geography_type = "boundary",
+      feature_count = 1L
+    ),
+    get_source = function(source_id) list(
+      name = "Registry-only Layer",
+      service_layer = "LIO_Open01/35",
+      simplify = FALSE,
+      paginate = TRUE
+    ),
+    fetch_lio_sf = function(service_layer, source_name, simplify, paginate,
+                            refresh, max_age) {
+      calls <<- list(
+        service_layer = service_layer,
+        source_name = source_name,
+        simplify = simplify,
+        paginate = paginate,
+        refresh = refresh,
+        max_age = max_age
+      )
+      sf::st_sf(
+        geometry = sf::st_sfc(sf::st_point(c(-79, 44)), crs = 4326)
+      )
+    },
+    .package = "ONgeoR"
+  )
+
+  layer <- retrieve_source("registry_only", refresh = TRUE, max_age = 2)
+
+  expect_s3_class(layer, "sf")
+  expect_identical(calls, list(
+    service_layer = "LIO_Open01/35",
+    source_name = "Registry-only Layer",
+    simplify = FALSE,
+    paginate = TRUE,
+    refresh = TRUE,
+    max_age = 2
+  ))
+})
+
+test_that("retrieve_source retains named wrapper dispatch", {
+  calls <- character()
+  named_ids <- c(
+    "phu_boundaries", "ontario_health_regions", "municipal_upper",
+    "municipal_lower", "airport_official", "waste_management_site",
+    "moh_service_locations", "synthetic_air_quality", "hive",
+    "conservation_authority", "orwn_station"
+  )
+  wrapper <- function(id) {
+    force(id)
+    function(...) {
+      calls <<- c(calls, id)
+      sf::st_sf(geometry = sf::st_sfc(sf::st_point(c(-79, 44)), crs = 4326))
+    }
+  }
+  testthat::local_mocked_bindings(
+    retrieve_phu = wrapper("phu_boundaries"),
+    retrieve_health_region = wrapper("ontario_health_regions"),
+    retrieve_municipal = function(tier, ...) wrapper(paste0("municipal_", tier))(),
+    retrieve_airport = wrapper("airport_official"),
+    retrieve_waste_management = wrapper("waste_management_site"),
+    retrieve_moh_service_locations = wrapper("moh_service_locations"),
+    retrieve_synthetic_raster = wrapper("synthetic_air_quality"),
+    retrieve_hive = wrapper("hive"),
+    retrieve_conservation_authority = wrapper("conservation_authority"),
+    retrieve_orwn_station = wrapper("orwn_station"),
+    .package = "ONgeoR"
+  )
+
+  lapply(named_ids, retrieve_source)
+
+  expect_setequal(calls, named_ids)
+})
+
 test_that("retrieve_source dispatches to the right retrieval path", {
   layers <- make_cli_layers()
   testthat::local_mocked_bindings(

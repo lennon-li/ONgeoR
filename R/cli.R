@@ -10,6 +10,8 @@ NULL
 #' @param source_id Character scalar. A source id from [list_sources()].
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
+#' @param max_age Maximum cache age in days for registry-backed LIO sources.
+#'   Defaults to `NULL`, which accepts any cached copy.
 #'
 #' @return An `sf` object, or a `SpatRaster` for raster sources (e.g.
 #'   `"synthetic_air_quality"`).
@@ -20,7 +22,7 @@ NULL
 #' }
 #'
 #' @export
-retrieve_source <- function(source_id, refresh = FALSE) {
+retrieve_source <- function(source_id, refresh = FALSE, max_age = NULL) {
   switch(source_id,
     phu_boundaries = retrieve_phu(refresh = refresh),
     ontario_health_regions = retrieve_health_region(refresh = refresh),
@@ -35,6 +37,19 @@ retrieve_source <- function(source_id, refresh = FALSE) {
     orwn_station = retrieve_orwn_station(refresh = refresh),
     {
       valid_ids <- list_sources()$source_id
+      if (source_id %in% valid_ids) {
+        source <- get_source(source_id)
+        if (!is.null(source$service_layer)) {
+          return(fetch_lio_sf(
+            service_layer = source$service_layer,
+            source_name = source$name,
+            simplify = source$simplify %||% TRUE,
+            paginate = source$paginate %||% FALSE,
+            refresh = refresh,
+            max_age = max_age
+          ))
+        }
+      }
       rlang::abort(sprintf(
         "Unknown source_id '%s'. Valid source ids are: %s.",
         source_id,
@@ -196,6 +211,12 @@ source_retrieve_call <- function(source_id) {
     hive = "retrieve_hive()",
     {
       valid_ids <- list_sources()$source_id
+      if (source_id %in% valid_ids) {
+        source <- get_source(source_id)
+        if (!is.null(source$service_layer)) {
+          return(sprintf('retrieve_source("%s")', source_id))
+        }
+      }
       rlang::abort(sprintf(
         "Unknown source_id '%s'. Valid source ids are: %s.",
         source_id,

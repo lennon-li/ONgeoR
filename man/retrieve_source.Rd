@@ -4,13 +4,16 @@
 \alias{retrieve_source}
 \title{Retrieve a layer by source registry id}
 \usage{
-retrieve_source(source_id, refresh = FALSE)
+retrieve_source(source_id, refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{source_id}{Character scalar. A source id from \code{\link[=list_sources]{list_sources()}}.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}
+
+\item{max_age}{Maximum cache age in days for registry-backed LIO sources.
+Defaults to \code{NULL}, which accepts any cached copy.}
 }
 \value{
 An \code{sf} object, or a \code{SpatRaster} for raster sources (e.g.

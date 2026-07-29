@@ -7,7 +7,7 @@ underlying retrieval function backs it.
 ## Usage
 
 ``` r
-retrieve_source(source_id, refresh = FALSE)
+retrieve_source(source_id, refresh = FALSE, max_age = NULL)
 ```
 
 ## Arguments
@@ -21,6 +21,11 @@ retrieve_source(source_id, refresh = FALSE)
 
   Logical. If `TRUE`, bypasses any cached copy and re-fetches from the
   live API. Defaults to `FALSE`.
+
+- max_age:
+
+  Maximum cache age in days for registry-backed LIO sources. Defaults to
+  `NULL`, which accepts any cached copy.
 
 ## Value
 

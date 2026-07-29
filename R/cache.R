@@ -20,7 +20,17 @@ cache_key <- function(source_name, service_layer, where, simplify,
   slug <- gsub("[^[:alnum:]]+", "-", slug)
   slug <- gsub("^-+|-+$", "", slug)
   hash <- substr(
-    rlang::hash(list(service_layer, where, simplify, result_record_count, paginate)),
+    rlang::hash(list(
+      service_layer, where, simplify, result_record_count, paginate,
+      # Geometry-schema version. `simplify` is only a flag, so the generalization
+      # tolerance and the client-side repair are invisible to this hash: without
+      # a version component, a cache written by an older ONgeoR keeps being
+      # served after those change. Bump this whenever retrieved geometry changes
+      # shape for the same request. v2: maxAllowableOffset 10 -> 1e-04 degrees
+      # (offset 10 returned zero-area polygons for Toronto, Peel, Hamilton and
+      # others), plus dimension-preserving validity repair.
+      geometry_schema = 2L
+    )),
     1,
     8
   )

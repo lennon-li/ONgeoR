@@ -86,7 +86,20 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
     params$resultOffset <- result_offset
   }
   if (simplify) {
-    params$maxAllowableOffset <- 10
+    # The service returns EPSG:4326, so maxAllowableOffset is in DEGREES. The
+    # previous value of 10 meant a ~1,100 km tolerance, which made the server
+    # collapse every small or urban polygon to zero area. Measured live on
+    # 2026-07-29 for LIO_Open09/44 (PHU boundaries), raw response, no
+    # client-side repair: at offset 10, Toronto, Peel, Halton, Hamilton,
+    # Windsor-Essex, Niagara, York, Ottawa and Middlesex-London all came back
+    # with area 0, Waterloo was inflated 3.3x and Durham 1.7x, and the layer
+    # totalled 646,394 km2 against 983,322 km2 at offset 1e-04 - a third of
+    # Ontario silently missing, with the survivors misshapen.
+    #
+    # 1e-04 degrees is ~11 m: fine enough that 28 of 29 boundaries stay
+    # polygonal and areas match full resolution, while still generalizing
+    # (12.8 MB versus a full-resolution request the service will not serve).
+    params$maxAllowableOffset <- 1e-04
   }
 
   parts <- strsplit(service_layer, "/", fixed = TRUE)[[1]]
@@ -97,6 +110,96 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
     httr2::url_parse() |>
     httr2::url_modify_query(!!!params) |>
     httr2::url_build()
+}
+
+#' Repair geometry validity without silently deleting features
+#'
+#' `sf::st_make_valid()` dispatches to the s2 backend for geographic
+#' coordinates, and s2 rejects the degenerate rings (duplicate vertices) that
+#' LIO's server-side generalization emits: instead of repairing them it returns
+#' EMPTY geometry. Measured live on 2026-07-29 for LIO_Open09/44 (PHU
+#' boundaries) at `maxAllowableOffset = 10`: 11 of 29 boundaries -- Toronto,
+#' Peel, Niagara, Middlesex-London among them -- came back as empty
+#' GEOMETRYCOLLECTIONs, so the map drew 18 units and silently omitted the rest.
+#' The same call with s2 disabled repairs all 29 and empties none.
+#'
+#' So do validity repair on the planar GEOS path, then verify: if any feature
+#' that arrived with geometry leaves without it, that is data loss and must
+#' abort rather than reach a map.
+#'
+#' @param x An sf object straight from `sf::st_read()`.
+#' @return `x` with valid geometry and the same number of non-empty features.
+#' @keywords internal
+#' @noRd
+lio_make_valid <- function(x) {
+  if (!inherits(x, "sf") || nrow(x) == 0) {
+    return(x)
+  }
+  had_geometry <- !sf::st_is_empty(x)
+  was_areal <- as.character(sf::st_geometry_type(x)) %in%
+    c("POLYGON", "MULTIPOLYGON")
+
+  # GEOS repairs invalid rings with the "linework" method, which is allowed to
+  # hand back a GEOMETRYCOLLECTION of polygons plus dangling lines. Keep only
+  # the polygonal part of any feature that arrived areal, so a boundary layer
+  # can never reach a map or a spatial join as LINESTRING.
+  keep_areal <- function(obj) {
+    if (!any(was_areal)) {
+      return(obj)
+    }
+    geometry <- sf::st_geometry(obj)
+    mixed <- was_areal & as.character(sf::st_geometry_type(geometry)) %in%
+      c("GEOMETRYCOLLECTION", "LINESTRING", "MULTILINESTRING", "POINT",
+        "MULTIPOINT")
+    if (!any(mixed)) {
+      return(obj)
+    }
+    geometry[mixed] <- lapply(geometry[mixed], function(geom) {
+      parts <- try(
+        sf::st_collection_extract(sf::st_sfc(geom), "POLYGON"),
+        silent = TRUE
+      )
+      if (inherits(parts, "try-error") || length(parts) == 0) {
+        sf::st_polygon()
+      } else {
+        sf::st_combine(parts)[[1]]
+      }
+    })
+    sf::st_geometry(obj) <- sf::st_sfc(geometry, crs = sf::st_crs(obj))
+    obj
+  }
+
+  # Pass 1, planar GEOS: fixes self-intersecting rings without s2's habit of
+  # discarding whatever it cannot interpret.
+  previous_s2 <- sf::sf_use_s2()
+  suppressMessages(sf::sf_use_s2(FALSE))
+  repaired <- keep_areal(sf::st_make_valid(x))
+  suppressMessages(sf::sf_use_s2(previous_s2))
+
+  # Pass 2, under the caller's setting. GEOS validity is not s2 validity: a
+  # ring GEOS accepts can still have crossing loops, and every downstream
+  # predicate (st_intersects in link()/build_crosswalk()) goes through s2 by
+  # default, where that aborts with "Loop N edge M crosses loop ...". Rebuild
+  # under s2 so the layer is usable by the operations it exists to feed.
+  if (isTRUE(previous_s2)) {
+    rebuilt <- try(keep_areal(sf::st_make_valid(repaired)), silent = TRUE)
+    if (!inherits(rebuilt, "try-error")) {
+      repaired <- rebuilt
+    }
+  }
+
+  lost <- had_geometry & sf::st_is_empty(repaired)
+  if (any(lost)) {
+    abort_lio_retrieval(sprintf(
+      paste(
+        "Geometry repair left %d of %d features with no usable geometry.",
+        "Refusing to return a layer with silently missing shapes."
+      ),
+      sum(lost),
+      nrow(x)
+    ))
+  }
+  repaired
 }
 
 #' Retrieve a LIO layer and convert it to an sf object with provenance
@@ -198,7 +301,7 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
         on.exit(unlink(temp_file), add = TRUE)
         writeLines(geojson, temp_file)
         sf_obj <- sf::st_read(temp_file, quiet = TRUE)
-        sf::st_make_valid(sf_obj)
+        lio_make_valid(sf_obj)
       },
       error = function(cnd) {
         abort_lio_retrieval(

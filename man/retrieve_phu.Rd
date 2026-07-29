@@ -4,15 +4,15 @@
 \alias{retrieve_phu}
 \title{Retrieve Public Health Unit boundaries}
 \usage{
-retrieve_phu(simplify = FALSE, refresh = FALSE, max_age = NULL)
+retrieve_phu(simplify = TRUE, refresh = FALSE, max_age = NULL)
 }
 \arguments{
-\item{simplify}{Logical. If \code{TRUE}, requests generalized geometry from the
-service (\code{maxAllowableOffset = 10}) to reduce payload size. Defaults to
-\code{FALSE}: independently simplifying each PHU polygon distorts shared
-borders between adjacent units, which can misassign points near a
-boundary. This layer is small (34 features) and fast to fetch at full
-precision, so simplification is opt-in rather than default.}
+\item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
+geometry from the service (\code{maxAllowableOffset = 10}) to reduce payload
+size. Set to \code{FALSE} if you need full-precision geometry, but be aware
+that the LIO service may fail to serve the full-resolution layer
+intermittently; if that occurs, retry with \code{simplify = TRUE} or set
+\code{refresh = TRUE}.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}

@@ -3,12 +3,12 @@
 #' Retrieves Ontario Public Health Unit (PHU) boundaries from the LIO
 #' Open Data REST service (`LIO_Open09/44`).
 #'
-#' @param simplify Logical. If `TRUE`, requests generalized geometry from the
-#'   service (`maxAllowableOffset = 10`) to reduce payload size. Defaults to
-#'   `FALSE`: independently simplifying each PHU polygon distorts shared
-#'   borders between adjacent units, which can misassign points near a
-#'   boundary. This layer is small (34 features) and fast to fetch at full
-#'   precision, so simplification is opt-in rather than default.
+#' @param simplify Logical. If `TRUE` (the default), requests generalized
+#'   geometry from the service (`maxAllowableOffset = 10`) to reduce payload
+#'   size. Set to `FALSE` if you need full-precision geometry, but be aware
+#'   that the LIO service may fail to serve the full-resolution layer
+#'   intermittently; if that occurs, retry with `simplify = TRUE` or set
+#'   `refresh = TRUE`.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
 #' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
@@ -23,7 +23,7 @@
 #' }
 #'
 #' @export
-retrieve_phu <- function(simplify = FALSE, refresh = FALSE, max_age = NULL) {
+retrieve_phu <- function(simplify = TRUE, refresh = FALSE, max_age = NULL) {
   fetch_lio_sf(
     service_layer = "LIO_Open09/44",
     source_name = "MOH Public Health Unit Boundary",

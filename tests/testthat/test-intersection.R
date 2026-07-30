@@ -389,13 +389,20 @@ test_that("build_nearest_pairs works when both layers share column names", {
   expect_equal(result$src_OGF_ID, c("S1", "S2", "S2"))
 })
 
-test_that("nearest() reports shared column names clearly", {
+test_that("nearest() disambiguates shared column names instead of failing", {
   mk <- function(ids, xs) fixture_provenance(sf::st_as_sf(
-    tibble::tibble(OGF_ID = ids, x = xs, y = rep(0, length(xs))),
+    tibble::tibble(OGF_ID = ids, NAME = paste0("N", ids),
+                   x = xs, y = rep(0, length(xs))),
     coords = c("x", "y"), crs = 3347
   ))
-  expect_error(
-    nearest(mk(c("A", "B"), c(0, 10)), mk(c("C", "D"), c(1, 11))),
-    class = "ongeor_nearest_shared_columns"
-  )
+  a <- mk(c("A", "B"), c(0, 10))
+  b <- mk(c("C", "D"), c(1, 11))
+
+  expect_message(res <- nearest(a, b), class = "ongeor_nearest_renamed_columns")
+
+  # Source keeps its names; the target copies are suffixed, so both survive.
+  expect_true(all(c("OGF_ID", "NAME") %in% colnames(res)))
+  expect_true(any(grepl("^OGF_ID\\.", colnames(res))))
+  expect_equal(nrow(res), nrow(a))
+  expect_true(all(!is.na(res$distance_km)))
 })

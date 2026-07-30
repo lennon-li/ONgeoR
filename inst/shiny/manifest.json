@@ -149,16 +149,16 @@
         "RemoteUsername": "lennon-li",
         "RemotePkgRef": "github::lennon-li/ONgeoR",
         "RemoteRef": "HEAD",
-        "RemoteSha": "5096f63246437fdbf80949a7752dd40593664a39",
+        "RemoteSha": "49667456374bf255618087f746cf2a24c17af536",
         "GithubRepo": "ONgeoR",
         "GithubUsername": "lennon-li",
         "GithubRef": "HEAD",
-        "GithubSHA1": "5096f63246437fdbf80949a7752dd40593664a39",
+        "GithubSHA1": "49667456374bf255618087f746cf2a24c17af536",
         "NeedsCompilation": "no",
-        "Packaged": "2026-07-30 00:32:26 UTC; yeli",
+        "Packaged": "2026-07-30 18:43:39 UTC; yeli",
         "Author": "Lennon Li [aut, cre]",
         "Maintainer": "Lennon Li <lennon.yeli@gmail.com>",
-        "Built": "R 4.6.1; ; 2026-07-30 00:32:27 UTC; unix"
+        "Built": "R 4.6.1; ; 2026-07-30 18:43:40 UTC; unix"
       }
     },
     "R6": {
@@ -2270,16 +2270,16 @@
   },
   "files": {
     "app_impl.R": {
-      "checksum": "841ee33a0bd0a6d0090a7dfaffb1afbe"
+      "checksum": "7697c6e7e9b565dfaa6d22256742fbfd"
     },
     "app.R": {
-      "checksum": "1cf53e9d375fbfbebb4a0bb61806c78b"
+      "checksum": "ec511052333eadc1f9ce665d7378880d"
     },
     "www/logo.png": {
       "checksum": "998a38b87e12edadaaf0618a1ab2c8a1"
     },
     "www/theme.css": {
-      "checksum": "138556fe87bbf34f0e5bb17fbeafec4a"
+      "checksum": "621374826af5ab25544869b0bd3098f2"
     }
   },
   "users": null

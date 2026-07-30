@@ -35,21 +35,32 @@ missing.
 ### Link tab
 
 The **Link** tab retrieves two registered Ontario GeoHub or LIO layers
-and links them spatially.
+and joins them spatially.
 
 Workflow:
 
-1.  **Base layer** – Select a source from the “Base layer” dropdown.
-    This is the layer whose features will be matched (e.g. Public Health
-    Unit boundaries).
-2.  **Overlay source** – Select a second source from the “Overlay
-    source” dropdown (e.g. MOH Service Locations).
-3.  **Preview** – Click **Preview** to retrieve both layers and draw
-    them on an interactive Leaflet map. Inspect the map to confirm the
-    layers align as expected before linking.
-4.  **Link** – Click **Link** to run
-    [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
-    against the two layers. The result table appears below the map.
+1.  **Source layer** – Select a source from the “Source layer” dropdown.
+    This is the layer whose identifying attributes get attached to the
+    result (e.g. Public Health Unit boundaries).
+2.  **Target layer** – Select a second source from the “Target layer”
+    dropdown (e.g. MOH Service Locations). The result is shaped like
+    this layer: one row per target feature.
+3.  **Preview on map** – Click **Preview on map** to retrieve both
+    layers and draw them on an interactive Leaflet map. Inspect the map
+    to confirm the layers align as expected before joining. **Join stays
+    greyed out until a preview succeeds** for the currently selected
+    pair, and re-greys if you change either dropdown.
+4.  **Join** – Click **Join** to open a confirmation that names both
+    layers with their dimensions and states the expected result shape,
+    e.g. “11,625 rows x 14 columns – one row per target feature”.
+    Nothing is retrieved or computed until you confirm. For the “Any
+    overlap” and “Apportion across overlaps” rules the result can be
+    longer than the target layer, because both keep every overlap; the
+    confirmation says so.
+
+The direction is fixed: every row assigns a target feature to the source
+feature that contains it, so the source layer is always the one whose
+`to_id`/`to_name` columns appear in the result.
 
 ### Find Nearest tab
 

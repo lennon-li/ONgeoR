@@ -42,6 +42,13 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0.9000" id="ongeor-0309000">ONgeoR 0.3.0.9000<a class="anchor" aria-label="anchor" href="#ongeor-0309000"></a></h2>
 <ul><li>Add registry-driven LIO retrieval and 17 verified Ontario geography sources.</li>
+<li>Fix generalized geometry silently dropping small polygons. <code>maxAllowableOffset</code> was 10, but the service returns EPSG:4326, making that a ~1,100 km tolerance: Toronto, Peel, Halton, Hamilton, Windsor-Essex, Niagara, York, Ottawa and Middlesex-London all came back with zero area, and PHU boundaries totalled 646,394 km2 instead of 983,322 km2. Now 1e-04 degrees (~11 m).</li>
+<li>Repair geometry validity without deleting features. <code><a href="https://r-spatial.github.io/sf/reference/valid.html" class="external-link">sf::st_make_valid()</a></code> dispatches to s2 on geographic coordinates, which answered the degenerate rings by returning EMPTY, so 11 of 29 PHU boundaries arrived as empty GEOMETRYCOLLECTIONs and maps drew 18 units with no error. Retrieval now repairs on the planar GEOS path, rebuilds under s2 (a ring GEOS accepts can still abort <code>st_intersects</code>), keeps only polygonal parts of areal input, and errors rather than returning a layer with missing shapes.</li>
+<li>Add a geometry-schema component to the cache key, so caches written before the above are not served afterwards.</li>
+<li>
+<code><a href="../reference/retrieve_phu.html">retrieve_phu()</a></code> now defaults to <code>simplify = TRUE</code>; full-resolution requests for that layer fail against the service.</li>
+<li>Shiny app: rename the pickers to <strong>Source layer</strong> / <strong>Target layer</strong>, rename <strong>Link</strong> to <strong>Join</strong>, and move the pairing explanation from Preview to a Join confirmation that names both layers with their dimensions and the expected result shape. Join stays disabled until a preview of the current pair succeeds, and is now visibly greyed out in that state. The results download is <code>mapping.csv</code>.</li>
+<li>Fix <code>reproduce.R</code> so it reproduces what the app produces: it used the CLI’s multi-pair path, which re-downloaded every layer and wrote 16 columns where the app writes 14.</li>
 </ul></div>
   </main></div>
 

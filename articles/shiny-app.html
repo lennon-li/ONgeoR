@@ -95,26 +95,37 @@ you to install them if they are missing.</p>
 <h3 id="link-tab">Link tab<a class="anchor" aria-label="anchor" href="#link-tab"></a>
 </h3>
 <p>The <strong>Link</strong> tab retrieves two registered Ontario GeoHub
-or LIO layers and links them spatially.</p>
+or LIO layers and joins them spatially.</p>
 <p>Workflow:</p>
 <ol style="list-style-type: decimal">
 <li>
-<strong>Base layer</strong> – Select a source from the “Base layer”
-dropdown. This is the layer whose features will be matched (e.g. Public
-Health Unit boundaries).</li>
+<strong>Source layer</strong> – Select a source from the “Source
+layer” dropdown. This is the layer whose identifying attributes get
+attached to the result (e.g. Public Health Unit boundaries).</li>
 <li>
-<strong>Overlay source</strong> – Select a second source from the
-“Overlay source” dropdown (e.g. MOH Service Locations).</li>
+<strong>Target layer</strong> – Select a second source from the
+“Target layer” dropdown (e.g. MOH Service Locations). The result is
+shaped like this layer: one row per target feature.</li>
 <li>
-<strong>Preview</strong> – Click <strong>Preview</strong> to
-retrieve both layers and draw them on an interactive Leaflet map.
-Inspect the map to confirm the layers align as expected before
-linking.</li>
+<strong>Preview on map</strong> – Click <strong>Preview on
+map</strong> to retrieve both layers and draw them on an interactive
+Leaflet map. Inspect the map to confirm the layers align as expected
+before joining. <strong>Join stays greyed out until a preview
+succeeds</strong> for the currently selected pair, and re-greys if you
+change either dropdown.</li>
 <li>
-<strong>Link</strong> – Click <strong>Link</strong> to run
-<code><a href="../reference/link.html">link()</a></code> against the two layers. The result table appears
-below the map.</li>
+<strong>Join</strong> – Click <strong>Join</strong> to open a
+confirmation that names both layers with their dimensions and states the
+expected result shape, e.g. “11,625 rows x 14 columns – one row per
+target feature”. Nothing is retrieved or computed until you confirm. For
+the “Any overlap” and “Apportion across overlaps” rules the result can
+be longer than the target layer, because both keep every overlap; the
+confirmation says so.</li>
 </ol>
+<p>The direction is fixed: every row assigns a target feature to the
+source feature that contains it, so the source layer is always the one
+whose <code>to_id</code>/<code>to_name</code> columns appear in the
+result.</p>
 </div>
 <div class="section level3">
 <h3 id="find-nearest-tab">Find Nearest tab<a class="anchor" aria-label="anchor" href="#find-nearest-tab"></a>

@@ -69,11 +69,19 @@ retrieve_example <- function(simplify = FALSE, refresh = FALSE) {
 ```
 
 Choose `simplify` from observed geometry quality, not feature count
-alone. Set `paginate = TRUE` only after confirming offset-based
-pagination works for the layer. The cache key includes source name,
-layer, filter, simplification, page size, and pagination mode, so
-changing any of those produces a distinct cache entry. `refresh = TRUE`
-bypasses and replaces the matching cached entry.
+alone. Check it by area, not by row count or geometry type: the service
+answers a too-coarse `maxAllowableOffset` with polygons that are still
+typed `MULTIPOLYGON` and still 29 rows, but whose small members have
+collapsed to zero area. Compare each feature’s area against an
+unsimplified or finely simplified request before trusting a layer’s
+simplified form.
+
+Set `paginate = TRUE` only after confirming offset-based pagination
+works for the layer. The cache key includes source name, layer, filter,
+simplification, page size, pagination mode, and a geometry-schema
+version, so changing any of those – or bumping the schema when retrieved
+geometry changes shape for the same request – produces a distinct cache
+entry. `refresh = TRUE` bypasses and replaces the matching cached entry.
 
 If a wrapper accepts a filter, validate or constrain it before
 interpolating a LIO `where` expression. Keep source-specific policy in

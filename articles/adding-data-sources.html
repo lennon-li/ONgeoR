@@ -140,12 +140,19 @@ is:</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>Choose <code>simplify</code> from observed geometry quality, not
-feature count alone. Set <code>paginate = TRUE</code> only after
-confirming offset-based pagination works for the layer. The cache key
-includes source name, layer, filter, simplification, page size, and
-pagination mode, so changing any of those produces a distinct cache
-entry. <code>refresh = TRUE</code> bypasses and replaces the matching
-cached entry.</p>
+feature count alone. Check it by area, not by row count or geometry
+type: the service answers a too-coarse <code>maxAllowableOffset</code>
+with polygons that are still typed <code>MULTIPOLYGON</code> and still
+29 rows, but whose small members have collapsed to zero area. Compare
+each feature’s area against an unsimplified or finely simplified request
+before trusting a layer’s simplified form.</p>
+<p>Set <code>paginate = TRUE</code> only after confirming offset-based
+pagination works for the layer. The cache key includes source name,
+layer, filter, simplification, page size, pagination mode, and a
+geometry-schema version, so changing any of those – or bumping the
+schema when retrieved geometry changes shape for the same request –
+produces a distinct cache entry. <code>refresh = TRUE</code> bypasses
+and replaces the matching cached entry.</p>
 <p>If a wrapper accepts a filter, validate or constrain it before
 interpolating a LIO <code>where</code> expression. Keep source-specific
 policy in the wrapper and common HTTP, conversion, provenance, and cache

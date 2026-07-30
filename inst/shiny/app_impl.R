@@ -96,10 +96,6 @@ first_choice_grouped <- function(groups) {
   NULL
 }
 
-is_facility_source <- function(source_id) {
-  identical(ONgeoR::get_source(source_id)$geography_type, "facility")
-}
-
 # Maps a source's registry geography_type to a small geometry kind token used
 # to drive the per-layer style controls and the relationship line.
 geom_kind <- function(source_id) {
@@ -144,28 +140,17 @@ pairing_explanation_text <- function(kinds) {
     paste("Raster linking samples cell values - no match rule to choose.",
       "The output is a linked values table, not a crosswalk.")
   } else if (all(kinds == "point")) {
-    paste("Both layers are points - containment linking does not apply.",
-      "Use the Find Nearest tab for point-to-point matching.")
+    paste("Both layers are points. Each target point is matched to its",
+      "single nearest source point; the geometry pair alone selects this",
+      "nearest match, with no rule to choose.")
   } else if ("point" %in% kinds && "polygon" %in% kinds) {
     "One layer is point facilities; each point is matched to the boundary it falls inside."
   } else {
-    paste("Both layers are boundaries. Use \"Any overlap\" if either was",
-      "simplified/generalized - \"Fully inside\" can miss matches near",
-      "simplified edges. \"Treat overlay as points\" reduces each overlay",
-      "polygon to an interior point for a fast one-to-one assignment;",
-      "\"Assign by largest overlap\" gives each overlay polygon to the",
-      "boundary it shares the most area with (the coverage column reports",
-      "that share); \"Apportion across overlaps\" keeps every overlapping",
-      "boundary with its share.")
+    paste("Both layers are boundaries. Every overlapping pair is kept, with",
+      "the share of each target covered and the share of each source",
+      "falling inside; the geometry pair alone selects this intersection,",
+      "with no rule to choose.")
   }
-}
-
-# Methods that can return more than one row per target feature. "intersects"
-# keeps every overlapping pair and "weighted" keeps every positive-area overlap,
-# so for those the result is NOT one row per target feature - the confirmation
-# text must not promise a row count they will not honour.
-join_is_one_to_one <- function(method) {
-  !method %in% c("intersects", "weighted")
 }
 
 # build_crosswalk() always returns this fixed column set (see R/crosswalk.R):
@@ -174,6 +159,22 @@ join_is_one_to_one <- function(method) {
 # source_url_to, retrieved_at. Naming them here keeps the quoted result width
 # honest instead of guessing.
 crosswalk_result_columns <- 14L
+
+# The intersection and nearest target-level tables carry every attribute of
+# both layers (prefixed src_/tgt_), so their width depends on the layers being
+# joined rather than being a fixed constant. summarise_by_target() emits 13
+# fixed columns, one src_*/tgt_* column per attribute of each layer, and 4
+# provenance columns; the build_crosswalk path keeps its fixed schema above.
+result_column_width <- function(source_sf, target_sf, kinds) {
+  if ("raster" %in% kinds) {
+    return(NA_integer_)
+  }
+  if (all(kinds == "polygon") || all(kinds == "point")) {
+    n_attr <- function(layer) max(ncol(layer) - 1L, 0L)
+    return(17L + n_attr(source_sf) + n_attr(target_sf))
+  }
+  crosswalk_result_columns
+}
 
 # Human-readable "N features x M attributes" for a retrieved layer. Attributes
 # excludes the geometry column, which is what a user counts as a column in the
@@ -198,7 +199,7 @@ layer_dimensions <- function(layer) {
 # pair, so both layers are already retrieved and their real names and
 # dimensions can be quoted here rather than described in the abstract.
 join_confirm_modal <- function(source_id, target_id, source_sf, target_sf,
-                               method, kinds) {
+                               kinds) {
   source_name <- ONgeoR::get_source(source_id)$name
   target_name <- ONgeoR::get_source(target_id)$name
   is_raster <- inherits(target_sf, "SpatRaster") ||
@@ -208,15 +209,10 @@ join_confirm_modal <- function(source_id, target_id, source_sf, target_sf,
   result_dim <- if (is_raster) {
     paste("A linked values table sampled from the raster - one row per",
       "sampled feature. Not a fixed-width crosswalk.")
-  } else if (join_is_one_to_one(method)) {
-    sprintf("%s rows x %s columns - one row per target feature.",
-      format(n_target, big.mark = ","), crosswalk_result_columns)
   } else {
-    sprintf(paste("At least %s rows x %s columns. This match rule keeps every",
-      "overlap, so a target feature matching several source features",
-      "produces one row per match - the result can be longer than the",
-      "target layer."),
-      format(n_target, big.mark = ","), crosswalk_result_columns)
+    sprintf("%s rows x %s columns - one row per target feature.",
+      format(n_target, big.mark = ","),
+      result_column_width(source_sf, target_sf, kinds))
   }
 
   labelled <- function(role, name, layer) {
@@ -239,9 +235,9 @@ join_confirm_modal <- function(source_id, target_id, source_sf, target_sf,
         labelled("Target layer", target_name, target_sf)
       ),
       tags$p(sprintf(
-        paste("Each feature in %s (target) will be matched to the %s (source)",
-          "feature it falls within, and the source layer's identifying",
-          "attributes added to it."),
+        paste("Each feature in %s (target) will be matched against the %s",
+          "(source) layer, and the source layer's identifying attributes",
+          "added to it."),
         target_name, source_name
       )),
       tags$p(tags$strong("Result: "), result_dim),
@@ -276,50 +272,30 @@ relationship_text <- function(a, b) {
 
 # Owner-approved combination matrix. Rendered verbatim in the in-app "?" help
 # modal and mirrored in the crosswalks vignette + build_crosswalk()/link()
-# roxygen so all three places tell the same story. ASCII only.
+# roxygen so all three places tell the same story. Rows are built from
+# link_matrix_df() (the single source of truth) rather than literals. ASCII only.
 link_matrix_table <- function() {
-  row <- function(types, does, output) {
-    tags$tr(tags$td(types), tags$td(does), tags$td(output))
-  }
+  matrix_df <- ONgeoR:::link_matrix_df()
+  rows <- lapply(seq_len(nrow(matrix_df)), function(i) {
+    tags$tr(
+      tags$td(sprintf("%s x %s", matrix_df$source_kind[i], matrix_df$target_kind[i])),
+      tags$td(matrix_df$mode[i]),
+      tags$td(matrix_df$what_it_does[i]),
+      tags$td(matrix_df$output[i])
+    )
+  })
   tagList(
     tags$table(class = "link-matrix",
       tags$thead(tags$tr(
-        tags$th("Layer types"), tags$th("What linking does"), tags$th("Output")
+        tags$th("Layer types"), tags$th("Mode"),
+        tags$th("What linking does"), tags$th("Output")
       )),
-      tags$tbody(
-        row("Polygon base x Point overlay",
-          "Point-in-boundary containment (within); points are always the from side internally.",
-          "Crosswalk"),
-        row("Polygon x Polygon",
-          paste("Your choice of five rules: within / intersects /",
-            "point_on_surface (interior representative point, not centroid) /",
-            "largest_overlap (majority shared area; coverage 0-1 reports the",
-            "winner's share) / weighted (keeps every positive-area overlap;",
-            "coverage reports each pair's share)."),
-          "Crosswalk"),
-        row("Point x Raster (either slot order)",
-          paste("Sampling - each point gets the value of the cell containing",
-            "it (cell treated as its bounding-box polygon)."),
-          "Linked values table"),
-        row("Raster x Polygon (either slot order)",
-          paste("Cell sampling into boundaries - raster reduced to",
-            "cell-centroid points, each assigned to its containing boundary",
-            "and carrying its value."),
-          "Linked values table"),
-        row("Point x Point",
-          paste("Nearest matching (Find Nearest tab; k, max distance) - not a",
-            "containment link."),
-          "Nearest table"),
-        row("Raster x Raster",
-          "Not supported; align/resample with terra first.",
-          "-")
-      )
+      tags$tbody(rows)
     ),
     tags$p(class = "text-muted",
       paste("Linking never creates or emits geometry - overlap areas are",
-        "internal arithmetic only. The coverage column is populated by",
-        "largest_overlap (the winning boundary's share, 0-1, of the source",
-        "polygon's area) and by weighted (each retained pair's share)."))
+        "internal arithmetic only. The geometry pair alone decides the",
+        "operation; there is no match rule to choose."))
   )
 }
 
@@ -375,18 +351,6 @@ layer_style_controls <- function(prefix, geom, accent = "#2a78d6") {
         min = 0, max = 1, value = 0.25, step = 0.05, ticks = FALSE)
     )
   }
-}
-
-# Static connector-line controls for the Find Nearest tab.
-connector_style_controls <- function() {
-  tagList(
-    selectInput("conn_color", "Line color",
-      choices = c(color_choices, "Stone" = "#52514e"), selected = "#52514e"),
-    sliderInput("conn_weight", "Line weight",
-      min = 1, max = 5, value = 1, step = 1, ticks = FALSE),
-    sliderInput("conn_opacity", "Line opacity",
-      min = 0, max = 1, value = 0.7, step = 0.05, ticks = FALSE)
-  )
 }
 
 # Reads back the style list for one layer slot, keyed on the layer's actual
@@ -618,8 +582,8 @@ render_styled_map <- function(layers, styles, add_control = TRUE, furniture = li
   map
 }
 
-add_nearest_connectors <- function(map, layers, connectors, conn_style) {
-  overlay_groups <- names(layers)
+add_nearest_connectors <- function(map, layers, connectors, conn_style, furniture = list()) {
+  overlay_groups <- c(names(layers), names(furniture))
   if (!is.null(connectors) && nrow(connectors) > 0) {
     map <- leaflet::addPolylines(
       map,
@@ -636,6 +600,41 @@ add_nearest_connectors <- function(map, layers, connectors, conn_style) {
     overlayGroups = overlay_groups,
     options = leaflet::layersControlOptions(collapsed = FALSE)
   )
+}
+
+# TRUE when a completed link run produced a nearest (point-to-point) result,
+# whose pair table carries relation == "nearest". Drives the connector lines
+# drawn on the main map for a point-to-point join.
+is_nearest_result <- function(pairs) {
+  !is.null(pairs) && "relation" %in% colnames(pairs) &&
+    any(pairs$relation == "nearest", na.rm = TRUE)
+}
+
+# Builds the connector lines for a nearest result: one line per matched
+# target/source point pair. The pair table carries the matched ids; they are
+# resolved back to point geometries through each layer's id column.
+nearest_connectors <- function(source_sf, target_sf, pairs) {
+  pairs <- pairs[!is.na(pairs$source_id) & !is.na(pairs$target_id), , drop = FALSE]
+  if (nrow(pairs) == 0) {
+    return(NULL)
+  }
+  source_id_col <- ONgeoR:::layer_id_col(source_sf)
+  target_id_col <- ONgeoR:::layer_id_col(target_sf)
+  source_idx <- match(pairs$source_id, as.character(source_sf[[source_id_col]]))
+  target_idx <- match(pairs$target_id, as.character(target_sf[[target_id_col]]))
+  keep <- !is.na(source_idx) & !is.na(target_idx)
+  if (!any(keep)) {
+    return(NULL)
+  }
+  source_geom <- sf::st_geometry(source_sf)[source_idx[keep]]
+  target_geom <- sf::st_geometry(target_sf)[target_idx[keep]]
+  lines <- sf::st_sfc(
+    lapply(seq_along(source_geom), function(i) {
+      sf::st_nearest_points(source_geom[i], target_geom[i], pairwise = TRUE)[[1]]
+    }),
+    crs = sf::st_crs(source_sf)
+  )
+  sf::st_sf(geometry = lines)
 }
 
 ui <- bslib::page_navbar(
@@ -712,67 +711,6 @@ ui <- bslib::page_navbar(
         )
       )
     )
-  ),
-  bslib::nav_panel(
-    "Find Nearest",
-    bslib::layout_sidebar(
-      fillable = FALSE,
-      sidebar = bslib::sidebar(
-        width = 300,
-        tags$div(class = "slot-block slot-base",
-          fileInput("points_csv", "Source points (CSV with lon/lat columns)", accept = ".csv")
-        ),
-        tags$div(class = "slot-block slot-overlay",
-          selectInput("target_source", "Target source", choices = source_choices_grouped()),
-          tags$div(class = "slot-meta",
-            uiOutput("target_geom_badge"),
-            checkboxInput("target_upload_own", "Use my own file", FALSE)
-          ),
-          conditionalPanel(
-            "input.target_upload_own",
-            fileInput("target_own_file", NULL, buttonLabel = "Browse...",
-              placeholder = "GeoJSON, GeoPackage, zipped shapefile, or GeoTIFF"),
-            selectInput("target_own_type", "Layer type",
-              c("Polygon" = "polygon", "Point" = "point", "Raster" = "raster")),
-            tags$p(class = "text-muted", "Upload support is coming soon - this does not affect linking yet.")
-          )
-        ),
-        numericInput("k", "k", value = 1, min = 1),
-        numericInput("max_dist_km", "max_dist_km", value = NA, min = 0),
-        helpText("Leave blank for no distance cap."),
-        actionButton("nearest_preview_btn", "Preview on map", class = "btn-preview w-100 mb-1"),
-        actionButton("nearest_btn", "Find nearest", class = "btn-primary"),
-        uiOutput("nearest_task_status"),
-        tags$hr(),
-        bslib::accordion(
-          open = FALSE,
-          bslib::accordion_panel(
-            tags$span(class = "slot-title slot-title-base", "Source points style"),
-            uiOutput("src_style_ui"),
-            value = "Source points style"
-          ),
-          bslib::accordion_panel(
-            tags$span(class = "slot-title slot-title-overlay", "Matched targets style"),
-            uiOutput("tgt_style_ui"),
-            value = "Matched targets style"
-          ),
-          bslib::accordion_panel("Connector lines style", connector_style_controls())
-        ),
-        tags$hr(),
-        tags$strong("Downloads"),
-        uiOutput("nearest_downloads_ui")
-      ),
-      bslib::navset_tab(
-        bslib::nav_panel(
-          "Map",
-          leafletOutput("nearest_map", height = "calc(100vh - 150px)")
-        ),
-        bslib::nav_panel(
-          "Data",
-          DT::dataTableOutput("nearest_table")
-        )
-      )
-    )
   )
 )
 
@@ -799,7 +737,7 @@ server <- function(input, output, session) {
     })
   })
 
-  build_task <- shiny::ExtendedTask$new(function(base_id, overlay_id, method,
+  build_task <- shiny::ExtendedTask$new(function(base_id, overlay_id,
                                                    generation) {
     promises::future_promise({
       # Local copies, not the app-level pack_spatial()/layer_geom() - see the
@@ -837,7 +775,28 @@ server <- function(input, output, session) {
           }
         }
         linked <- ONgeoR::link(from_sf, to_sf, predicate = "within")
-        list(crosswalk = NULL, linked = linked,
+        list(crosswalk = NULL, linked = linked, pairs = NULL,
+             base_sf = pack(base_sf),
+             overlay_sf = pack(overlay_sf),
+             generation = generation)
+      } else if (base_kind == "polygon" && overlay_kind == "polygon") {
+        # Polygon x polygon: intersection. The pair table is canonical; the
+        # target-level table summarises it to one row per target. The Target
+        # layer (overlay) is the index unit the result has one row per, so it
+        # is build_intersection()'s `target` argument (base is `source`).
+        pairs <- ONgeoR::build_intersection(base_sf, overlay_sf)
+        crosswalk <- ONgeoR::summarise_by_target(pairs)
+        list(crosswalk = crosswalk, linked = NULL, pairs = pairs,
+             base_sf = pack(base_sf),
+             overlay_sf = pack(overlay_sf),
+             generation = generation)
+      } else if (base_kind == "point" && overlay_kind == "point") {
+        # Point x point: nearest matching, folded into the main flow. Each
+        # target point (overlay) is matched to its nearest source point (base),
+        # so overlay is build_nearest_pairs()'s `target` argument.
+        pairs <- ONgeoR::build_nearest_pairs(base_sf, overlay_sf)
+        crosswalk <- ONgeoR::summarise_by_target(pairs)
+        list(crosswalk = crosswalk, linked = NULL, pairs = pairs,
              base_sf = pack(base_sf),
              overlay_sf = pack(overlay_sf),
              generation = generation)
@@ -845,53 +804,16 @@ server <- function(input, output, session) {
         # Universal direction rule: every crosswalk row assigns an overlay
         # unit to the base polygon it belongs to (overlay is always from,
         # base always to) - e.g. each airport polygon is assigned to its
-        # health unit, never the reverse.
+        # health unit, never the reverse. Point-in-boundary containment has
+        # no rule to choose, so it runs build_crosswalk()'s default (within).
         from_sf   <- overlay_sf
         to_sf     <- base_sf
-        crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = method)
-        list(crosswalk = crosswalk, linked = NULL,
+        crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf)
+        list(crosswalk = crosswalk, linked = NULL, pairs = NULL,
              base_sf = pack(base_sf),
              overlay_sf = pack(overlay_sf),
              generation = generation)
       }
-    })
-  })
-
-  nearest_preview_task <- shiny::ExtendedTask$new(function(csv_path, target_id,
-                                                             generation) {
-    promises::future_promise({
-      points <- utils::read.csv(csv_path)
-      if (!all(c("lon", "lat") %in% names(points))) {
-        rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
-      }
-      source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
-      target_sf <- ONgeoR::retrieve_source(target_id)
-      list(
-        source_sf = source_sf,
-        target_sf = target_sf,
-        generation = generation
-      )
-    })
-  })
-
-  nearest_task <- shiny::ExtendedTask$new(function(csv_path, target_id, k_val,
-                                                     max_dist_km_val,
-                                                     generation) {
-    promises::future_promise({
-      points <- utils::read.csv(csv_path)
-      if (!all(c("lon", "lat") %in% names(points))) {
-        rlang::abort("Uploaded CSV must have `lon` and `lat` columns.")
-      }
-      source_sf <- sf::st_as_sf(points, coords = c("lon", "lat"), crs = 4326)
-      target_sf <- ONgeoR::retrieve_source(target_id)
-      result <- ONgeoR::build_nearest_layers(
-        source_sf,
-        target_sf,
-        k = k_val,
-        max_dist_km = max_dist_km_val
-      )
-      result$generation <- generation
-      result
     })
   })
 
@@ -948,37 +870,16 @@ server <- function(input, output, session) {
     overlay_k <- geom_kind(input$overlay_source)
     help_link <- actionLink("method_help", "?", class = "method-help",
       title = "How linking works, by layer types")
-
-    if (base_k == "raster" || overlay_k == "raster") {
-      # Raster pairings route through link(), which has no match rule to pick.
-      # See pairing-explanation modal for details.
+    # No match rule to choose: the geometry pair alone decides the operation.
+    # State what will happen, using the same words as the help matrix.
+    matrix_df <- ONgeoR:::link_matrix_df()
+    row <- matrix_df[matrix_df$source_kind == base_k &
+      matrix_df$target_kind == overlay_k, , drop = FALSE]
+    what <- if (nrow(row) > 0) row$what_it_does[1] else ""
+    tagList(
+      tags$p(class = "text-muted", what),
       help_link
-    } else if (base_k == "point" && overlay_k == "point") {
-      # Point-to-point containment is undefined; redirect to Find Nearest.
-      # There is no dropdown here, so a short pointer stays in the sidebar;
-      # the full redirect sentence is in the pairing-explanation modal.
-      tagList(
-        tags$p(class = "text-muted",
-          "Points can't be linked here - see Find Nearest."),
-        help_link
-      )
-    } else if (is_facility_source(input$base_layer) || is_facility_source(input$overlay_source)) {
-      tagList(
-        selectInput("method", "Match rule", choices = c("Point-in-boundary" = "within")),
-        help_link
-      )
-    } else {
-      tagList(
-        selectInput("method", "Match rule", choices = c(
-          "Fully inside (within)" = "within",
-          "Any overlap (intersects)" = "intersects",
-          "Treat overlay as points (fast)" = "point_on_surface",
-          "Assign by largest overlap (accurate)" = "largest_overlap",
-          "Apportion across overlaps (weighted)" = "weighted"
-        )),
-        help_link
-      )
-    }
+    )
   })
 
   observeEvent(input$method_help, {
@@ -989,7 +890,7 @@ server <- function(input, output, session) {
     ))
   })
 
-  cw_result <- reactiveValues(crosswalk = NULL, linked = NULL,
+  cw_result <- reactiveValues(crosswalk = NULL, linked = NULL, pairs = NULL,
     base_sf = NULL, overlay_sf = NULL, previewed = NULL)
   preview_generation <- reactiveVal(0L)
   preview_active_generation <- reactiveVal(NULL)
@@ -1031,48 +932,26 @@ server <- function(input, output, session) {
     }
     cw_result$crosswalk <- NULL
     cw_result$linked <- NULL
+    cw_result$pairs <- NULL
     cw_result$base_sf <- NULL
     cw_result$overlay_sf <- NULL
     cw_result$previewed <- NULL
   }, ignoreInit = TRUE)
 
-  observeEvent(input$method, {
-    link_generation(link_generation() + 1L)
-    if (identical(link_state(), "running")) {
-      link_state("cancelled")
-      link_state_detail("Inputs changed; the previous run was discarded.")
-    } else if (!identical(link_state(), "cancelled")) {
-      link_state("idle")
-      link_state_detail(NULL)
-    }
-    cw_result$crosswalk <- NULL
-    cw_result$linked <- NULL
-  }, ignoreInit = TRUE)
-
   # Link is gated on having previewed the CURRENT pair: enabled only when a
   # preview succeeded for exactly today's base_layer/overlay_source values
-  # (so changing either picker re-greys it) and the pair is not point-point
-  # (which stays permanently disabled, with a redirect message, since
-  # containment linking is undefined for it - see link_method_ui above for
-  # the parallel explanatory text).
+  # (so changing either picker re-greys it). Every geometry pair is linkable
+  # now - point-to-point runs nearest matching - so there is no pair gate.
   output$build_btn_ui <- renderUI({
     req(input$base_layer, input$overlay_source)
-    point_point <- is_facility_source(input$base_layer) && is_facility_source(input$overlay_source)
     previewed_current <- identical(cw_result$previewed, c(input$base_layer, input$overlay_source))
-    enabled <- previewed_current && !point_point
     build_running <- identical(link_state(), "running")
 
     if (build_running) {
       tags$button("Running...", type = "button",
         class = "btn btn-primary w-100", disabled = "disabled")
-    } else if (enabled) {
+    } else if (previewed_current) {
       actionButton("build_btn", "Join", class = "btn-primary w-100")
-    } else if (point_point) {
-      tagList(
-        tags$button("Join", type = "button", class = "btn btn-primary w-100", disabled = "disabled"),
-        tags$p(class = "text-muted",
-          "Both layers are points - use the Find Nearest tab for point-to-point matching.")
-      )
     } else {
       tags$button("Join", type = "button", class = "btn btn-primary w-100", disabled = "disabled")
     }
@@ -1080,9 +959,8 @@ server <- function(input, output, session) {
 
   # Retrieves and maps the two selected layers without linking them, so users
   # can see what they picked before committing to a (possibly slow) link run.
-  # Unlike build_btn, this has no point-point guard - previewing two point
-  # layers is just mapping, with no containment semantics involved - and no
-  # raster/method branching, since it never calls build_crosswalk()/link().
+  # Previewing is just mapping - no containment semantics, no raster/method
+  # branching - since it never calls build_crosswalk()/link().
   observe({
     label <- if (identical(preview_task$status(), "running")) "Running..." else "Preview on map"
     updateActionButton(session, "preview_btn", label = label)
@@ -1112,6 +990,7 @@ server <- function(input, output, session) {
     # disable until Link is run again.
     cw_result$crosswalk <- NULL
     cw_result$linked <- NULL
+    cw_result$pairs <- NULL
     # Records exactly what was previewed, so the Join button's renderUI
     # can require the current picker values to match before enabling -
     # changing either picker after a preview re-greys Link. Only set on
@@ -1132,7 +1011,6 @@ server <- function(input, output, session) {
       target_id = input$overlay_source,
       source_sf = cw_result$base_sf,
       target_sf = cw_result$overlay_sf,
-      method = input$method %||% "within",
       kinds = c(geom_kind(input$base_layer), geom_kind(input$overlay_source))
     ))
   })
@@ -1140,15 +1018,9 @@ server <- function(input, output, session) {
   observeEvent(input$confirm_join_btn, {
     removeModal()
     req(input$base_layer, input$overlay_source)
-    # Point-to-point containment is undefined; the Join button's renderUI
-    # (build_btn_ui) keeps Link permanently disabled for this pair, so the
-    # on-click redirect notice that used to live here is no longer reachable
-    # and has been removed - see link_method_ui for the still-shown
-    # point-point explanatory message.
     requested_inputs <- list(
       base_layer = input$base_layer,
-      overlay_source = input$overlay_source,
-      method = input$method %||% "within"
+      overlay_source = input$overlay_source
     )
     has_current_result <- !is.null(cw_result$crosswalk) ||
       !is.null(cw_result$linked)
@@ -1165,10 +1037,10 @@ server <- function(input, output, session) {
     link_state_detail("Linking selected layers.")
     cw_result$crosswalk <- NULL
     cw_result$linked <- NULL
+    cw_result$pairs <- NULL
     build_task$invoke(
       input$base_layer,
       input$overlay_source,
-      input$method %||% "within",
       generation
     )
   })
@@ -1178,14 +1050,14 @@ server <- function(input, output, session) {
     if (!s %in% c("success", "error")) return()
     current_inputs <- list(
       base_layer = input$base_layer,
-      overlay_source = input$overlay_source,
-      method = input$method %||% "within"
+      overlay_source = input$overlay_source
     )
     if (!identical(link_active_inputs(), current_inputs)) {
       link_state("cancelled")
       link_state_detail("Inputs changed; the previous run was discarded.")
       cw_result$crosswalk <- NULL
       cw_result$linked <- NULL
+      cw_result$pairs <- NULL
       return()
     }
     if (!identical(link_active_generation(), link_generation())) return()
@@ -1199,6 +1071,7 @@ server <- function(input, output, session) {
     if (!identical(result$generation, link_generation())) return()
     cw_result$crosswalk   <- result$crosswalk
     cw_result$linked      <- result$linked
+    cw_result$pairs       <- result$pairs
     cw_result$base_sf     <- unpack_spatial(result$base_sf)
     cw_result$overlay_sf  <- unpack_spatial(result$overlay_sf)
     link_state("completed")
@@ -1227,10 +1100,21 @@ server <- function(input, output, session) {
     # every fresh load - the exact case it exists for. Nothing is drawn from
     # a selection until a preview succeeds.
     drawn_ids <- if (length(layers)) cw_result$previewed else character(0)
+    furniture <- furniture_layers(drawn_ids)
+    # A nearest (point-to-point) result draws connector lines between matched
+    # points; add_nearest_connectors() also owns the layers control in that
+    # case, so render_styled_map() skips its own (exactly one control either way).
+    nearest_run <- is_nearest_result(cw_result$pairs)
     map <- render_styled_map(
       layers, styles,
-      furniture = furniture_layers(drawn_ids)
+      add_control = !nearest_run,
+      furniture = furniture
     )
+    if (nearest_run) {
+      connectors <- nearest_connectors(cw_result$base_sf, cw_result$overlay_sf, cw_result$pairs)
+      conn_style <- list(color = "#52514e", weight = 1, opacity = 0.7)
+      map <- add_nearest_connectors(map, layers, connectors, conn_style, furniture = furniture)
+    }
     ontario <- sf::st_bbox(furniture_layer("PHU_simple"))
     leaflet::fitBounds(
       map,
@@ -1242,9 +1126,9 @@ server <- function(input, output, session) {
   output$cw_map <- renderLeaflet({
     link_map()
   })
-  # Shows whichever mode the last run produced: a crosswalk (build_crosswalk)
-  # or a linked values table (raster runs via link()); the coverage column of a
-  # largest_overlap crosswalk shows here naturally.
+  # Shows whichever mode the last run produced: the target-level table
+  # (build_crosswalk, or summarise_by_target() for intersection/nearest) or a
+  # linked values table (raster runs via link()).
   output$cw_table <- DT::renderDataTable({
     tbl <- cw_result$crosswalk %||% cw_result$linked
     req(tbl)
@@ -1259,6 +1143,16 @@ server <- function(input, output, session) {
       utils::write.csv(tbl, file, row.names = FALSE)
     }
   )
+  # The pair-level table (one row per overlapping pair, or per matched point)
+  # behind the intersection and nearest results. Only those runs populate it;
+  # build_crosswalk and raster runs have no separate pair table.
+  output$dl_cw_pairs <- downloadHandler(
+    filename = function() "pairs.csv",
+    content = function(file) {
+      req(cw_result$pairs)
+      utils::write.csv(cw_result$pairs, file, row.names = FALSE)
+    }
+  )
   output$dl_cw_map <- downloadHandler(
     filename = function() "map.html",
     content = function(file) {
@@ -1271,12 +1165,13 @@ server <- function(input, output, session) {
     content = function(file) {
       req(input$base_layer, input$overlay_source)
       # Mirror the build task's universal direction rule (overlay is always
-      # `from`, base always `to`) and the user's chosen match rule, so the
-      # script rebuilds the same crosswalk the app displayed.
+      # `from`, base always `to`). Containment linking has no rule to choose,
+      # so the script records build_crosswalk()'s default (within). Only
+      # build_crosswalk runs offer this script - see link_downloads_ui.
       writeLines(
         ONgeoR::render_reproducer_script(
           input$overlay_source, input$base_layer, ".",
-          method = input$method %||% "within"
+          method = "within"
         ),
         file
       )
@@ -1292,10 +1187,13 @@ server <- function(input, output, session) {
       download_or_disabled(list(
         list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),
         list(id = "dl_cw_csv", label = csv_label, ready = link_ready),
-        # reproduce.R renders a crosswalk script only; raster runs produce a
-        # linked values table through link(), which the script cannot rebuild,
-        # so it stays disabled for them.
-        list(id = "dl_cw_script", label = "reproduce.R", ready = has_rows(cw_result$crosswalk))
+        list(id = "dl_cw_pairs", label = "pairs.csv", ready = has_rows(cw_result$pairs)),
+        # reproduce.R renders a build_crosswalk script only. Raster runs
+        # produce a linked values table through link(), and intersection /
+        # nearest runs produce tables the script cannot rebuild, so it stays
+        # disabled for all of those (a populated pairs table marks the latter).
+        list(id = "dl_cw_script", label = "reproduce.R",
+          ready = has_rows(cw_result$crosswalk) && is.null(cw_result$pairs))
       )),
       # The exported map carries the furniture layers too; say so here so
       # the addition is not silent.
@@ -1304,243 +1202,6 @@ server <- function(input, output, session) {
           "reference layers (each hidden only while its full-resolution",
           "source counterpart is selected)."))
     )
-  })
-
-  # --- Find Nearest tab ------------------------------------------------
-
-  # Geometry-type feedback badge for the target source.
-  output$target_geom_badge <- renderUI({
-    req(input$target_source)
-    geo_badge(input$target_source)
-  })
-
-  # Source points are always points (uploaded lon/lat CSV); the target style
-  # follows the selected target source's geometry.
-  output$src_style_ui <- renderUI({
-    layer_style_controls("src", "point", accent = "#2a78d6")
-  })
-  output$tgt_style_ui <- renderUI({
-    req(input$target_source)
-    layer_style_controls("tgt", geom_kind(input$target_source), accent = "#1baf7a")
-  })
-
-  nearest_result <- reactiveValues(table = NULL, source_sf = NULL, target_sf = NULL,
-    matched_target = NULL, connectors = NULL, preview_target = NULL)
-  nearest_preview_generation <- reactiveVal(0L)
-  nearest_preview_active_generation <- reactiveVal(NULL)
-  nearest_generation <- reactiveVal(0L)
-  nearest_active_generation <- reactiveVal(NULL)
-  nearest_active_inputs <- reactiveVal(NULL)
-  nearest_state <- reactiveVal("idle")
-  nearest_state_detail <- reactiveVal(NULL)
-
-  output$nearest_task_status <- renderUI({
-    task_status_ui(nearest_state(), nearest_state_detail())
-  })
-
-  observeEvent(list(
-    input$points_csv,
-    input$target_source,
-    input$k,
-    input$max_dist_km
-  ), {
-    nearest_preview_generation(nearest_preview_generation() + 1L)
-    nearest_generation(nearest_generation() + 1L)
-    if (identical(nearest_state(), "running")) {
-      nearest_state("cancelled")
-      nearest_state_detail("Inputs changed; the previous run was discarded.")
-    } else if (!identical(nearest_state(), "cancelled")) {
-      nearest_state("idle")
-      nearest_state_detail(NULL)
-    }
-    nearest_result$table <- NULL
-    nearest_result$source_sf <- NULL
-    nearest_result$target_sf <- NULL
-    nearest_result$matched_target <- NULL
-    nearest_result$connectors <- NULL
-    nearest_result$preview_target <- NULL
-  }, ignoreInit = TRUE)
-
-  # Retrieves and maps the uploaded source points and the selected target
-  # source without running the nearest match, so users can see both layers
-  # before committing to a (possibly slow) match. There is no matched_target
-  # or connectors yet - nearest_map() draws the target under its own
-  # "Target source" group (styled with the target accent) whenever
-  # preview_target is set and matched_target is NULL.
-  observe({
-    label <- if (identical(nearest_preview_task$status(), "running")) "Running..." else "Preview on map"
-    updateActionButton(session, "nearest_preview_btn", label = label)
-  })
-
-  observeEvent(input$nearest_preview_btn, {
-    req(input$points_csv, input$target_source)
-    generation <- nearest_preview_generation()
-    nearest_preview_active_generation(generation)
-    nearest_preview_task$invoke(
-      input$points_csv$datapath,
-      input$target_source,
-      generation
-    )
-  })
-
-  observeEvent(nearest_preview_task$status(), {
-    s <- nearest_preview_task$status()
-    if (!s %in% c("success", "error")) return()
-    if (!identical(
-      nearest_preview_active_generation(),
-      nearest_preview_generation()
-    )) return()
-    result <- tryCatch(nearest_preview_task$result(), error = function(e) e)
-    if (inherits(result, "error")) {
-      showNotification(conditionMessage(result), type = "error", duration = NULL)
-      return()
-    }
-    if (!identical(
-      result$generation,
-      nearest_preview_generation()
-    )) return()
-    nearest_result$source_sf     <- result$source_sf
-    nearest_result$preview_target <- result$target_sf
-    nearest_result$table         <- NULL
-    nearest_result$matched_target <- NULL
-    nearest_result$connectors    <- NULL
-  }, ignoreInit = TRUE)
-
-  observe({
-    label <- if (identical(nearest_state(), "running")) "Running..." else "Find nearest"
-    updateActionButton(session, "nearest_btn", label = label)
-  })
-
-  observeEvent(input$nearest_btn, {
-    req(input$points_csv, input$target_source)
-    max_dist_input <- input$max_dist_km
-    blank_distance <- is.null(max_dist_input) || length(max_dist_input) == 0L ||
-      (length(max_dist_input) == 1L && is.na(max_dist_input))
-    valid_distance <- blank_distance ||
-      (is.numeric(max_dist_input) && length(max_dist_input) == 1L &&
-        is.finite(max_dist_input) && max_dist_input >= 0)
-    if (!valid_distance) {
-      message <- "max_dist_km must be non-negative or blank."
-      nearest_state("failed")
-      nearest_state_detail(message)
-      showNotification(message, type = "error", duration = NULL)
-      return()
-    }
-    max_dist_km_val <- if (blank_distance) NULL else max_dist_input
-    generation <- nearest_generation()
-    nearest_active_generation(generation)
-    nearest_active_inputs(list(
-      csv_path = input$points_csv$datapath,
-      target_source = input$target_source,
-      k = input$k,
-      max_dist_km = max_dist_km_val
-    ))
-    nearest_state("running")
-    nearest_state_detail("Finding nearest targets.")
-    nearest_result$table <- NULL
-    nearest_result$matched_target <- NULL
-    nearest_result$connectors <- NULL
-    nearest_task$invoke(
-      input$points_csv$datapath,
-      input$target_source,
-      input$k,
-      max_dist_km_val,
-      generation
-    )
-  })
-
-  observeEvent(nearest_task$status(), {
-    s <- nearest_task$status()
-    if (!s %in% c("success", "error")) return()
-    current_distance <- input$max_dist_km
-    current_distance <- if (
-      is.null(current_distance) || length(current_distance) == 0L ||
-        (length(current_distance) == 1L && is.na(current_distance))
-    ) NULL else current_distance
-    current_inputs <- list(
-      csv_path = input$points_csv$datapath,
-      target_source = input$target_source,
-      k = input$k,
-      max_dist_km = current_distance
-    )
-    if (!identical(nearest_active_inputs(), current_inputs)) {
-      nearest_state("cancelled")
-      nearest_state_detail("Inputs changed; the previous run was discarded.")
-      nearest_result$table <- NULL
-      nearest_result$matched_target <- NULL
-      nearest_result$connectors <- NULL
-      return()
-    }
-    if (!identical(nearest_active_generation(), nearest_generation())) return()
-    result <- tryCatch(nearest_task$result(), error = function(e) e)
-    if (inherits(result, "error")) {
-      nearest_state("failed")
-      nearest_state_detail(conditionMessage(result))
-      showNotification(conditionMessage(result), type = "error", duration = NULL)
-      return()
-    }
-    if (!identical(result$generation, nearest_generation())) return()
-    nearest_result$table          <- result$table
-    nearest_result$source_sf      <- result$source
-    nearest_result$matched_target <- result$matched_target
-    nearest_result$connectors     <- result$connectors
-    # A completed match supersedes any preview target layer.
-    nearest_result$preview_target <- NULL
-    nearest_state("completed")
-    nearest_state_detail("Results and downloads are ready.")
-  }, ignoreInit = TRUE)
-
-  nearest_map <- reactive({
-    req(nearest_result$source_sf)
-    layers <- list("Source" = nearest_result$source_sf)
-    styles <- list("Source" = read_layer_style(input, "src", layer_geom(nearest_result$source_sf), accent = "#2a78d6"))
-    if (!is.null(nearest_result$matched_target) && nrow(nearest_result$matched_target) > 0) {
-      layers[["Matched targets"]] <- nearest_result$matched_target
-      styles[["Matched targets"]] <-
-        read_layer_style(input, "tgt", layer_geom(nearest_result$matched_target), accent = "#1baf7a")
-    } else if (!is.null(nearest_result$preview_target)) {
-      layers[["Target source"]] <- nearest_result$preview_target
-      styles[["Target source"]] <-
-        read_layer_style(input, "tgt", layer_geom(nearest_result$preview_target), accent = "#1baf7a")
-    }
-    map <- render_styled_map(layers, styles, add_control = FALSE)
-    conn_style <- list(
-      color = input$conn_color %||% "#52514e",
-      weight = input$conn_weight %||% 1,
-      opacity = input$conn_opacity %||% 0.7
-    )
-    add_nearest_connectors(map, layers, nearest_result$connectors, conn_style)
-  })
-
-  output$nearest_map <- renderLeaflet({
-    nearest_map()
-  })
-  output$nearest_table <- DT::renderDataTable({
-    req(nearest_result$table)
-    nearest_result$table
-  }, rownames = FALSE, options = list(scrollX = TRUE, pageLength = 25))
-
-  output$dl_nearest_csv <- downloadHandler(
-    filename = function() "nearest.csv",
-    content = function(file) {
-      req(nearest_result$table)
-      utils::write.csv(nearest_result$table, file, row.names = FALSE)
-    }
-  )
-  output$dl_nearest_map <- downloadHandler(
-    filename = function() "map.html",
-    content = function(file) {
-      req(nearest_result$source_sf)
-      htmlwidgets::saveWidget(nearest_map(), file, selfcontained = TRUE)
-    }
-  )
-
-  output$nearest_downloads_ui <- renderUI({
-    ready <- !is.null(nearest_result$table) && nrow(nearest_result$table) > 0
-    download_or_disabled(list(
-      list(id = "dl_nearest_map", label = "map.html", ready = ready),
-      list(id = "dl_nearest_csv", label = "nearest.csv", ready = ready)
-    ))
   })
 }
 

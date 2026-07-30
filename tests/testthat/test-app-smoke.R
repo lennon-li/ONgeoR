@@ -65,7 +65,6 @@ test_that("Shiny app boots and exposes its offline workflow controls", {
 
   navbar <- app$get_html("nav.navbar")
   expect_match(navbar, "Link", fixed = TRUE)
-  expect_match(navbar, "Find Nearest", fixed = TRUE)
 
   expect_match(app$get_html("#base_layer"), "base_layer", fixed = TRUE)
   expect_match(
@@ -76,13 +75,6 @@ test_that("Shiny app boots and exposes its offline workflow controls", {
   expect_true(app$get_js(
     "document.querySelector('#build_btn_ui button').disabled"
   ))
-
-  app$click(selector = "a[data-value='Find Nearest']")
-
-  expect_true(app$get_js(
-    "document.querySelector(\"a[data-value='Find Nearest']\").classList.contains('active')"
-  ))
-  expect_match(app$get_html("#points_csv"), "points_csv", fixed = TRUE)
 })
 
 # The Link tab map renders at app load with its furniture layers (the

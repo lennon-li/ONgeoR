@@ -1,9 +1,9 @@
 #' Launch the ONgeoR Shiny app
 #'
-#' Launches a thin Shiny UI over the package: pick sources, build a
-#' crosswalk, view the map and table, and download `mapping.csv`,
-#' `map.html`, and `reproduce.R`. A second tab finds the nearest targets
-#' to an uploaded set of points.
+#' Launches a thin Shiny UI over the package: pick a source and a target
+#' layer, and the geometry pair alone decides the link (intersection,
+#' nearest, containment, or raster sampling). View the map and table and
+#' download `mapping.csv`, `pairs.csv`, `map.html`, and `reproduce.R`.
 #'
 #' @param ... Passed to [shiny::runApp()].
 #'

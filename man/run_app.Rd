@@ -14,10 +14,10 @@ Called for its side effect (launches the Shiny app). Invisibly
 returns \code{NULL}.
 }
 \description{
-Launches a thin Shiny UI over the package: pick sources, build a
-crosswalk, view the map and table, and download \code{mapping.csv},
-\code{map.html}, and \code{reproduce.R}. A second tab finds the nearest targets
-to an uploaded set of points.
+Launches a thin Shiny UI over the package: pick a source and a target
+layer, and the geometry pair alone decides the link (intersection,
+nearest, containment, or raster sampling). View the map and table and
+download \code{mapping.csv}, \code{pairs.csv}, \code{map.html}, and \code{reproduce.R}.
 }
 \examples{
 if (interactive()) {

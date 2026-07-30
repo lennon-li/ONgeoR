@@ -58,9 +58,7 @@ if (length(gregexpr(.old_startup, .app_source, fixed = TRUE)[[1]]) != 1L ||
 
 for (.task in c(
   "preview_task$invoke(",
-  "build_task$invoke(",
-  "nearest_preview_task$invoke(",
-  "nearest_task$invoke("
+  "build_task$invoke("
 )) {
   .task_re <- paste0("(?<![a-zA-Z_])", gsub("([$().])", "\\\\\\1", .task))
   .hits <- gregexpr(.task_re, .app_source, perl = TRUE)[[1]]

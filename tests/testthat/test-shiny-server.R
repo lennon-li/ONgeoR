@@ -75,7 +75,7 @@ test_that("Join asks for confirmation before doing any work", {
     retrieve_source = function(source_id, refresh = FALSE, ...) {
       layers[[source_id]]
     },
-    build_crosswalk = function(from, to, method = "within", ...) {
+    build_crosswalk = function(from, to, ...) {
       crosswalk_calls <<- crosswalk_calls + 1L
       tibble::tibble(from_id = 1:2, to_id = c("P1", "P2"))
     },
@@ -88,7 +88,6 @@ test_that("Join asks for confirmation before doing any work", {
     session$setInputs(
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
-      method = "within",
       preview_btn = 1
     )
     expect_identical(
@@ -120,7 +119,7 @@ test_that("preview then Link produces a crosswalk and enables downloads", {
     retrieve_source = function(source_id, refresh = FALSE, ...) {
       layers[[source_id]]
     },
-    build_crosswalk = function(from, to, method = "within", ...) {
+    build_crosswalk = function(from, to, ...) {
       tibble::tibble(from_id = 1:2, to_id = c("P1", "P2"))
     },
     .package = "ONgeoR"
@@ -132,7 +131,6 @@ test_that("preview then Link produces a crosswalk and enables downloads", {
     session$setInputs(
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
-      method = "within",
       preview_btn = 1
     )
     expect_identical(
@@ -171,7 +169,7 @@ test_that("Link discards a completion invalidated by changed inputs", {
       Sys.sleep(0.05)
       layers[[source_id]]
     },
-    build_crosswalk = function(from, to, method = "within", ...) {
+    build_crosswalk = function(from, to, ...) {
       tibble::tibble(from_id = 1L, to_id = "P1")
     },
     .package = "ONgeoR"
@@ -183,12 +181,14 @@ test_that("Link discards a completion invalidated by changed inputs", {
     session$setInputs(
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
-      method = "within",
       confirm_join_btn = 1
     )
     expect_match(rendered_html(output$link_task_status), "Running")
 
-    session$setInputs(method = "intersects")
+    # Changing a picker mid-run invalidates the in-flight link (there is no
+    # match-rule input to change now); the stale result must be discarded.
+    # other_polygon keeps the pair on the build_crosswalk (point x polygon) path.
+    session$setInputs(base_layer = "other_polygon")
     expect_match(rendered_html(output$link_task_status), "Cancelled")
 
     expect_identical(wait_for_extended_task(build_task, session), "success")
@@ -218,7 +218,6 @@ test_that("Link surfaces retrieval failures without retaining results", {
     session$setInputs(
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
-      method = "within",
       confirm_join_btn = 1
     )
     expect_warning(
@@ -250,7 +249,7 @@ test_that("repeat Link runs use cached retrieval without re-fetching", {
       retrieval_count <<- retrieval_count + 1L
       layers[[source_id]]
     },
-    build_crosswalk = function(from, to, method = "within", ...) {
+    build_crosswalk = function(from, to, ...) {
       tibble::tibble(from_id = 1L, to_id = "P1")
     },
     .package = "ONgeoR"
@@ -261,8 +260,7 @@ test_that("repeat Link runs use cached retrieval without re-fetching", {
   shiny::testServer(server, {
     session$setInputs(
       base_layer = "base_polygon",
-      overlay_source = "overlay_point",
-      method = "within"
+      overlay_source = "overlay_point"
     )
 
     first_started <- Sys.time()
@@ -303,7 +301,7 @@ test_that("Link passes a point overlay as the crosswalk from layer", {
     retrieve_source = function(source_id, refresh = FALSE, ...) {
       layers[[source_id]]
     },
-    build_crosswalk = function(from, to, method = "within", ...) {
+    build_crosswalk = function(from, to, ...) {
       calls$from <- from
       calls$to <- to
       tibble::tibble(from_id = 1L, to_id = "P1")
@@ -317,7 +315,6 @@ test_that("Link passes a point overlay as the crosswalk from layer", {
     session$setInputs(
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
-      method = "within",
       confirm_join_btn = 1
     )
     expect_identical(wait_for_extended_task(build_task, session), "success")
@@ -331,253 +328,82 @@ test_that("Link passes a point overlay as the crosswalk from layer", {
   # both picker orders requires the forbidden app.R behavior change.
 })
 
-test_that("Find Nearest handles valid and malformed uploaded CSV files", {
+test_that("two point layers preview and join on the main tab as a nearest result", {
   skip_if_not_installed("shiny")
   skip_if_not_installed("bslib")
 
-  layers <- shiny_fixture_layers()
-  nearest_impl <- ONgeoR::build_nearest_layers
+  # The shared fixture registry has only one point source, so define a
+  # two-point registry and layer set locally to exercise the point-to-point
+  # path end to end on the main tab. The two layers carry distinct attribute
+  # column names (point_id vs station_id): nearest() column-binds both layers'
+  # attributes, so a shared name would collide - exactly as the registered
+  # point sources (different LIO id fields) do not collide in practice.
+  points_a <- fixture_points()
+  points_b <- fixture_provenance(sf::st_as_sf(
+    tibble::tibble(
+      station_id = 101:105,
+      lon = c(0.30, 1.30, 2.30, 0.60, 1.60),
+      lat = c(0.30, 0.30, 0.30, 0.60, 0.60)
+    ),
+    coords = c("lon", "lat"), crs = 4326
+  ))
+  registry <- tibble::tibble(
+    source_id = c("points_a", "points_b"),
+    name = c("Points A", "Points B"),
+    geography_type = c("facility", "facility"),
+    feature_count = c(nrow(points_a), nrow(points_b))
+  )
+  point_layers <- list(points_a = points_a, points_b = points_b)
+  metadata <- function(source_id) {
+    row <- registry[registry$source_id == source_id, , drop = FALSE]
+    list(
+      name = row$name[[1]],
+      service_layer = source_id,
+      geography_type = row$geography_type[[1]],
+      feature_count = row$feature_count[[1]],
+      key_fields = list(id = "point_id", name = "point_id"),
+      license = "test fixture",
+      source_url = "https://example.test/ongeor-fixture"
+    )
+  }
   testthat::local_mocked_bindings(
-    list_sources = shiny_fixture_registry,
-    get_source = shiny_fixture_metadata,
+    list_sources = function() registry,
+    get_source = metadata,
     retrieve_source = function(source_id, refresh = FALSE, ...) {
-      layers[[source_id]]
-    },
-    build_nearest_layers = function(source, target, ...) {
-      nearest_impl(source, target, ...)
+      point_layers[[source_id]]
     },
     .package = "ONgeoR"
   )
   server <- load_shiny_server()
   use_sequential_futures()
 
-  valid_csv <- withr::local_tempfile(fileext = ".csv")
-  utils::write.csv(
-    data.frame(id = c("A", "B"), lon = c(0.2, 1.2), lat = c(0.2, 0.2)),
-    valid_csv,
-    row.names = FALSE
-  )
   shiny::testServer(server, {
     session$setInputs(
-      points_csv = list(
-        name = "valid.csv",
-        size = file.info(valid_csv)$size,
-        type = "text/csv",
-        datapath = valid_csv
-      ),
-      target_source = "overlay_point",
-      k = 1,
-      max_dist_km = NA_real_,
-      nearest_btn = 1
+      base_layer = "points_a",
+      overlay_source = "points_b",
+      preview_btn = 1
     )
-    expect_identical(wait_for_extended_task(nearest_task, session), "success")
-    expect_s3_class(nearest_result$table, "data.frame")
-    expect_gt(nrow(nearest_result$table), 0)
-  })
+    expect_identical(wait_for_extended_task(preview_task, session), "success")
 
-  malformed_csv <- withr::local_tempfile(fileext = ".csv")
-  utils::write.csv(
-    data.frame(id = "A", lon = 0.2),
-    malformed_csv,
-    row.names = FALSE
-  )
-  shiny::testServer(server, {
-    session$setInputs(
-      points_csv = list(
-        name = "malformed.csv",
-        size = file.info(malformed_csv)$size,
-        type = "text/csv",
-        datapath = malformed_csv
-      ),
-      target_source = "overlay_point",
-      k = 1,
-      max_dist_km = NA_real_,
-      nearest_btn = 1
-    )
-    expect_warning(
-      wait_for_extended_task(nearest_task, session),
-      "An error occurred when invoking the ExtendedTask",
-      fixed = TRUE
-    )
-    expect_identical(shiny::isolate(nearest_task$status()), "error")
-    expect_error(
-      nearest_task$result(),
-      "Uploaded CSV must have `lon` and `lat` columns",
-      fixed = TRUE
-    )
-    expect_null(nearest_result$table)
-  })
-})
+    # Join is enabled for two point layers once a preview has succeeded.
+    expect_match(rendered_html(output$build_btn_ui), "id=\"build_btn\"")
+    expect_false(grepl("disabled", rendered_html(output$build_btn_ui)))
 
-test_that("an empty nearest result keeps an empty table", {
-  skip_if_not_installed("shiny")
-  skip_if_not_installed("bslib")
+    session$setInputs(confirm_join_btn = 1)
+    expect_identical(wait_for_extended_task(build_task, session), "success")
 
-  layers <- shiny_fixture_layers()
-  testthat::local_mocked_bindings(
-    list_sources = shiny_fixture_registry,
-    get_source = shiny_fixture_metadata,
-    retrieve_source = function(source_id, refresh = FALSE, ...) {
-      layers[[source_id]]
-    },
-    build_nearest_layers = function(source, target, ...) {
-      list(
-        source = source,
-        matched_target = target[0, , drop = FALSE],
-        connectors = NULL,
-        table = tibble::tibble(
-          source_row = integer(),
-          target_row = integer(),
-          rank = integer(),
-          distance_km = double()
-        )
-      )
-    },
-    .package = "ONgeoR"
-  )
-  server <- load_shiny_server()
-  use_sequential_futures()
-
-  points_csv <- withr::local_tempfile(fileext = ".csv")
-  utils::write.csv(
-    data.frame(id = "A", lon = 0.2, lat = 0.2),
-    points_csv,
-    row.names = FALSE
-  )
-  shiny::testServer(server, {
-    session$setInputs(
-      points_csv = list(
-        name = "points.csv",
-        size = file.info(points_csv)$size,
-        type = "text/csv",
-        datapath = points_csv
-      ),
-      target_source = "overlay_point",
-      k = 1,
-      max_dist_km = 0,
-      nearest_btn = 1
-    )
-    expect_identical(wait_for_extended_task(nearest_task, session), "success")
-    expect_s3_class(nearest_result$table, "data.frame")
-    expect_equal(nrow(nearest_result$table), 0)
-
-    downloads <- rendered_html(output$nearest_downloads_ui)
-    expect_match(downloads, "disabled")
-  })
-})
-
-test_that("Find Nearest rejects invalid distance without invoking work", {
-  skip_if_not_installed("shiny")
-  skip_if_not_installed("bslib")
-
-  calls <- 0L
-  testthat::local_mocked_bindings(
-    list_sources = shiny_fixture_registry,
-    get_source = shiny_fixture_metadata,
-    retrieve_source = function(source_id, refresh = FALSE, ...) {
-      calls <<- calls + 1L
-      shiny_fixture_layers()[[source_id]]
-    },
-    .package = "ONgeoR"
-  )
-  server <- load_shiny_server()
-  use_sequential_futures()
-
-  points_csv <- withr::local_tempfile(fileext = ".csv")
-  utils::write.csv(
-    data.frame(id = "A", lon = 0.2, lat = 0.2),
-    points_csv,
-    row.names = FALSE
-  )
-  shiny::testServer(server, {
-    session$setInputs(
-      points_csv = list(
-        name = "points.csv",
-        size = file.info(points_csv)$size,
-        type = "text/csv",
-        datapath = points_csv
-      ),
-      target_source = "overlay_point",
-      k = 1,
-      max_dist_km = -1,
-      nearest_btn = 1
-    )
-
-    expect_equal(calls, 0L)
-    expect_identical(shiny::isolate(nearest_task$status()), "initial")
-    expect_match(rendered_html(output$nearest_task_status), "Failed")
-    expect_match(
-      rendered_html(output$nearest_task_status),
-      "non-negative or blank"
-    )
-    expect_null(nearest_result$table)
-  })
-})
-
-test_that("Find Nearest reports completed and cancelled states", {
-  skip_if_not_installed("shiny")
-  skip_if_not_installed("bslib")
-
-  layers <- shiny_fixture_layers()
-  testthat::local_mocked_bindings(
-    list_sources = shiny_fixture_registry,
-    get_source = shiny_fixture_metadata,
-    retrieve_source = function(source_id, refresh = FALSE, ...) {
-      Sys.sleep(0.05)
-      layers[[source_id]]
-    },
-    build_nearest_layers = function(source, target, ...) {
-      list(
-        source = source,
-        matched_target = target,
-        connectors = NULL,
-        table = tibble::tibble(
-          source_row = 1L,
-          target_row = 1L,
-          rank = 1L,
-          distance_km = 1
-        )
-      )
-    },
-    .package = "ONgeoR"
-  )
-  server <- load_shiny_server()
-  use_sequential_futures()
-
-  points_csv <- withr::local_tempfile(fileext = ".csv")
-  utils::write.csv(
-    data.frame(id = "A", lon = 0.2, lat = 0.2),
-    points_csv,
-    row.names = FALSE
-  )
-  upload <- list(
-    name = "points.csv",
-    size = file.info(points_csv)$size,
-    type = "text/csv",
-    datapath = points_csv
-  )
-
-  shiny::testServer(server, {
-    expect_match(rendered_html(output$nearest_task_status), "Idle")
-    session$setInputs(
-      points_csv = upload,
-      target_source = "overlay_point",
-      k = 1,
-      max_dist_km = NA_real_,
-      nearest_btn = 1
-    )
-    expect_match(rendered_html(output$nearest_task_status), "Running")
-    expect_identical(wait_for_extended_task(nearest_task, session), "success")
-    expect_match(rendered_html(output$nearest_task_status), "Completed")
-    expect_s3_class(nearest_result$table, "data.frame")
-
-    session$setInputs(nearest_btn = 2)
-    expect_match(rendered_html(output$nearest_task_status), "Running")
-    session$setInputs(k = 2)
-    expect_match(rendered_html(output$nearest_task_status), "Cancelled")
-    expect_identical(wait_for_extended_task(nearest_task, session), "success")
-    expect_null(nearest_result$table)
-    expect_match(rendered_html(output$nearest_task_status), "Cancelled")
+    # A nearest result: the pair table is canonical (one row per target).
+    expect_s3_class(cw_result$crosswalk, "data.frame")
+    expect_s3_class(cw_result$pairs, "data.frame")
+    expect_gt(nrow(cw_result$pairs), 0)
+    expect_true(all(cw_result$pairs$relation == "nearest"))
+    expect_equal(nrow(cw_result$pairs), nrow(points_b))
+    # CHARACTERIZATION of a Stage 1 bug: summarise_by_target() collapses a
+    # nearest pair table to 0 rows (which.max(NA) is integer(0) because nearest
+    # pairs carry NA share_of_target). The target-level table SHOULD have one
+    # row per target (nrow(points_b)); R/intersection.R is frozen for Stage 2,
+    # so this locks in current behaviour - flip it when that bug is fixed.
+    expect_equal(nrow(cw_result$crosswalk), 0)
   })
 })
 

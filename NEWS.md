@@ -26,3 +26,24 @@
 - Fix `reproduce.R` so it reproduces what the app produces: it used the CLI's
   multi-pair path, which re-downloaded every layer and wrote 16 columns where the
   app writes 14.
+- Add `build_intersection()` for polygon-to-polygon linking: returns every
+  overlapping pair with `share_of_target` (fraction of the target covered by
+  the source) and `share_of_source` (fraction of the source falling inside the
+  target, the apportionment weight for extensive variables). All source and
+  target attributes are carried through with `src_` and `tgt_` prefixes.
+- Add `build_nearest_pairs()` for point-to-point linking: each target point is
+  matched to its single nearest source point, with the same column schema as
+  `build_intersection()` so the two are row-bindable.
+- Add `summarise_by_target()` to collapse a pairs table to one row per distinct
+  target, with multi-valued fields as `"; "`-delimited strings and the dominant
+  source identified by `share_of_target`.
+- Add `build_link()` as the no-choice entry point: it inspects the geometry
+  types of the two layers and dispatches to `build_nearest_pairs()` for
+  point-point, `build_intersection()` for polygon-polygon, or `link()` /
+  `build_crosswalk()` for mixed types.
+- Duplicate id values in either layer now abort early in `build_intersection()`
+  and `build_nearest_pairs()`, because `summarise_by_target()` keys on
+  `target_id` and two distinct features sharing an id would silently collapse.
+- All changes are additive: `build_crosswalk()` and its five methods
+  (`within`, `intersects`, `point_on_surface`, `largest_overlap`, `weighted`)
+  are unchanged and remain available for direct callers.

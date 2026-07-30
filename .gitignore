@@ -35,3 +35,4 @@ docs/site/
 
 # HIVE source data (contains licensed PCCF + full-resolution shapefile) - never commit
 /data/
+README.html

@@ -184,10 +184,20 @@ render_reproducer_script <- function(from_ids, to_ids, output_dir,
     "layers <- list(\n",
     paste(layer_lines, collapse = ",\n"),
     "\n)\n\n",
-    "cw <- ONgeoR:::cross_crosswalk(from_ids, to_ids, method = method)\n",
+    # A single pair - what the app always emits - goes straight through
+    # build_crosswalk() on the layers already retrieved above. cross_crosswalk()
+    # is for the CLI's multi-pair cross product: it re-retrieves every layer and
+    # appends from_source_id/to_source_id to disambiguate pairs, so using it here
+    # would both double the downloads and produce a 16-column CSV where the app
+    # hands the user 14.
+    if (length(from_ids) == 1L && length(to_ids) == 1L) {
+      "cw <- build_crosswalk(layers[[from_ids]], layers[[to_ids]], method = method)\n"
+    } else {
+      "cw <- ONgeoR:::cross_crosswalk(from_ids, to_ids, method = method)\n"
+    },
     "map <- map_crosswalk(layers, from_ids, to_ids)\n\n",
     "dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\n",
-    "write.csv(cw, file.path(output_dir, \"crosswalk.csv\"), row.names = FALSE)\n",
+    "write.csv(cw, file.path(output_dir, \"mapping.csv\"), row.names = FALSE)\n",
     "htmlwidgets::saveWidget(map, file.path(output_dir, \"map.html\"), selfcontained = TRUE)\n",
     "writeLines(\n",
     "  ONgeoR:::render_reproducer_script(from_ids, to_ids, output_dir, method = method),\n",

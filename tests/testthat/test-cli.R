@@ -336,9 +336,32 @@ test_that("render_reproducer_script records the crosswalk method", {
   )
 
   expect_match(script, 'method <- "largest_overlap"', fixed = TRUE)
-  expect_match(script, "cross_crosswalk(from_ids, to_ids, method = method)", fixed = TRUE)
+  # A single pair reuses the layers retrieved above and calls build_crosswalk()
+  # directly, so the CSV it writes matches the app's download exactly (14
+  # columns) instead of cross_crosswalk()'s 16, and each layer is fetched once.
+  expect_match(
+    script,
+    "cw <- build_crosswalk(layers[[from_ids]], layers[[to_ids]], method = method)",
+    fixed = TRUE
+  )
+  expect_no_match(script, "cross_crosswalk(", fixed = TRUE)
   expect_match(script,
     "render_reproducer_script(from_ids, to_ids, output_dir, method = method)",
+    fixed = TRUE
+  )
+})
+
+test_that("render_reproducer_script still cross-joins multiple id pairs", {
+  script <- render_reproducer_script(
+    from_ids = c("airport_official", "waste_management_site"),
+    to_ids = "phu_boundaries",
+    output_dir = tempfile("ongeor-output-"),
+    method = "intersects"
+  )
+
+  expect_match(
+    script,
+    "cw <- ONgeoR:::cross_crosswalk(from_ids, to_ids, method = method)",
     fixed = TRUE
   )
 })

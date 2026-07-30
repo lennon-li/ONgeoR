@@ -63,6 +63,52 @@ test_that("changing a selection invalidates preview-based Link gating", {
   })
 })
 
+test_that("Join asks for confirmation before doing any work", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  layers <- shiny_fixture_layers()
+  crosswalk_calls <- 0L
+  testthat::local_mocked_bindings(
+    list_sources = shiny_fixture_registry,
+    get_source = shiny_fixture_metadata,
+    retrieve_source = function(source_id, refresh = FALSE, ...) {
+      layers[[source_id]]
+    },
+    build_crosswalk = function(from, to, method = "within", ...) {
+      crosswalk_calls <<- crosswalk_calls + 1L
+      tibble::tibble(from_id = 1:2, to_id = c("P1", "P2"))
+    },
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+  use_sequential_futures()
+
+  shiny::testServer(server, {
+    session$setInputs(
+      base_layer = "base_polygon",
+      overlay_source = "overlay_point",
+      method = "within",
+      preview_btn = 1
+    )
+    expect_identical(
+      wait_for_extended_task(preview_task, session),
+      "success"
+    )
+
+    # Clicking Join only raises the confirmation; nothing is computed yet.
+    session$setInputs(build_btn = 1)
+    expect_identical(crosswalk_calls, 0L)
+    expect_null(cw_result$crosswalk)
+
+    # Confirming is what runs it.
+    session$setInputs(confirm_join_btn = 1)
+    expect_identical(wait_for_extended_task(build_task, session), "success")
+    expect_identical(crosswalk_calls, 1L)
+    expect_s3_class(cw_result$crosswalk, "data.frame")
+  })
+})
+
 test_that("preview then Link produces a crosswalk and enables downloads", {
   skip_if_not_installed("shiny")
   skip_if_not_installed("bslib")
@@ -94,7 +140,7 @@ test_that("preview then Link produces a crosswalk and enables downloads", {
       "success"
     )
 
-    session$setInputs(build_btn = 1)
+    session$setInputs(confirm_join_btn = 1)
     expect_identical(wait_for_extended_task(build_task, session), "success")
 
     expect_s3_class(cw_result$crosswalk, "data.frame")
@@ -138,7 +184,7 @@ test_that("Link discards a completion invalidated by changed inputs", {
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
       method = "within",
-      build_btn = 1
+      confirm_join_btn = 1
     )
     expect_match(rendered_html(output$link_task_status), "Running")
 
@@ -173,7 +219,7 @@ test_that("Link surfaces retrieval failures without retaining results", {
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
       method = "within",
-      build_btn = 1
+      confirm_join_btn = 1
     )
     expect_warning(
       wait_for_extended_task(build_task, session),
@@ -220,14 +266,14 @@ test_that("repeat Link runs use cached retrieval without re-fetching", {
     )
 
     first_started <- Sys.time()
-    session$setInputs(build_btn = 1)
+    session$setInputs(confirm_join_btn = 1)
     expect_identical(wait_for_extended_task(build_task, session), "success")
     first_elapsed <- as.numeric(difftime(
       Sys.time(), first_started, units = "secs"
     ))
 
     second_started <- Sys.time()
-    session$setInputs(build_btn = 2)
+    session$setInputs(confirm_join_btn = 2)
     expect_identical(wait_for_extended_task(build_task, session), "success")
     second_elapsed <- as.numeric(difftime(
       Sys.time(), second_started, units = "secs"
@@ -272,7 +318,7 @@ test_that("Link passes a point overlay as the crosswalk from layer", {
       base_layer = "base_polygon",
       overlay_source = "overlay_point",
       method = "within",
-      build_btn = 1
+      confirm_join_btn = 1
     )
     expect_identical(wait_for_extended_task(build_task, session), "success")
   })
@@ -817,14 +863,14 @@ test_that("map.html download bundles PHU_simple alongside the two sources", {
     # list.
     expect_identical(
       furniture_test_overlay_groups(link_map()),
-      c("Base layer", "Overlay source", "PHU_simple", "HIVE")
+      c("Source layer", "Target layer", "PHU_simple", "HIVE")
     )
 
     map_file <- output$dl_cw_map
     html <- paste(readLines(map_file, warn = FALSE), collapse = "\n")
     expect_match(html, "PHU_simple", fixed = TRUE)
-    expect_match(html, "Base layer", fixed = TRUE)
-    expect_match(html, "Overlay source", fixed = TRUE)
+    expect_match(html, "Source layer", fixed = TRUE)
+    expect_match(html, "Target layer", fixed = TRUE)
 
     # The addition is surfaced in the download UI, not silent.
     expect_match(

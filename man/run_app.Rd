@@ -15,7 +15,7 @@ returns \code{NULL}.
 }
 \description{
 Launches a thin Shiny UI over the package: pick sources, build a
-crosswalk, view the map and table, and download \code{crosswalk.csv},
+crosswalk, view the map and table, and download \code{mapping.csv},
 \code{map.html}, and \code{reproduce.R}. A second tab finds the nearest targets
 to an uploaded set of points.
 }

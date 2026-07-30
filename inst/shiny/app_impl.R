@@ -135,9 +135,10 @@ geo_badge <- function(source_id) {
   tags$span(class = paste("geo-badge", lbl$class), lbl$text)
 }
 
-# Full explanatory text shown in the pairing-info modal after every
-# successful preview (see the preview_btn observeEvent in the server).
-# `kinds` is the unsorted c(base_kind, overlay_kind) pair.
+# Full explanatory text for how a given pair of geometry kinds is matched.
+# Shown in the Join confirmation modal (see join_confirm_modal); preview no
+# longer raises a modal at all. `kinds` is the unsorted
+# c(source_kind, target_kind) pair.
 pairing_explanation_text <- function(kinds) {
   if ("raster" %in% kinds) {
     paste("Raster linking samples cell values - no match rule to choose.",
@@ -159,25 +160,98 @@ pairing_explanation_text <- function(kinds) {
   }
 }
 
-# Builds the styled pairing-info modal shown after every successful preview.
-# Uses a custom header row (logo + info-sign icon + relationship title)
-# instead of modalDialog's plain `title`, so title = NULL and the header is
-# rendered as part of the body content, wrapped in class "info-modal" for the
-# CSS in theme.css to target. The information source sign is written as the
-# HTML entity &#8505; via HTML() rather than a literal unicode character, to
-# keep this file ASCII-only.
-pairing_info_modal <- function(kinds) {
+# Methods that can return more than one row per target feature. "intersects"
+# keeps every overlapping pair and "weighted" keeps every positive-area overlap,
+# so for those the result is NOT one row per target feature - the confirmation
+# text must not promise a row count they will not honour.
+join_is_one_to_one <- function(method) {
+  !method %in% c("intersects", "weighted")
+}
+
+# build_crosswalk() always returns this fixed column set (see R/crosswalk.R):
+# from_id, from_name, from_source, to_id, to_name, to_source, match_method,
+# match_distance_km, coverage, from_id_col, to_id_col, source_url_from,
+# source_url_to, retrieved_at. Naming them here keeps the quoted result width
+# honest instead of guessing.
+crosswalk_result_columns <- 14L
+
+# Human-readable "N features x M attributes" for a retrieved layer. Attributes
+# excludes the geometry column, which is what a user counts as a column in the
+# downloaded CSV.
+layer_dimensions <- function(layer) {
+  if (is.null(layer)) {
+    return("not loaded")
+  }
+  if (inherits(layer, "SpatRaster")) {
+    return(sprintf("raster, %s x %s cells, %s layer(s)",
+      format(terra::nrow(layer), big.mark = ","),
+      format(terra::ncol(layer), big.mark = ","),
+      terra::nlyr(layer)))
+  }
+  n_attr <- max(ncol(layer) - 1L, 0L)
+  sprintf("%s features x %s attributes",
+    format(nrow(layer), big.mark = ","), format(n_attr, big.mark = ","))
+}
+
+# Confirmation shown when the user clicks Join, replacing the modal that used
+# to fire on Preview. Join is gated on a successful preview of the current
+# pair, so both layers are already retrieved and their real names and
+# dimensions can be quoted here rather than described in the abstract.
+join_confirm_modal <- function(source_id, target_id, source_sf, target_sf,
+                               method, kinds) {
+  source_name <- ONgeoR::get_source(source_id)$name
+  target_name <- ONgeoR::get_source(target_id)$name
+  is_raster <- inherits(target_sf, "SpatRaster") ||
+    inherits(source_sf, "SpatRaster")
+  n_target <- if (inherits(target_sf, "SpatRaster")) NA_integer_ else nrow(target_sf)
+
+  result_dim <- if (is_raster) {
+    paste("A linked values table sampled from the raster - one row per",
+      "sampled feature. Not a fixed-width crosswalk.")
+  } else if (join_is_one_to_one(method)) {
+    sprintf("%s rows x %s columns - one row per target feature.",
+      format(n_target, big.mark = ","), crosswalk_result_columns)
+  } else {
+    sprintf(paste("At least %s rows x %s columns. This match rule keeps every",
+      "overlap, so a target feature matching several source features",
+      "produces one row per match - the result can be longer than the",
+      "target layer."),
+      format(n_target, big.mark = ","), crosswalk_result_columns)
+  }
+
+  labelled <- function(role, name, layer) {
+    tags$li(
+      tags$strong(paste0(role, ": ")), name,
+      tags$span(class = "text-muted", paste0(" (", layer_dimensions(layer), ")"))
+    )
+  }
+
   modalDialog(
     title = NULL,
     tags$div(class = "info-modal",
       tags$div(class = "info-modal-header",
         tags$img(src = "logo.png", class = "info-modal-logo"),
         tags$span(class = "info-modal-icon", HTML("&#8505;")),
-        tags$h4(relationship_text(kinds[1], kinds[2]))
+        tags$h4("Spatial join")
       ),
-      tags$p(pairing_explanation_text(kinds))
+      tags$ul(
+        labelled("Source layer", source_name, source_sf),
+        labelled("Target layer", target_name, target_sf)
+      ),
+      tags$p(sprintf(
+        paste("Each feature in %s (target) will be matched to the %s (source)",
+          "feature it falls within, and the source layer's identifying",
+          "attributes added to it."),
+        target_name, source_name
+      )),
+      tags$p(tags$strong("Result: "), result_dim),
+      tags$p(class = "text-muted", pairing_explanation_text(kinds)),
+      tags$p(tags$strong("Run this join?"))
     ),
-    footer = modalButton("OK"),
+    footer = tagList(
+      modalButton("Cancel"),
+      actionButton("confirm_join_btn", "Run join", class = "btn-primary")
+    ),
     easyClose = FALSE
   )
 }
@@ -347,7 +421,7 @@ read_layer_style <- function(input, prefix, geom, accent = "#2a78d6") {
 # TRUE, otherwise visually-matching but non-functional disabled buttons - so
 # each sidebar download is only ever clickable once the map/data it points to
 # exists. Readiness is per-item (item$ready) so, e.g., map.html can be ready
-# before crosswalk.csv is. A ready button lights up in the primary accent so
+# before mapping.csv is. A ready button lights up in the primary accent so
 # the user can see at a glance which downloads are available.
 download_or_disabled <- function(items) {
   tagList(lapply(items, function(item) {
@@ -575,7 +649,7 @@ ui <- bslib::page_navbar(
       sidebar = bslib::sidebar(
         width = 300,
         tags$div(class = "slot-block slot-base",
-          selectInput("base_layer", "Base layer", choices = source_choices_grouped(), selected = "phu_boundaries"),
+          selectInput("base_layer", "Source layer", choices = source_choices_grouped(), selected = "phu_boundaries"),
           tags$div(class = "slot-meta",
             uiOutput("base_geom_badge"),
             checkboxInput("base_upload_own", "Use my own file", FALSE)
@@ -590,7 +664,7 @@ ui <- bslib::page_navbar(
           )
         ),
         tags$div(class = "slot-block slot-overlay",
-          selectInput("overlay_source", "Overlay source", choices = source_choices_grouped(), selected = "moh_service_locations"),
+          selectInput("overlay_source", "Target layer", choices = source_choices_grouped(), selected = "moh_service_locations"),
           tags$div(class = "slot-meta",
             uiOutput("overlay_geom_badge"),
             checkboxInput("overlay_upload_own", "Use my own file", FALSE)
@@ -613,14 +687,14 @@ ui <- bslib::page_navbar(
         bslib::accordion(
           open = FALSE,
           bslib::accordion_panel(
-            tags$span(class = "slot-title slot-title-base", "Base layer style"),
+            tags$span(class = "slot-title slot-title-base", "Source layer style"),
             uiOutput("base_style_ui"),
-            value = "Base layer style"
+            value = "Source layer style"
           ),
           bslib::accordion_panel(
-            tags$span(class = "slot-title slot-title-overlay", "Overlay layer style"),
+            tags$span(class = "slot-title slot-title-overlay", "Target layer style"),
             uiOutput("overlay_style_ui"),
-            value = "Overlay layer style"
+            value = "Target layer style"
           )
         ),
         tags$hr(),
@@ -709,10 +783,17 @@ server <- function(input, output, session) {
   preview_task <- shiny::ExtendedTask$new(function(base_id, overlay_id,
                                                      generation) {
     promises::future_promise({
+      # Defined INSIDE the future block on purpose. The app-level
+      # pack_spatial() is a closure over the app source environment, which
+      # holds the multisession plan object; future's globals scan walks that
+      # enclosure, finds an externalptr, and refuses to export the function
+      # ("Detected a non-exportable reference"). A local copy has the future
+      # block itself as its enclosure and exports cleanly.
+      pack <- function(x) if (inherits(x, "SpatRaster")) terra::wrap(x) else x
       base_sf    <- ONgeoR::retrieve_source(base_id)
       overlay_sf <- ONgeoR::retrieve_source(overlay_id)
-      list(base_sf = pack_spatial(base_sf),
-           overlay_sf = pack_spatial(overlay_sf),
+      list(base_sf = pack(base_sf),
+           overlay_sf = pack(overlay_sf),
            base_id = base_id, overlay_id = overlay_id,
            generation = generation)
     })
@@ -721,10 +802,19 @@ server <- function(input, output, session) {
   build_task <- shiny::ExtendedTask$new(function(base_id, overlay_id, method,
                                                    generation) {
     promises::future_promise({
+      # Local copies, not the app-level pack_spatial()/layer_geom() - see the
+      # note in preview_task: those closures enclose the multisession plan and
+      # are rejected by future's non-exportable-globals check.
+      pack <- function(x) if (inherits(x, "SpatRaster")) terra::wrap(x) else x
+      kind_of <- function(layer) {
+        if (inherits(layer, "SpatRaster")) return("raster")
+        types <- unique(as.character(sf::st_geometry_type(layer)))
+        if (all(types %in% c("POINT", "MULTIPOINT"))) "point" else "polygon"
+      }
       base_sf    <- ONgeoR::retrieve_source(base_id)
       overlay_sf <- ONgeoR::retrieve_source(overlay_id)
-      base_kind    <- layer_geom(base_sf)
-      overlay_kind <- layer_geom(overlay_sf)
+      base_kind    <- kind_of(base_sf)
+      overlay_kind <- kind_of(overlay_sf)
       if (base_kind == "raster" || overlay_kind == "raster") {
         # Rasters are not crosswalk-able; route to link(), which is
         # raster-aware. Order so the raster sits where link()'s reduction is
@@ -748,8 +838,8 @@ server <- function(input, output, session) {
         }
         linked <- ONgeoR::link(from_sf, to_sf, predicate = "within")
         list(crosswalk = NULL, linked = linked,
-             base_sf = pack_spatial(base_sf),
-             overlay_sf = pack_spatial(overlay_sf),
+             base_sf = pack(base_sf),
+             overlay_sf = pack(overlay_sf),
              generation = generation)
       } else {
         # Universal direction rule: every crosswalk row assigns an overlay
@@ -760,8 +850,8 @@ server <- function(input, output, session) {
         to_sf     <- base_sf
         crosswalk <- ONgeoR::build_crosswalk(from_sf, to_sf, method = method)
         list(crosswalk = crosswalk, linked = NULL,
-             base_sf = pack_spatial(base_sf),
-             overlay_sf = pack_spatial(overlay_sf),
+             base_sf = pack(base_sf),
+             overlay_sf = pack(overlay_sf),
              generation = generation)
       }
     })
@@ -960,15 +1050,15 @@ server <- function(input, output, session) {
       tags$button("Running...", type = "button",
         class = "btn btn-primary w-100", disabled = "disabled")
     } else if (enabled) {
-      actionButton("build_btn", "Link", class = "btn-primary w-100")
+      actionButton("build_btn", "Join", class = "btn-primary w-100")
     } else if (point_point) {
       tagList(
-        tags$button("Link", type = "button", class = "btn btn-primary w-100", disabled = "disabled"),
+        tags$button("Join", type = "button", class = "btn btn-primary w-100", disabled = "disabled"),
         tags$p(class = "text-muted",
           "Both layers are points - use the Find Nearest tab for point-to-point matching.")
       )
     } else {
-      tags$button("Link", type = "button", class = "btn btn-primary w-100", disabled = "disabled")
+      tags$button("Join", type = "button", class = "btn btn-primary w-100", disabled = "disabled")
     }
   })
 
@@ -1006,21 +1096,35 @@ server <- function(input, output, session) {
     # disable until Link is run again.
     cw_result$crosswalk <- NULL
     cw_result$linked <- NULL
-    # Records exactly what was previewed, so the Link button's renderUI
+    # Records exactly what was previewed, so the Join button's renderUI
     # can require the current picker values to match before enabling -
     # changing either picker after a preview re-greys Link. Only set on
     # success; an error path below leaves this untouched.
     cw_result$previewed <- c(result$base_id, result$overlay_id)
-    # Every successful preview shows the pairing-info modal (styled with
-    # a logo + info-sign header); a failed preview does not, since this
-    # runs only after the tryCatch body's happy path completes.
-    kinds <- c(geom_kind(result$base_id), geom_kind(result$overlay_id))
-    showModal(pairing_info_modal(kinds))
+    # No modal here: previewing is a look, not a commitment, so it should not
+    # interrupt. The pairing explanation now appears on Join instead, where the
+    # user is actually about to spend time and needs to confirm the semantics.
   }, ignoreInit = TRUE)
 
+  # Join asks first. build_btn only opens the confirmation; confirm_join_btn
+  # below does the work, so nothing is retrieved or computed until the user
+  # agrees to the join semantics spelled out in the modal.
   observeEvent(input$build_btn, {
     req(input$base_layer, input$overlay_source)
-    # Point-to-point containment is undefined; the Link button's renderUI
+    showModal(join_confirm_modal(
+      source_id = input$base_layer,
+      target_id = input$overlay_source,
+      source_sf = cw_result$base_sf,
+      target_sf = cw_result$overlay_sf,
+      method = input$method %||% "within",
+      kinds = c(geom_kind(input$base_layer), geom_kind(input$overlay_source))
+    ))
+  })
+
+  observeEvent(input$confirm_join_btn, {
+    removeModal()
+    req(input$base_layer, input$overlay_source)
+    # Point-to-point containment is undefined; the Join button's renderUI
     # (build_btn_ui) keeps Link permanently disabled for this pair, so the
     # on-click redirect notice that used to live here is no longer reachable
     # and has been removed - see link_method_ui for the still-shown
@@ -1095,10 +1199,10 @@ server <- function(input, output, session) {
     layers <- list()
     styles <- list()
     if (!is.null(cw_result$base_sf) && !is.null(cw_result$overlay_sf)) {
-      layers <- list("Base layer" = cw_result$base_sf, "Overlay source" = cw_result$overlay_sf)
+      layers <- list("Source layer" = cw_result$base_sf, "Target layer" = cw_result$overlay_sf)
       styles <- list(
-        "Base layer" = read_layer_style(input, "base", layer_geom(cw_result$base_sf), accent = "#2a78d6"),
-        "Overlay source" = read_layer_style(input, "overlay", layer_geom(cw_result$overlay_sf), accent = "#1baf7a")
+        "Source layer" = read_layer_style(input, "base", layer_geom(cw_result$base_sf), accent = "#2a78d6"),
+        "Target layer" = read_layer_style(input, "overlay", layer_geom(cw_result$overlay_sf), accent = "#1baf7a")
       )
     }
     # Suppress PHU_simple only when phu_boundaries is actually DRAWN, not
@@ -1132,7 +1236,7 @@ server <- function(input, output, session) {
   }, rownames = FALSE, options = list(scrollX = TRUE, pageLength = 25))
 
   output$dl_cw_csv <- downloadHandler(
-    filename = function() if (!is.null(cw_result$linked)) "linked.csv" else "crosswalk.csv",
+    filename = function() if (!is.null(cw_result$linked)) "linked.csv" else "mapping.csv",
     content = function(file) {
       tbl <- cw_result$crosswalk %||% cw_result$linked
       req(tbl)
@@ -1167,7 +1271,7 @@ server <- function(input, output, session) {
     has_rows <- function(x) !is.null(x) && nrow(x) > 0
     linked_run <- !is.null(cw_result$linked)
     link_ready <- has_rows(cw_result$crosswalk) || has_rows(cw_result$linked)
-    csv_label <- if (linked_run) "linked.csv" else "crosswalk.csv"
+    csv_label <- if (linked_run) "linked.csv" else "mapping.csv"
     tagList(
       download_or_disabled(list(
         list(id = "dl_cw_map", label = "map.html", ready = !is.null(cw_result$base_sf)),

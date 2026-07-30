@@ -415,6 +415,8 @@ summarise_by_target <- function(pairs) {
 #'
 #' @return A tibble whose schema depends on the dispatched implementation.
 #'
+#' @eval link_matrix_roxygen()
+#'
 #' @examples
 #' if (interactive()) {
 #'   municipal <- retrieve_municipal("upper")
@@ -490,6 +492,25 @@ link_matrix_df <- function() {
       "linked values table", "linked values table", "none"
     ),
     stringsAsFactors = FALSE
+  )
+}
+
+# Renders link_matrix_df() as roxygen so the man pages carry the same matrix as
+# the app help modal, the README and the vignette. Inserted with @eval, which
+# means the Rd is generated at document() time and cannot drift from the data.
+link_matrix_roxygen <- function() {
+  m <- link_matrix_df()
+  items <- sprintf(
+    "  \\item{%s to %s}{%s. %s Output: %s.}",
+    m$source_kind, m$target_kind, m$mode, m$what_it_does, m$output
+  )
+  c(
+    "@section Geometry combination matrix:",
+    "What an operation does is determined by the geometry types of the two",
+    "layers, not by a match-rule argument:",
+    "\\describe{",
+    items,
+    "}"
   )
 }
 

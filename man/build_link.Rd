@@ -20,6 +20,23 @@ dispatches to the appropriate implementation. Point-to-point uses nearest
 matching; polygon-to-polygon uses intersection; all other combinations
 delegate to the existing \code{\link[=build_crosswalk]{build_crosswalk()}} or \code{\link[=link]{link()}} unchanged.
 }
+\section{Geometry combination matrix}{
+
+What an operation does is determined by the geometry types of the two
+layers, not by a match-rule argument:
+\describe{
+\item{point to point}{Nearest. Each target point is matched to its single nearest source point. Output: nearest table.}
+\item{point to polygon}{Containment. Each point is matched to the boundary it falls inside. Output: crosswalk.}
+\item{point to raster}{Sampling. Each point takes the value of the cell containing it. Output: linked values table.}
+\item{polygon to point}{Containment. Direction is auto-corrected internally. Output: crosswalk.}
+\item{polygon to polygon}{Intersection. Every overlapping pair, with the share of each target covered and the share of each source falling inside. Output: intersection table.}
+\item{polygon to raster}{Sampling. Each polygon samples the raster values it overlaps. Output: linked values table.}
+\item{raster to point}{Sampling. Raster reduced to cell centroids. Output: linked values table.}
+\item{raster to polygon}{Cell sampling into boundaries. Each cell centroid is matched to the boundary it falls inside. Output: linked values table.}
+\item{raster to raster}{Not supported. Not supported; align/resample with terra first. Output: none.}
+}
+}
+
 \examples{
 if (interactive()) {
   municipal <- retrieve_municipal("upper")

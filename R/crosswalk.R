@@ -40,10 +40,12 @@
 #'   otherwise `NA`), `from_id_col`, `to_id_col`, `source_url_from`,
 #'   `source_url_to`, and `retrieved_at`.
 #'
-#' @seealso The "What linking does, by layer types" section of
-#'   `vignette("building-crosswalks", package = "ONgeoR")` tabulates which
-#'   operation each pair of layer geometries selects (polygon/point/raster),
-#'   including where the `coverage` column comes from.
+#' @eval link_matrix_roxygen()
+#'
+#' @seealso [build_link()] picks the operation from the geometry pair with no
+#'   `method` argument. The "What linking does, by layer types" section of
+#'   `vignette("building-crosswalks", package = "ONgeoR")` tabulates the same
+#'   matrix, including where the `coverage` column comes from.
 #'
 #' @examples
 #' if (interactive()) {

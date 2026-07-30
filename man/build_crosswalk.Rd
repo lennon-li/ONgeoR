@@ -57,6 +57,23 @@ otherwise \code{NA}), \code{from_id_col}, \code{to_id_col}, \code{source_url_fro
 Joins two \code{sf} layers (e.g. municipalities to Public Health Units) and
 returns a tidy crosswalk table with full source provenance.
 }
+\section{Geometry combination matrix}{
+
+What an operation does is determined by the geometry types of the two
+layers, not by a match-rule argument:
+\describe{
+\item{point to point}{Nearest. Each target point is matched to its single nearest source point. Output: nearest table.}
+\item{point to polygon}{Containment. Each point is matched to the boundary it falls inside. Output: crosswalk.}
+\item{point to raster}{Sampling. Each point takes the value of the cell containing it. Output: linked values table.}
+\item{polygon to point}{Containment. Direction is auto-corrected internally. Output: crosswalk.}
+\item{polygon to polygon}{Intersection. Every overlapping pair, with the share of each target covered and the share of each source falling inside. Output: intersection table.}
+\item{polygon to raster}{Sampling. Each polygon samples the raster values it overlaps. Output: linked values table.}
+\item{raster to point}{Sampling. Raster reduced to cell centroids. Output: linked values table.}
+\item{raster to polygon}{Cell sampling into boundaries. Each cell centroid is matched to the boundary it falls inside. Output: linked values table.}
+\item{raster to raster}{Not supported. Not supported; align/resample with terra first. Output: none.}
+}
+}
+
 \examples{
 if (interactive()) {
   upper_tier <- retrieve_municipal("upper")
@@ -66,8 +83,8 @@ if (interactive()) {
 
 }
 \seealso{
-The "What linking does, by layer types" section of
-\code{vignette("building-crosswalks", package = "ONgeoR")} tabulates which
-operation each pair of layer geometries selects (polygon/point/raster),
-including where the \code{coverage} column comes from.
+\code{\link[=build_link]{build_link()}} picks the operation from the geometry pair with no
+\code{method} argument. The "What linking does, by layer types" section of
+\code{vignette("building-crosswalks", package = "ONgeoR")} tabulates the same
+matrix, including where the \code{coverage} column comes from.
 }

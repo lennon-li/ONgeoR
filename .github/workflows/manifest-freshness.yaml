@@ -1,0 +1,79 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+name: manifest-freshness
+
+# Connect Cloud takes the app files from the branch tip but resolves the R
+# package from the RemoteSha recorded in inst/shiny/manifest.json. If R/ has
+# moved since that SHA the deploy silently serves new app files against a stale
+# package - no error, just wrong behaviour. This job turns that into a red build.
+#
+# The manifest can only be regenerated from a GitHub install, so it necessarily
+# lands one commit after the code it pins. That is fine: the invariant is that
+# no package source changed between the pinned SHA and HEAD.
+
+jobs:
+  manifest-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the manifest pins current package source
+        run: |
+          set -euo pipefail
+          MANIFEST=inst/shiny/manifest.json
+
+          if [ ! -f "$MANIFEST" ]; then
+            echo "No $MANIFEST - nothing to check."
+            exit 0
+          fi
+
+          SHA=$(jq -r '.packages.ONgeoR.description.RemoteSha // empty' "$MANIFEST")
+          if [ -z "$SHA" ]; then
+            SHA=$(grep -o '[0-9a-f]\{40\}' "$MANIFEST" | head -1 || true)
+          fi
+          if [ -z "$SHA" ]; then
+            echo "::error::Could not read a RemoteSha from $MANIFEST."
+            echo "Regenerate it with rsconnect::writeManifest() after installing"
+            echo "ONgeoR from GitHub, so DESCRIPTION carries RemoteType/RemoteSha."
+            exit 1
+          fi
+
+          echo "manifest pins: $SHA"
+          echo "HEAD:          $(git rev-parse HEAD)"
+
+          if ! git cat-file -e "${SHA}^{commit}" 2>/dev/null; then
+            echo "::error::Pinned commit $SHA is not in this repository's history."
+            echo "The manifest points at a commit that no longer exists (rewritten"
+            echo "history?). Regenerate it against the current tip."
+            exit 1
+          fi
+
+          CHANGED=$(git diff --name-only "${SHA}..HEAD" -- R/ DESCRIPTION NAMESPACE)
+
+          if [ -n "$CHANGED" ]; then
+            echo "::error::Package source changed since the manifest's pinned SHA."
+            echo ""
+            echo "Changed since ${SHA}:"
+            echo "$CHANGED" | sed 's/^/  /'
+            echo ""
+            echo "Connect Cloud would serve these new app files against the OLD"
+            echo "package. Regenerate the manifest (two-step push):"
+            echo ""
+            echo "  1. push the code commits first"
+            echo "  2. Rscript -e 'pak::pkg_install(\"github::lennon-li/ONgeoR\")'"
+            echo "  3. Rscript -e 'rsconnect::writeManifest(appDir = \"inst/shiny\", appPrimaryDoc = \"app.R\")'"
+            echo "  4. confirm the new RemoteSha matches HEAD, then commit and push"
+            echo ""
+            echo "A manifest generated from a LOCAL source install is rejected -"
+            echo "the package must be installed from GitHub so DESCRIPTION carries"
+            echo "RemoteType: github and RemoteSha."
+            exit 1
+          fi
+
+          echo "OK - no package source changes since the pinned SHA."

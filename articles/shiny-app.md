@@ -30,12 +30,18 @@ The app requires the `shiny` and `bslib` packages;
 checks for them at startup and prompts you to install them if they are
 missing.
 
-## The two tabs
+## The Link tab
 
-### Link tab
+The app has a single working tab. It retrieves two registered Ontario
+GeoHub or LIO layers and joins them spatially.
 
-The **Link** tab retrieves two registered Ontario GeoHub or LIO layers
-and joins them spatially.
+There is no match-rule control. Once you have picked a Source layer and
+a Target layer, the operation is fully determined by their geometry
+types, so there is nothing left to choose. Two polygon layers produce an
+intersection; two point layers produce a nearest match; a point and a
+polygon produce containment; anything involving a raster produces
+sampling. The `?` link beside the layer pickers shows the full nine-cell
+matrix.
 
 Workflow:
 
@@ -51,56 +57,43 @@ Workflow:
     greyed out until a preview succeeds** for the currently selected
     pair, and re-greys if you change either dropdown.
 4.  **Join** – Click **Join** to open a confirmation that names both
-    layers with their dimensions and states the expected result shape,
-    e.g. “11,625 rows x 14 columns – one row per target feature”.
-    Nothing is retrieved or computed until you confirm. For the “Any
-    overlap” and “Apportion across overlaps” rules the result can be
-    longer than the target layer, because both keep every overlap; the
-    confirmation says so.
+    layers with their dimensions and states the expected result shape.
+    Nothing is retrieved or computed until you confirm.
 
-The direction is fixed: every row assigns a target feature to the source
-feature that contains it, so the source layer is always the one whose
-`to_id`/`to_name` columns appear in the result.
+Two point layers are joined the same way, on this same tab: each target
+point is matched to its single nearest source point, and the map draws
+connector lines between the pairs. There is no `k` and no distance cap,
+because a nearest match is what the geometry pair already implies.
 
-### Find Nearest tab
+The direction is fixed: the result is shaped like the Target layer, one
+row per target feature.
 
-The **Find Nearest** tab performs a nearest-match search and draws
-connector lines between each source point and its nearest target.
+## Two result tables
 
-Workflow:
+A polygon-to-polygon join produces two views of one computation, and
+both are downloadable:
 
-1.  **Source points** – Upload a CSV of your own starting points using
-    the “Source points (CSV with lon/lat columns)” file input (e.g. a
-    set of clinic locations).
-2.  **Target source** – Select the registered candidate layer to search
-    within (e.g. MOH Service Locations).
-3.  **k** – Set the number of nearest targets to return per source point
-    (default 1).
-4.  **max_dist_km** – Cap results to targets within this radius.
-5.  **Preview on map / Find nearest** – Preview draws the uploaded
-    points and target layer; Find nearest runs the search. The map shows
-    connector lines from each source to its nearest target(s), and the
-    result table lists the distances.
+- The **pair table** (`pairs.csv`) has one row per overlapping pair,
+  each with an `interaction_id`, and is the one you join other data
+  onto.
+- The **target table** (`mapping.csv`) has exactly one row per target
+  feature, with the matched sources collapsed into `;`-delimited
+  columns. It is easier to read but cannot be joined on.
+
+Both carry every attribute from both input layers, prefixed `src_` and
+`tgt_` so that a `NAME` column on one layer cannot overwrite a `NAME`
+column on the other.
 
 ## Download buttons
 
-Each tab has its own download buttons, which become available after the
-corresponding operation completes.
-
-Link tab:
+The download buttons become available as the underlying result appears.
 
 | Button | Output |
 |----|----|
 | **Download map** | `map.html` – the Leaflet map as a standalone HTML file |
-| **Download results** | `mapping.csv` (or `linked.csv` for raster linking) |
+| **Download results** | `mapping.csv` – one row per target feature (or `linked.csv` for raster linking) |
+| **Download pairs** | `pairs.csv` – one row per matched pair |
 | **Download script** | `reproduce.R` – an R script that reproduces the result from scratch |
-
-Find Nearest tab:
-
-| Button | Output |
-|----|----|
-| **Download map** | `map.html` – the Leaflet map as a standalone HTML file |
-| **Download results** | `nearest.csv` – the nearest-match table |
 
 The `map.html` file embeds the widget’s JavaScript and data, so it opens
 without R installed; note the basemap tiles are still fetched from the

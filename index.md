@@ -39,12 +39,18 @@ constant maintenance.
   [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
   (point-in-polygon, polygon-to-polygon, and raster sampling) and
   [`nearest()`](https://lennon-li.github.io/ONgeoR/reference/nearest.md)
-  (k-nearest and radius search), and resolves records by identifier or
-  name with
-  [`resolve()`](https://lennon-li.github.io/ONgeoR/reference/resolve.md)
+  (k-nearest and radius search), resolves records by identifier or name
+  with
+  [`resolve()`](https://lennon-li.github.io/ONgeoR/reference/resolve.md),
+  and provides
+  [`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+  as a single no-choice entry point that picks the linking operation
+  from the geometry pair
 - Generates auditable crosswalk tables with full provenance metadata via
   [`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md),
-  including weighted apportionment
+  including weighted apportionment;
+  [`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+  returns every overlapping polygon pair with area shares in one pass
 - Draws interactive leaflet maps with
   [`map_layers()`](https://lennon-li.github.io/ONgeoR/reference/map_layers.md)
   and nearest-match maps with
@@ -60,20 +66,20 @@ planned additional sources and performance work.
 - Bundle large geospatial datasets inside the package
 - Permanently maintain or host boundary files
 - Provide licensed or restricted data (e.g., PCCF postal code files)
-- Replace authoritative data sources — it retrieves from them, not
+- Replace authoritative data sources – it retrieves from them, not
   replaces them
 
 ## Design Principles
 
-1.  **External data, not bundled** — all data is retrieved from
+1.  **External data, not bundled** – all data is retrieved from
     authoritative sources at runtime
-2.  **Source metadata tracking** — every retrieval records source URL,
+2.  **Source metadata tracking** – every retrieval records source URL,
     date, and license
-3.  **Reproducible workflows** — crosswalks include full provenance
+3.  **Reproducible workflows** – crosswalks include full provenance
     (source, date, retrieval timestamp)
-4.  **Lightweight dependencies** — minimal package footprint (sf, httr2,
+4.  **Lightweight dependencies** – minimal package footprint (sf, httr2,
     yaml, tibble, rlang)
-5.  **Community-extensible** — users can suggest new data sources via
+5.  **Community-extensible** – users can suggest new data sources via
     GitHub issues
 
 ## Installation
@@ -121,9 +127,31 @@ airport <- resolve(retrieve_airport(), "CYYZ")
 municipal <- retrieve_municipal("upper")
 crosswalk <- build_crosswalk(municipal, phu, method = "intersects")
 
+# Or use build_link() to let the geometry pair decide automatically
+result <- build_link(municipal, phu)
+
 # Draw an interactive map of health-unit boundaries and hospitals
 map_layers(phu, retrieve_moh_service_locations(service_type = "Hospital"))
 ```
+
+## Geometry linking matrix
+
+[`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+inspects the geometry types of the two layers and dispatches to the
+appropriate operation. The table below is rendered from the same matrix
+that drives the Shiny app.
+
+| source_kind | target_kind | mode | what_it_does | output |
+|:---|:---|:---|:---|:---|
+| point | point | Nearest | Each target point is matched to its single nearest source point. | nearest table |
+| point | polygon | Containment | Each point is matched to the boundary it falls inside. | crosswalk |
+| point | raster | Sampling | Each point takes the value of the cell containing it. | linked values table |
+| polygon | point | Containment | Direction is auto-corrected internally. | crosswalk |
+| polygon | polygon | Intersection | Every overlapping pair, with the share of each target covered and the share of each source falling inside. | intersection table |
+| polygon | raster | Sampling | Each polygon samples the raster values it overlaps. | linked values table |
+| raster | point | Sampling | Raster reduced to cell centroids. | linked values table |
+| raster | polygon | Cell sampling into boundaries | Each cell centroid is matched to the boundary it falls inside. | linked values table |
+| raster | raster | Not supported | Not supported; align/resample with terra first. | none |
 
 ## Documentation
 
@@ -139,8 +167,8 @@ map_layers(phu, retrieve_moh_service_locations(service_type = "Hospital"))
 ## Data Sources
 
 ONgeoR retrieves data from authoritative Ontario sources including: -
-**Ontario GeoHub** (geohub.lio.gov.on.ca) — provincial boundaries,
-facilities, infrastructure - **Ministry of Health** — health facility
+**Ontario GeoHub** (geohub.lio.gov.on.ca) – provincial boundaries,
+facilities, infrastructure - **Ministry of Health** – health facility
 locations (via the GeoHub LIO services)
 
 Statistics Canada census geographies are planned for a future release
@@ -168,4 +196,4 @@ MIT
 
 ## Contact
 
-Lennon Li — <lennon.yeli@gmail.com>
+Lennon Li – <lennon.yeli@gmail.com>

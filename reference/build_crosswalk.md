@@ -69,12 +69,64 @@ winner's area share for `"largest_overlap"`, each intersecting pair's
 area share for `"weighted"`, otherwise `NA`), `from_id_col`,
 `to_id_col`, `source_url_from`, `source_url_to`, and `retrieved_at`.
 
+## Geometry combination matrix
+
+What an operation does is determined by the geometry types of the two
+layers, not by a match-rule argument:
+
+- point to point:
+
+  Nearest. Each target point is matched to its single nearest source
+  point. Output: nearest table.
+
+- point to polygon:
+
+  Containment. Each point is matched to the boundary it falls inside.
+  Output: crosswalk.
+
+- point to raster:
+
+  Sampling. Each point takes the value of the cell containing it.
+  Output: linked values table.
+
+- polygon to point:
+
+  Containment. Direction is auto-corrected internally. Output:
+  crosswalk.
+
+- polygon to polygon:
+
+  Intersection. Every overlapping pair, with the share of each target
+  covered and the share of each source falling inside. Output:
+  intersection table.
+
+- polygon to raster:
+
+  Sampling. Each polygon samples the raster values it overlaps. Output:
+  linked values table.
+
+- raster to point:
+
+  Sampling. Raster reduced to cell centroids. Output: linked values
+  table.
+
+- raster to polygon:
+
+  Cell sampling into boundaries. Each cell centroid is matched to the
+  boundary it falls inside. Output: linked values table.
+
+- raster to raster:
+
+  Not supported. Not supported; align/resample with terra first. Output:
+  none.
+
 ## See also
 
+[`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+picks the operation from the geometry pair with no `method` argument.
 The "What linking does, by layer types" section of
 [`vignette("building-crosswalks", package = "ONgeoR")`](https://lennon-li.github.io/ONgeoR/articles/building-crosswalks.md)
-tabulates which operation each pair of layer geometries selects
-(polygon/point/raster), including where the `coverage` column comes
+tabulates the same matrix, including where the `coverage` column comes
 from.
 
 ## Examples

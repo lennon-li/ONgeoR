@@ -89,13 +89,17 @@ packages; <code><a href="../reference/run_app.html">run_app()</a></code> checks 
 you to install them if they are missing.</p>
 </div>
 <div class="section level2">
-<h2 id="the-two-tabs">The two tabs<a class="anchor" aria-label="anchor" href="#the-two-tabs"></a>
+<h2 id="the-link-tab">The Link tab<a class="anchor" aria-label="anchor" href="#the-link-tab"></a>
 </h2>
-<div class="section level3">
-<h3 id="link-tab">Link tab<a class="anchor" aria-label="anchor" href="#link-tab"></a>
-</h3>
-<p>The <strong>Link</strong> tab retrieves two registered Ontario GeoHub
-or LIO layers and joins them spatially.</p>
+<p>The app has a single working tab. It retrieves two registered Ontario
+GeoHub or LIO layers and joins them spatially.</p>
+<p>There is no match-rule control. Once you have picked a Source layer
+and a Target layer, the operation is fully determined by their geometry
+types, so there is nothing left to choose. Two polygon layers produce an
+intersection; two point layers produce a nearest match; a point and a
+polygon produce containment; anything involving a raster produces
+sampling. The <code>?</code> link beside the layer pickers shows the
+full nine-cell matrix.</p>
 <p>Workflow:</p>
 <ol style="list-style-type: decimal">
 <li>
@@ -116,52 +120,41 @@ change either dropdown.</li>
 <li>
 <strong>Join</strong> – Click <strong>Join</strong> to open a
 confirmation that names both layers with their dimensions and states the
-expected result shape, e.g. “11,625 rows x 14 columns – one row per
-target feature”. Nothing is retrieved or computed until you confirm. For
-the “Any overlap” and “Apportion across overlaps” rules the result can
-be longer than the target layer, because both keep every overlap; the
-confirmation says so.</li>
+expected result shape. Nothing is retrieved or computed until you
+confirm.</li>
 </ol>
-<p>The direction is fixed: every row assigns a target feature to the
-source feature that contains it, so the source layer is always the one
-whose <code>to_id</code>/<code>to_name</code> columns appear in the
-result.</p>
+<p>Two point layers are joined the same way, on this same tab: each
+target point is matched to its single nearest source point, and the map
+draws connector lines between the pairs. There is no <code>k</code> and
+no distance cap, because a nearest match is what the geometry pair
+already implies.</p>
+<p>The direction is fixed: the result is shaped like the Target layer,
+one row per target feature.</p>
 </div>
-<div class="section level3">
-<h3 id="find-nearest-tab">Find Nearest tab<a class="anchor" aria-label="anchor" href="#find-nearest-tab"></a>
-</h3>
-<p>The <strong>Find Nearest</strong> tab performs a nearest-match search
-and draws connector lines between each source point and its nearest
-target.</p>
-<p>Workflow:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Source points</strong> – Upload a CSV of your own starting
-points using the “Source points (CSV with lon/lat columns)” file input
-(e.g. a set of clinic locations).</li>
-<li>
-<strong>Target source</strong> – Select the registered candidate
-layer to search within (e.g. MOH Service Locations).</li>
-<li>
-<strong>k</strong> – Set the number of nearest targets to return per
-source point (default 1).</li>
-<li>
-<strong>max_dist_km</strong> – Cap results to targets within this
-radius.</li>
-<li>
-<strong>Preview on map / Find nearest</strong> – Preview draws the
-uploaded points and target layer; Find nearest runs the search. The map
-shows connector lines from each source to its nearest target(s), and the
-result table lists the distances.</li>
-</ol>
-</div>
+<div class="section level2">
+<h2 id="two-result-tables">Two result tables<a class="anchor" aria-label="anchor" href="#two-result-tables"></a>
+</h2>
+<p>A polygon-to-polygon join produces two views of one computation, and
+both are downloadable:</p>
+<ul>
+<li>The <strong>pair table</strong> (<code>pairs.csv</code>) has one row
+per overlapping pair, each with an <code>interaction_id</code>, and is
+the one you join other data onto.</li>
+<li>The <strong>target table</strong> (<code>mapping.csv</code>) has
+exactly one row per target feature, with the matched sources collapsed
+into <code>;</code>-delimited columns. It is easier to read but cannot
+be joined on.</li>
+</ul>
+<p>Both carry every attribute from both input layers, prefixed
+<code>src_</code> and <code>tgt_</code> so that a <code>NAME</code>
+column on one layer cannot overwrite a <code>NAME</code> column on the
+other.</p>
 </div>
 <div class="section level2">
 <h2 id="download-buttons">Download buttons<a class="anchor" aria-label="anchor" href="#download-buttons"></a>
 </h2>
-<p>Each tab has its own download buttons, which become available after
-the corresponding operation completes.</p>
-<p>Link tab:</p>
+<p>The download buttons become available as the underlying result
+appears.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -181,38 +174,19 @@ file</td>
 <tr class="even">
 <td><strong>Download results</strong></td>
 <td>
-<code>mapping.csv</code> (or <code>linked.csv</code> for raster
-linking)</td>
+<code>mapping.csv</code> – one row per target feature (or
+<code>linked.csv</code> for raster linking)</td>
 </tr>
 <tr class="odd">
+<td><strong>Download pairs</strong></td>
+<td>
+<code>pairs.csv</code> – one row per matched pair</td>
+</tr>
+<tr class="even">
 <td><strong>Download script</strong></td>
 <td>
 <code>reproduce.R</code> – an R script that reproduces the result
 from scratch</td>
-</tr>
-</tbody>
-</table>
-<p>Find Nearest tab:</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>Button</th>
-<th>Output</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><strong>Download map</strong></td>
-<td>
-<code>map.html</code> – the Leaflet map as a standalone HTML
-file</td>
-</tr>
-<tr class="even">
-<td><strong>Download results</strong></td>
-<td>
-<code>nearest.csv</code> – the nearest-match table</td>
 </tr>
 </tbody>
 </table>

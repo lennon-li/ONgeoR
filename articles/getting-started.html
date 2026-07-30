@@ -230,6 +230,11 @@ name; it is not a spatial operation.</p>
 <span><span class="va">nearby</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nearest.html">nearest</a></span><span class="op">(</span><span class="va">locations</span>, <span class="va">hospitals</span>, k <span class="op">=</span> <span class="fl">3</span>, max_dist_km <span class="op">=</span> <span class="fl">25</span><span class="op">)</span></span>
 <span><span class="va">facility</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve.html">resolve</a></span><span class="op">(</span><span class="va">hospitals</span>, <span class="st">"12345"</span><span class="op">)</span></span>
 <span><span class="va">named_facilities</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve.html">resolve</a></span><span class="op">(</span><span class="va">hospitals</span>, <span class="st">"general"</span>, by <span class="op">=</span> <span class="st">"name"</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/build_link.html">build_link()</a></code> is the no-choice entry point: it inspects
+the geometry types of the two layers and dispatches to the appropriate
+operation (nearest matching for point-point, intersection for
+polygon-polygon, containment or sampling for mixed types). Use it when
+you do not need to override the default behaviour.</p>
 </div>
 <div class="section level2">
 <h2 id="audit-and-map-the-result">Audit and map the result<a class="anchor" aria-label="anchor" href="#audit-and-map-the-result"></a>

@@ -181,6 +181,13 @@ facility <- resolve(hospitals, "12345")
 named_facilities <- resolve(hospitals, "general", by = "name")
 ```
 
+[`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+is the no-choice entry point: it inspects the geometry types of the two
+layers and dispatches to the appropriate operation (nearest matching for
+point-point, intersection for polygon-polygon, containment or sampling
+for mixed types). Use it when you do not need to override the default
+behaviour.
+
 ## Audit and map the result
 
 Returned tables carry provenance columns such as `source_url`,

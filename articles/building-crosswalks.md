@@ -53,40 +53,64 @@ crosswalk
 #> #   source_url_to <chr>, retrieved_at <dttm>
 ```
 
-`within` is appropriate when every source polygon should be wholly
-contained by one target polygon and both layers use compatible,
-sufficiently precise boundaries. It avoids counting polygons that merely
-touch.
+The default path for polygon-to-polygon linking is now
+[`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md),
+which calls
+[`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+and returns every overlapping pair with area shares in a single pass.
+This removes the need to choose a predicate for most workflows.
+[`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md)
+and its five methods (`within`, `intersects`, `point_on_surface`,
+`largest_overlap`, `weighted`) remain available for direct callers who
+need a specific rule, such as when a workflow depends on the one-to-one
+assignment that `largest_overlap` provides.
 
 Real municipal layers are simplified by default. Generalizing each layer
 can move nominally shared borders enough that a municipal polygon is no
-longer strictly within a PHU polygon. For those layers, `intersects` is
-often the practical predicate. It can return more than one row for a
-feature that crosses or touches multiple targets, so inspect duplicates
-rather than assuming a one-to-one result.
+longer strictly within a PHU polygon. For those layers, the intersection
+path handles the overlap naturally: every positive-area overlap is
+reported, and the `share_of_target` and `share_of_source` columns let
+you filter or weight the result after the fact.
 
 ## What linking does, by layer types
 
-The ONgeoR app and the underlying
-[`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md)
-/ [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
-functions pick an operation from the geometry types of the two layers
-you combine:
+[`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+inspects the geometry types of the two layers and dispatches to the
+appropriate operation. The table below is rendered from the same matrix
+that drives the Shiny app and the package internals.
 
-| Layer types | What linking does | Output |
-|----|----|----|
-| Polygon base x Point overlay | Point-in-boundary containment (`within`); points are always the `from` side internally. | Crosswalk |
-| Polygon x Polygon | Your choice of five rules: `within` / `intersects` / `point_on_surface` (interior representative point, not centroid) / `largest_overlap` (majority shared area) / `weighted` (all positive-area overlaps). | Crosswalk |
-| Point x Raster (either slot order) | Sampling - each point gets the value of the cell containing it (the cell is treated as its bounding-box polygon). | Linked values table |
-| Raster x Polygon (either slot order) | Cell sampling into boundaries - the raster is reduced to cell-centroid points, each assigned to its containing boundary and carrying its value. | Linked values table |
-| Point x Point | Nearest matching ([`nearest()`](https://lennon-li.github.io/ONgeoR/reference/nearest.md), or the app’s Find Nearest tab; `k`, max distance) - not a containment link. | Nearest table |
-| Raster x Raster | Not supported; align/resample with `terra` first, then link the reduced vectors. | \- |
+| source_kind | target_kind | mode | what_it_does | output |
+|:---|:---|:---|:---|:---|
+| point | point | Nearest | Each target point is matched to its single nearest source point. | nearest table |
+| point | polygon | Containment | Each point is matched to the boundary it falls inside. | crosswalk |
+| point | raster | Sampling | Each point takes the value of the cell containing it. | linked values table |
+| polygon | point | Containment | Direction is auto-corrected internally. | crosswalk |
+| polygon | polygon | Intersection | Every overlapping pair, with the share of each target covered and the share of each source falling inside. | intersection table |
+| polygon | raster | Sampling | Each polygon samples the raster values it overlaps. | linked values table |
+| raster | point | Sampling | Raster reduced to cell centroids. | linked values table |
+| raster | polygon | Cell sampling into boundaries | Each cell centroid is matched to the boundary it falls inside. | linked values table |
+| raster | raster | Not supported | Not supported; align/resample with terra first. | none |
 
 Linking never creates or emits geometry: the output is always an
 assignment or values table, and overlap areas are used only as internal
-arithmetic. The `coverage` is populated by `largest_overlap` and
-`weighted`: it reports the winning target’s share for the former and
-each target’s share for the latter.
+arithmetic.
+
+Two area-share columns are returned for polygon-to-polygon linking. They
+are not interchangeable, and getting the distinction wrong is silent:
+
+- `share_of_target` is the fraction of the TARGET polygon covered by the
+  source. It characterizes how much of the target is accounted for by
+  each overlapping source.
+- `share_of_source` is the fraction of the SOURCE polygon falling inside
+  the target. It is the apportionment weight to use when moving an
+  extensive variable such as population or case counts from the source
+  to the target.
+
+[`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+returns every overlapping pair with both area shares in one pass, which
+covers the same ground as the `weighted` method of
+[`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md)
+without requiring a method choice.
 
 ## Weighted crosswalks
 
@@ -95,6 +119,9 @@ every target it overlaps, such as many-to-many allocation. Use
 `largest_overlap` when each source needs one target assignment. Weighted
 coverage values for a source sum to at most 1; `largest_overlap` selects
 the largest weighted row.
+[`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+now returns every overlapping pair with both area shares in one pass,
+which covers the same ground without a method choice.
 
 ``` r
 

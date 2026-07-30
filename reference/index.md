@@ -4,8 +4,14 @@
 
 - [`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md)
   : Build an auditable crosswalk table between two geographic layers
+- [`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+  : Build a polygon-to-polygon intersection table
+- [`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+  : Link two layers with no method choice
 - [`build_nearest_layers()`](https://lennon-li.github.io/ONgeoR/reference/build_nearest_layers.md)
   : Build layers for a nearest-neighbour map
+- [`build_nearest_pairs()`](https://lennon-li.github.io/ONgeoR/reference/build_nearest_pairs.md)
+  : Build a point-to-point nearest-match table
 - [`clear_cache()`](https://lennon-li.github.io/ONgeoR/reference/clear_cache.md)
   : Clear Cached ONgeoR Data
 - [`extract_polygon_collection()`](https://lennon-li.github.io/ONgeoR/reference/extract_polygon_collection.md)
@@ -58,3 +64,5 @@
   : Retrieve waste management site boundaries
 - [`run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md)
   : Launch the ONgeoR Shiny app
+- [`summarise_by_target()`](https://lennon-li.github.io/ONgeoR/reference/summarise_by_target.md)
+  : Summarise an intersection or nearest table by target

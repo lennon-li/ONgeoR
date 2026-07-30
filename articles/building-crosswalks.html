@@ -118,84 +118,139 @@ uses synthetic polygons and requires no network connection.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 7 more variables: match_distance_km &lt;dbl&gt;, coverage &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   from_id_col &lt;chr&gt;, to_id_col &lt;chr&gt;, source_url_from &lt;chr&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   source_url_to &lt;chr&gt;, retrieved_at &lt;dttm&gt;</span></span></span></code></pre></div>
-<p><code>within</code> is appropriate when every source polygon should
-be wholly contained by one target polygon and both layers use
-compatible, sufficiently precise boundaries. It avoids counting polygons
-that merely touch.</p>
+<p>The default path for polygon-to-polygon linking is now
+<code><a href="../reference/build_link.html">build_link()</a></code>, which calls <code><a href="../reference/build_intersection.html">build_intersection()</a></code>
+and returns every overlapping pair with area shares in a single pass.
+This removes the need to choose a predicate for most workflows.
+<code><a href="../reference/build_crosswalk.html">build_crosswalk()</a></code> and its five methods
+(<code>within</code>, <code>intersects</code>,
+<code>point_on_surface</code>, <code>largest_overlap</code>,
+<code>weighted</code>) remain available for direct callers who need a
+specific rule, such as when a workflow depends on the one-to-one
+assignment that <code>largest_overlap</code> provides.</p>
 <p>Real municipal layers are simplified by default. Generalizing each
 layer can move nominally shared borders enough that a municipal polygon
-is no longer strictly within a PHU polygon. For those layers,
-<code>intersects</code> is often the practical predicate. It can return
-more than one row for a feature that crosses or touches multiple
-targets, so inspect duplicates rather than assuming a one-to-one
-result.</p>
+is no longer strictly within a PHU polygon. For those layers, the
+intersection path handles the overlap naturally: every positive-area
+overlap is reported, and the <code>share_of_target</code> and
+<code>share_of_source</code> columns let you filter or weight the result
+after the fact.</p>
 </div>
 <div class="section level2">
 <h2 id="what-linking-does-by-layer-types">What linking does, by layer types<a class="anchor" aria-label="anchor" href="#what-linking-does-by-layer-types"></a>
 </h2>
-<p>The ONgeoR app and the underlying <code><a href="../reference/build_crosswalk.html">build_crosswalk()</a></code> /
-<code><a href="../reference/link.html">link()</a></code> functions pick an operation from the geometry types
-of the two layers you combine:</p>
+<p><code><a href="../reference/build_link.html">build_link()</a></code> inspects the geometry types of the two
+layers and dispatches to the appropriate operation. The table below is
+rendered from the same matrix that drives the Shiny app and the package
+internals.</p>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="6%">
+<col width="6%">
+<col width="16%">
+<col width="59%">
+<col width="11%">
 </colgroup>
 <thead><tr class="header">
-<th>Layer types</th>
-<th>What linking does</th>
-<th>Output</th>
+<th align="left">source_kind</th>
+<th align="left">target_kind</th>
+<th align="left">mode</th>
+<th align="left">what_it_does</th>
+<th align="left">output</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Polygon base x Point overlay</td>
-<td>Point-in-boundary containment (<code>within</code>); points are
-always the <code>from</code> side internally.</td>
-<td>Crosswalk</td>
+<td align="left">point</td>
+<td align="left">point</td>
+<td align="left">Nearest</td>
+<td align="left">Each target point is matched to its single nearest
+source point.</td>
+<td align="left">nearest table</td>
 </tr>
 <tr class="even">
-<td>Polygon x Polygon</td>
-<td>Your choice of five rules: <code>within</code> /
-<code>intersects</code> / <code>point_on_surface</code> (interior
-representative point, not centroid) / <code>largest_overlap</code>
-(majority shared area) / <code>weighted</code> (all positive-area
-overlaps).</td>
-<td>Crosswalk</td>
+<td align="left">point</td>
+<td align="left">polygon</td>
+<td align="left">Containment</td>
+<td align="left">Each point is matched to the boundary it falls
+inside.</td>
+<td align="left">crosswalk</td>
 </tr>
 <tr class="odd">
-<td>Point x Raster (either slot order)</td>
-<td>Sampling - each point gets the value of the cell containing it (the
-cell is treated as its bounding-box polygon).</td>
-<td>Linked values table</td>
+<td align="left">point</td>
+<td align="left">raster</td>
+<td align="left">Sampling</td>
+<td align="left">Each point takes the value of the cell containing
+it.</td>
+<td align="left">linked values table</td>
 </tr>
 <tr class="even">
-<td>Raster x Polygon (either slot order)</td>
-<td>Cell sampling into boundaries - the raster is reduced to
-cell-centroid points, each assigned to its containing boundary and
-carrying its value.</td>
-<td>Linked values table</td>
+<td align="left">polygon</td>
+<td align="left">point</td>
+<td align="left">Containment</td>
+<td align="left">Direction is auto-corrected internally.</td>
+<td align="left">crosswalk</td>
 </tr>
 <tr class="odd">
-<td>Point x Point</td>
-<td>Nearest matching (<code><a href="../reference/nearest.html">nearest()</a></code>, or the app’s Find Nearest
-tab; <code>k</code>, max distance) - not a containment link.</td>
-<td>Nearest table</td>
+<td align="left">polygon</td>
+<td align="left">polygon</td>
+<td align="left">Intersection</td>
+<td align="left">Every overlapping pair, with the share of each target
+covered and the share of each source falling inside.</td>
+<td align="left">intersection table</td>
 </tr>
 <tr class="even">
-<td>Raster x Raster</td>
-<td>Not supported; align/resample with <code>terra</code> first, then
-link the reduced vectors.</td>
-<td>-</td>
+<td align="left">polygon</td>
+<td align="left">raster</td>
+<td align="left">Sampling</td>
+<td align="left">Each polygon samples the raster values it
+overlaps.</td>
+<td align="left">linked values table</td>
+</tr>
+<tr class="odd">
+<td align="left">raster</td>
+<td align="left">point</td>
+<td align="left">Sampling</td>
+<td align="left">Raster reduced to cell centroids.</td>
+<td align="left">linked values table</td>
+</tr>
+<tr class="even">
+<td align="left">raster</td>
+<td align="left">polygon</td>
+<td align="left">Cell sampling into boundaries</td>
+<td align="left">Each cell centroid is matched to the boundary it falls
+inside.</td>
+<td align="left">linked values table</td>
+</tr>
+<tr class="odd">
+<td align="left">raster</td>
+<td align="left">raster</td>
+<td align="left">Not supported</td>
+<td align="left">Not supported; align/resample with terra first.</td>
+<td align="left">none</td>
 </tr>
 </tbody>
 </table>
 <p>Linking never creates or emits geometry: the output is always an
 assignment or values table, and overlap areas are used only as internal
-arithmetic. The <code>coverage</code> is populated by
-<code>largest_overlap</code> and <code>weighted</code>: it reports the
-winning target’s share for the former and each target’s share for the
-latter.</p>
+arithmetic.</p>
+<p>Two area-share columns are returned for polygon-to-polygon linking.
+They are not interchangeable, and getting the distinction wrong is
+silent:</p>
+<ul>
+<li>
+<code>share_of_target</code> is the fraction of the TARGET polygon
+covered by the source. It characterizes how much of the target is
+accounted for by each overlapping source.</li>
+<li>
+<code>share_of_source</code> is the fraction of the SOURCE polygon
+falling inside the target. It is the apportionment weight to use when
+moving an extensive variable such as population or case counts from the
+source to the target.</li>
+</ul>
+<p><code><a href="../reference/build_intersection.html">build_intersection()</a></code> returns every overlapping pair with
+both area shares in one pass, which covers the same ground as the
+<code>weighted</code> method of <code><a href="../reference/build_crosswalk.html">build_crosswalk()</a></code> without
+requiring a method choice.</p>
 </div>
 <div class="section level2">
 <h2 id="weighted-crosswalks">Weighted crosswalks<a class="anchor" aria-label="anchor" href="#weighted-crosswalks"></a>
@@ -204,7 +259,10 @@ latter.</p>
 apportioned across every target it overlaps, such as many-to-many
 allocation. Use <code>largest_overlap</code> when each source needs one
 target assignment. Weighted coverage values for a source sum to at most
-1; <code>largest_overlap</code> selects the largest weighted row.</p>
+1; <code>largest_overlap</code> selects the largest weighted row.
+<code><a href="../reference/build_intersection.html">build_intersection()</a></code> now returns every overlapping pair
+with both area shares in one pass, which covers the same ground without
+a method choice.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">weighted_from</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span></span>
 <span>  from_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"F1"</span>, <span class="st">"F2"</span><span class="op">)</span>,</span>

@@ -1003,7 +1003,23 @@ server <- function(input, output, session) {
     task_status_ui(link_state(), link_state_detail())
   })
 
+  # Last pair this observer actually acted on, used to tell a real user change
+  # from an echo. The mutual-exclusion observers above call updateSelectInput()
+  # on the opposite picker whenever either changes, and updating `choices` makes
+  # the client re-send that input's value even when the selection is identical.
+  # Every echo re-entered this observer and bumped preview_generation(), so an
+  # echo arriving during a retrieval invalidated the in-flight preview: the
+  # result was dropped by the generation guards in the status observer, with no
+  # notification, the button reset to "Preview on map" and Join stayed greyed
+  # out. That is the intermittent "clicking Preview does nothing".
+  selected_pair <- reactiveVal(NULL)
+
   observeEvent(list(input$base_layer, input$overlay_source), {
+    pair <- c(input$base_layer, input$overlay_source)
+    if (identical(selected_pair(), pair)) {
+      return()
+    }
+    selected_pair(pair)
     preview_generation(preview_generation() + 1L)
     link_generation(link_generation() + 1L)
     if (identical(link_state(), "running")) {

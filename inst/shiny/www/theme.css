@@ -333,6 +333,23 @@ body {
   border-color: #2266bb !important;
 }
 
+/* Bootstrap marks a disabled button only by dropping it to opacity .65, and the
+   !important background above wins over its disabled variant - so a Join button
+   that is not yet available still rendered full-strength blue and read as
+   clickable. Join is gated on a successful preview of the current pair, so that
+   state has to be unmistakable. Grey it out explicitly, and keep opacity at 1 so
+   the flat grey is what shows rather than a washed-out blue. */
+.btn-primary:disabled,
+.btn-primary.disabled,
+.btn-preview:disabled,
+.btn-preview.disabled {
+  background-color: var(--baseline) !important;
+  border-color: var(--baseline) !important;
+  color: var(--surface-1) !important;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
 /* Logo is 3x its original size (36px -> 120px); the navbar's own vertical
    padding is trimmed so the bar doesn't balloon to match, and the brand
    image is allowed to overflow the (bslib-fixed-height) navbar cleanly. */

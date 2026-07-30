@@ -49,7 +49,7 @@ Open Data REST service (<code>LIO_Open09/44</code>).</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">retrieve_phu</span><span class="op">(</span>simplify <span class="op">=</span> <span class="cn">FALSE</span>, refresh <span class="op">=</span> <span class="cn">FALSE</span>, max_age <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">retrieve_phu</span><span class="op">(</span>simplify <span class="op">=</span> <span class="cn">TRUE</span>, refresh <span class="op">=</span> <span class="cn">FALSE</span>, max_age <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -57,12 +57,12 @@ Open Data REST service (<code>LIO_Open09/44</code>).</p>
 
 
 <dl><dt id="arg-simplify">simplify<a class="anchor" aria-label="anchor" href="#arg-simplify"></a></dt>
-<dd><p>Logical. If <code>TRUE</code>, requests generalized geometry from the
-service (<code>maxAllowableOffset = 10</code>) to reduce payload size. Defaults to
-<code>FALSE</code>: independently simplifying each PHU polygon distorts shared
-borders between adjacent units, which can misassign points near a
-boundary. This layer is small (34 features) and fast to fetch at full
-precision, so simplification is opt-in rather than default.</p></dd>
+<dd><p>Logical. If <code>TRUE</code> (the default), requests generalized
+geometry from the service (<code>maxAllowableOffset = 10</code>) to reduce payload
+size. Set to <code>FALSE</code> if you need full-precision geometry, but be aware
+that the LIO service may fail to serve the full-resolution layer
+intermittently; if that occurs, retry with <code>simplify = TRUE</code> or set
+<code>refresh = TRUE</code>.</p></dd>
 
 
 <dt id="arg-refresh">refresh<a class="anchor" aria-label="anchor" href="#arg-refresh"></a></dt>

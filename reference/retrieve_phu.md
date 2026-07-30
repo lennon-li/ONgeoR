@@ -6,19 +6,18 @@ Data REST service (`LIO_Open09/44`).
 ## Usage
 
 ``` r
-retrieve_phu(simplify = FALSE, refresh = FALSE, max_age = NULL)
+retrieve_phu(simplify = TRUE, refresh = FALSE, max_age = NULL)
 ```
 
 ## Arguments
 
 - simplify:
 
-  Logical. If `TRUE`, requests generalized geometry from the service
-  (`maxAllowableOffset = 10`) to reduce payload size. Defaults to
-  `FALSE`: independently simplifying each PHU polygon distorts shared
-  borders between adjacent units, which can misassign points near a
-  boundary. This layer is small (34 features) and fast to fetch at full
-  precision, so simplification is opt-in rather than default.
+  Logical. If `TRUE` (the default), requests generalized geometry from
+  the service (`maxAllowableOffset = 10`) to reduce payload size. Set to
+  `FALSE` if you need full-precision geometry, but be aware that the LIO
+  service may fail to serve the full-resolution layer intermittently; if
+  that occurs, retry with `simplify = TRUE` or set `refresh = TRUE`.
 
 - refresh:
 

@@ -81,7 +81,7 @@ Link tab:
 | Button | Output |
 |----|----|
 | **Download map** | `map.html` – the Leaflet map as a standalone HTML file |
-| **Download results** | `crosswalk.csv` (or `linked.csv` for raster linking) |
+| **Download results** | `mapping.csv` (or `linked.csv` for raster linking) |
 | **Download script** | `reproduce.R` – an R script that reproduces the result from scratch |
 
 Find Nearest tab:

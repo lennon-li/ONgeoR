@@ -54,11 +54,41 @@ link <- function(source, target,
       "align/resample with terra first, then link the reduced vectors."
     ))
   }
-  if (source_is_raster) {
-    return(link(raster_to_centroid_points(source), target, predicate = predicate))
-  }
-  if (target_is_raster) {
-    return(link(source, raster_to_cell_polygons(target), predicate = predicate))
+  # Which reduction is right depends on the OTHER layer's geometry, not on which
+  # slot the raster happens to sit in. Reducing by slot position made two of the
+  # four raster orderings match nothing at all and return it silently:
+  # link(polygon, raster) asked whether a boundary sat inside a single cell, and
+  # link(raster, point) asked whether a cell centroid sat inside a point. Both
+  # returned a full-height result with every joined column NA.
+  #
+  #   raster + point   -> cells become polygons, each point takes its cell
+  #   raster + polygon -> cells become centroids, each cell takes its boundary
+  #
+  # The point-like layer is always the join source, so the result is one row per
+  # point for sampling and one row per cell for cell-into-boundary, whichever
+  # slot the caller used. This is what the documented matrix already promised
+  # with "either slot order"; only inst/shiny/app_impl.R compensated, so direct
+  # package callers got the silent version.
+  if (source_is_raster || target_is_raster) {
+    raster_layer <- if (source_is_raster) source else target
+    vector_layer <- if (source_is_raster) target else source
+
+    if (inherits(vector_layer, "data.frame") && !inherits(vector_layer, "sf")) {
+      vector_layer <- sf::st_as_sf(
+        vector_layer, coords = c("lon", "lat"), crs = 4326
+      )
+    }
+
+    if (is_point_geom(vector_layer)) {
+      return(link(
+        vector_layer, raster_to_cell_polygons(raster_layer),
+        predicate = predicate
+      ))
+    }
+    return(link(
+      raster_to_centroid_points(raster_layer), vector_layer,
+      predicate = predicate
+    ))
   }
 
   if (inherits(source, "data.frame") && !inherits(source, "sf")) {

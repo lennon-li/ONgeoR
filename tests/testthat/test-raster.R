@@ -97,3 +97,41 @@ test_that("the registry advertises the synthetic raster source", {
   expect_equal(meta$geography_type, "raster")
   expect_equal(meta$name, "Synthetic Air Quality Surface (PM2.5)")
 })
+
+test_that("link() gives the same result whichever slot the raster sits in", {
+  skip_if_not_installed("terra")
+  raster <- retrieve_synthetic_raster()
+  ext <- as.vector(terra::ext(raster))
+  crs <- terra::crs(raster)
+  square <- sf::st_polygon(list(rbind(
+    c(ext[1], ext[3]), c(ext[2], ext[3]),
+    c(ext[2], ext[4]), c(ext[1], ext[4]), c(ext[1], ext[3])
+  )))
+  polygon <- sf::st_sf(PID = "P1", geometry = sf::st_sfc(square, crs = crs))
+  points <- sf::st_sf(
+    TID = c("a", "b"),
+    geometry = sf::st_sfc(
+      sf::st_point(c(ext[1] + diff(ext[1:2]) * 0.3,
+                     ext[3] + diff(ext[3:4]) * 0.3)),
+      sf::st_point(c(ext[1] + diff(ext[1:2]) * 0.6,
+                     ext[3] + diff(ext[3:4]) * 0.6)),
+      crs = crs
+    )
+  )
+
+  # Reducing by slot position rather than by the other layer's geometry made
+  # link(polygon, raster) and link(raster, point) match nothing and return it
+  # silently, with every joined column NA at full height.
+  point_first <- link(points, raster)
+  raster_first <- link(raster, points)
+  expect_equal(nrow(point_first), nrow(points))
+  expect_equal(nrow(raster_first), nrow(points))
+  expect_true(all(!is.na(point_first$pm25)))
+  expect_true(all(!is.na(raster_first$pm25)))
+
+  cells_first <- link(raster, polygon)
+  polygon_first <- link(polygon, raster)
+  expect_equal(nrow(cells_first), nrow(polygon_first))
+  expect_gt(sum(!is.na(cells_first$PID)), 0)
+  expect_equal(sum(!is.na(polygon_first$PID)), sum(!is.na(cells_first$PID)))
+})

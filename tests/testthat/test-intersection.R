@@ -360,3 +360,42 @@ test_that("summarise_by_target row count equals target count for unique ids", {
   expect_equal(nrow(summary_tbl), nrow(layers$target))
   expect_false(anyDuplicated(summary_tbl$target_id) > 0)
 })
+
+test_that("build_nearest_pairs works when both layers share column names", {
+  # Every LIO point layer carries OGF_ID / OBJECTID / *_DATETIME, so shared
+  # names are the normal case, not an edge case. Fixtures with disjoint names
+  # hid a defect that broke all 30 ordered pairs of registered point sources.
+  mk <- function(ids, xs) {
+    fixture_provenance(sf::st_as_sf(
+      tibble::tibble(
+        OGF_ID = ids, OBJECTID = seq_along(ids),
+        EFFECTIVE_DATETIME = rep("2026-01-01", length(ids)),
+        NAME = paste0("N", ids),
+        x = xs, y = rep(0, length(xs))
+      ),
+      coords = c("x", "y"), crs = 3347
+    ))
+  }
+  source_pts <- mk(c("S1", "S2"), c(0, 100))
+  target_pts <- mk(c("T1", "T2", "T3"), c(5, 95, 400))
+
+  result <- build_nearest_pairs(source_pts, target_pts)
+
+  expect_equal(nrow(result), nrow(target_pts))
+  expect_true(all(!is.na(result$match_distance_km)))
+  # Both sides survive under their own prefixes rather than colliding.
+  expect_true(all(c("src_OGF_ID", "tgt_OGF_ID") %in% colnames(result)))
+  expect_equal(result$tgt_OGF_ID, c("T1", "T2", "T3"))
+  expect_equal(result$src_OGF_ID, c("S1", "S2", "S2"))
+})
+
+test_that("nearest() reports shared column names clearly", {
+  mk <- function(ids, xs) fixture_provenance(sf::st_as_sf(
+    tibble::tibble(OGF_ID = ids, x = xs, y = rep(0, length(xs))),
+    coords = c("x", "y"), crs = 3347
+  ))
+  expect_error(
+    nearest(mk(c("A", "B"), c(0, 10)), mk(c("C", "D"), c(1, 11))),
+    class = "ongeor_nearest_shared_columns"
+  )
+})

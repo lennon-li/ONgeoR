@@ -230,20 +230,33 @@ build_nearest_pairs <- function(source, target) {
 
   abort_on_duplicate_ids(source, source_id_col, target, target_id_col)
 
-  # nearest(source, target, k) returns k nearest targets per source.
-  # We want the nearest source per target, so arguments are swapped.
-  nrst <- nearest(target, source, k = 1)
-
   source_data <- tibble::as_tibble(sf::st_drop_geometry(source))
   target_data <- tibble::as_tibble(sf::st_drop_geometry(target))
 
-  n_tgt_cols <- ncol(target_data)
-  if (n_tgt_cols == 0) n_tgt_cols <- 1
-  n_src_cols <- ncol(source_data)
-  if (n_src_cols == 0) n_src_cols <- 1
+  # nearest() cbinds both layers' attribute tables without prefixing, so any
+  # column name they share is fatal - and every LIO point layer carries the
+  # same OGF_ID / OBJECTID / *_DATETIME metadata fields, which made all 30
+  # ordered pairs of registered point sources fail. Route only distinctly
+  # named row indices through it and attach the attributes here, where the
+  # src_/tgt_ prefixes already keep the two sides apart.
+  #
+  # nearest(source, target, k) returns k nearest targets per source, and we
+  # want the nearest source per target, so the arguments are swapped.
+  tgt_min <- sf::st_sf(
+    .tgt_row = seq_len(nrow(target)),
+    geometry = sf::st_geometry(target)
+  )
+  src_min <- sf::st_sf(
+    .src_row = seq_len(nrow(source)),
+    geometry = sf::st_geometry(source)
+  )
+  nrst <- nearest(tgt_min, src_min, k = 1)
 
-  tgt_slice <- nrst[, seq_len(n_tgt_cols), drop = FALSE]
-  src_slice <- nrst[, n_tgt_cols + 1 + seq_len(n_src_cols), drop = FALSE]
+  tgt_idx <- nrst$.tgt_row
+  src_idx <- nrst$.src_row
+
+  tgt_slice <- target_data[tgt_idx, , drop = FALSE]
+  src_slice <- source_data[src_idx, , drop = FALSE]
 
   src_cols <- paste0("src_", colnames(source_data))
   tgt_cols <- paste0("tgt_", colnames(target_data))

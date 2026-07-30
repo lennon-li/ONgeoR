@@ -141,6 +141,26 @@ nearest <- function(source, target, k = 1, max_dist_km = NULL) {
   }
   target_data <- tibble::as_tibble(sf::st_drop_geometry(target))
 
+  # The result binds both layers' attributes side by side without prefixing, so
+  # a shared column name cannot be represented. Say so plainly here rather than
+  # letting tibble raise a bare "must not be duplicated" from inside the loop.
+  # LIO layers routinely share OGF_ID / OBJECTID / *_DATETIME, so this is
+  # common rather than exotic. Use build_nearest_pairs() to keep both sides.
+  shared_cols <- intersect(colnames(source_data), colnames(target_data))
+  if (length(shared_cols) > 0) {
+    rlang::abort(
+      paste0(
+        "nearest() cannot combine layers that share column names, because it ",
+        "returns both layers' attributes side by side. Shared: ",
+        paste(utils::head(shared_cols, 5), collapse = ", "),
+        if (length(shared_cols) > 5) ", ..." else "",
+        ". Use build_nearest_pairs(), which prefixes each side src_/tgt_, or ",
+        "drop the duplicated columns from one layer first."
+      ),
+      class = "ongeor_nearest_shared_columns"
+    )
+  }
+
   distances_km <- matrix(
     as.numeric(sf::st_distance(source, target)) / 1000,
     nrow = nrow(source), ncol = nrow(target)

@@ -65,8 +65,13 @@ function delegates to.
 ## Examples
 
 ``` r
-if (interactive()) {
-  points <- data.frame(lon = -79.3832, lat = 43.6532)
-  result <- link(points, retrieve_phu())
-}
+points <- data.frame(lon = -79.3832, lat = 43.6532)
+link(points, retrieve_phu_simple())
+#> # A tibble: 1 × 11
+#>     OGF_ID PHU_ID PHU_NAME_ENG          PHU_NAME_FR       GEOMETRY_UPDATE_DATE…¹
+#>      <int>  <int> <chr>                 <chr>                              <dbl>
+#> 1 71877938   3895 Toronto Public Health Bureau de santé …                     NA
+#> # ℹ abbreviated name: ¹​GEOMETRY_UPDATE_DATETIME
+#> # ℹ 6 more variables: EFFECTIVE_DATETIME <dbl>, SYSTEM_DATETIME <dbl>,
+#> #   OBJECTID <int>, source_url <lgl>, target_url <chr>, retrieved_at <dttm>
 ```

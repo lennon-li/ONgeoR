@@ -41,7 +41,8 @@ provenance.
 ## Examples
 
 ``` r
-if (interactive()) {
-  ca_areas <- retrieve_conservation_authority()
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+ca_areas <- retrieve_conservation_authority()
+} # }
 ```

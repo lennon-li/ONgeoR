@@ -35,7 +35,8 @@ An `sf` object, or a `SpatRaster` for raster sources (e.g.
 ## Examples
 
 ``` r
-if (interactive()) {
-  phu <- retrieve_source("phu_boundaries")
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+phu <- retrieve_source("phu_boundaries")
+} # }
 ```

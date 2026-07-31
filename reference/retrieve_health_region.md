@@ -41,7 +41,8 @@ An `sf` object of Ontario Health Region boundary polygons, with
 ## Examples
 
 ``` r
-if (interactive()) {
-  health_regions <- retrieve_health_region()
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+health_regions <- retrieve_health_region()
+} # }
 ```

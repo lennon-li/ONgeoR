@@ -140,9 +140,24 @@ from.
 ## Examples
 
 ``` r
-if (interactive()) {
-  upper_tier <- retrieve_municipal("upper")
-  phu <- retrieve_phu()
-  crosswalk <- build_crosswalk(upper_tier, phu, method = "within")
-}
+hive <- retrieve_hive()
+cells <- hive[hive$Level == "Level 3", ][1:50, ]
+build_crosswalk(cells, retrieve_phu_simple(), method = "within")
+#> # A tibble: 50 × 14
+#>    from_id from_name from_source            to_id to_name to_source match_method
+#>    <chr>   <chr>     <chr>                  <chr> <chr>   <chr>     <chr>       
+#>  1 MU-461  MU-461    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  2 MV-461  MV-461    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  3 MV-460  MV-460    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  4 MW-460  MW-460    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  5 MX-460  MX-460    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  6 ML-459  ML-459    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  7 MW-459  MW-459    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#>  8 MX-459  MX-459    HIVE Grid (Levels 1-3) 2268  Windso… MOH Publ… within      
+#>  9 MY-459  MY-459    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#> 10 MZ-459  MZ-459    HIVE Grid (Levels 1-3) NA    NA      MOH Publ… within      
+#> # ℹ 40 more rows
+#> # ℹ 7 more variables: match_distance_km <dbl>, coverage <dbl>,
+#> #   from_id_col <chr>, to_id_col <chr>, source_url_from <chr>,
+#> #   source_url_to <chr>, retrieved_at <dttm>
 ```

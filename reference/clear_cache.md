@@ -25,8 +25,10 @@ Invisibly, the number of files removed.
 ## Examples
 
 ``` r
-if (interactive()) {
-  clear_cache()
-  clear_cache("phu_boundaries")
-}
+if (FALSE) { # \dontrun{
+# Not run: clear_cache() deletes the user's cached layers, which an
+# automated check must not do on their behalf.
+clear_cache()
+clear_cache("phu_boundaries")
+} # }
 ```

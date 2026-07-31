@@ -38,8 +38,16 @@ is no random component, so two calls return identical rasters.
 ## Examples
 
 ``` r
-if (interactive()) {
-  r <- retrieve_synthetic_raster()
-  terra::plot(r)
-}
+r <- retrieve_synthetic_raster()
+r
+#> class       : SpatRaster
+#> size        : 30, 42, 1  (nrow, ncol, nlyr)
+#> resolution  : 0.497619, 0.5066667  (x, y)
+#> extent      : -95.2, -74.3, 41.7, 56.9  (xmin, xmax, ymin, ymax)
+#> coord. ref. : lon/lat WGS 84 (EPSG:4326)
+#> source(s)   : memory
+#> varname     : pm25
+#> name        :      pm25
+#> min value   :  4.083333
+#> max value   : 13.161671
 ```

@@ -526,6 +526,38 @@ current implementation is inadequate.
 only after a concrete use case and validation dataset are defined; add
 `terra` deliberately rather than pre-emptively.
 
+**[`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+fails on bundled HIVE Level 1/2 cells** (found 2026-07-31 while writing
+offline examples) — the plain call a user would reach for first,
+`build_intersection(retrieve_hive(), retrieve_phu_simple())`, aborts
+with
+`TopologyException: Ring edge missing at 7114018.0463455105 1111545.2334546207`.
+Both layers are bundled, so this reproduces offline with no network.
+**All 1629 HIVE geometries pass
+[`sf::st_is_valid()`](https://r-spatial.github.io/sf/reference/valid.html)**,
+and the failing coordinates are projected metres, so the degeneracy
+appears after the internal `st_transform()` — suspect the
+`st_simplify(dTolerance = 100)` step in `data-raw/hive.R` leaving
+self-touching rings on the large Level 1/2 cells that survive validity
+checks in EPSG:4326 but not reprojection. Level 3 (1313 cells)
+intersects cleanly in ~0.2s. The
+`build_intersection`/`summarise_by_target`/`build_link`/`build_crosswalk`
+examples subset to Level 3 — that keeps the examples honest but **works
+by avoiding the broken path**, so closing this item must not be inferred
+from green examples.
+
+**Surface source unavailability explicitly in the app** (Lennon,
+2026-07-31) — when a layer cannot be retrieved, ONgeoRapp must say so in
+the UI, naming the source and the reason, so a user reads “the data
+service is not answering” rather than concluding the app is broken.
+`retrieve_*()` already raises a classed `ongeor_retrieval_error` with an
+informative message (`R/utils.R:297`); the gap is that the app does not
+surface it distinctly from any other failure. Note this is an
+**ONgeoRapp** change with an ONgeoR-side contract: keep the condition
+class stable and make sure the message names the source. Prompted by
+finding that asgard cannot reach `ws.lioservices.lrc.gov.on.ca` at all,
+which is exactly the situation a user would misread as a broken app.
+
 ## Blocked decisions
 
 These are data-governance or scope questions, not implementation tasks.

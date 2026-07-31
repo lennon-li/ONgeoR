@@ -47,8 +47,13 @@ at this scale. See the nearest-neighbour performance item in
 ## Examples
 
 ``` r
-if (interactive()) {
-  points <- data.frame(lon = -79.3832, lat = 43.6532)
-  result <- nearest(points, retrieve_moh_service_locations(), k = 3)
-}
+points <- data.frame(lon = -79.3832, lat = 43.6532)
+nearest(points, retrieve_hive()[1:50, ], k = 3)
+#> # A tibble: 3 × 9
+#>   point_id  rank GRID_ID Level   HIVE_ID distance_km source_url target_url      
+#>      <int> <int> <chr>   <chr>     <int>       <dbl> <lgl>      <chr>           
+#> 1        1     1 G-6     Level 1       7        173. NA         builtin://ongeo…
+#> 2        1     2 BE-62   Level 2      56        183. NA         builtin://ongeo…
+#> 3        1     3 BD-62   Level 2      55        188. NA         builtin://ongeo…
+#> # ℹ 1 more variable: retrieved_at <dttm>
 ```

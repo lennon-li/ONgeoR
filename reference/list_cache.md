@@ -16,7 +16,8 @@ file_size_kb – one row per cached entry.
 ## Examples
 
 ``` r
-if (interactive()) {
-  list_cache()
-}
+if (FALSE) { # \dontrun{
+# Not run: list_cache() creates the cache directory as a side effect.
+list_cache()
+} # }
 ```

@@ -40,7 +40,8 @@ An `sf` object of MOH service location points, with `source_url`,
 ## Examples
 
 ``` r
-if (interactive()) {
-  hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
+} # }
 ```

@@ -46,7 +46,8 @@ An `sf` object of municipal boundary polygons, with `source_url`,
 ## Examples
 
 ``` r
-if (interactive()) {
-  upper_tier <- retrieve_municipal("upper")
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+upper_tier <- retrieve_municipal("upper")
+} # }
 ```

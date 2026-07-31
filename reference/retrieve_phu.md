@@ -39,7 +39,8 @@ An `sf` object of PHU boundary polygons, with `source_url`,
 ## Examples
 
 ``` r
-if (interactive()) {
-  phu <- retrieve_phu()
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+phu <- retrieve_phu()
+} # }
 ```

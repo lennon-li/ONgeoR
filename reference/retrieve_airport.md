@@ -42,7 +42,8 @@ An `sf` object of airport boundary polygons, with `source_url`,
 ## Examples
 
 ``` r
-if (interactive()) {
-  airports <- retrieve_airport()
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+airports <- retrieve_airport()
+} # }
 ```

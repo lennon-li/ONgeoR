@@ -48,9 +48,13 @@ unmatched query values.
 ## Examples
 
 ``` r
-if (interactive()) {
-  airports <- retrieve_airport()
-  resolve(airports, "CYYZ")
-  resolve(airports, "toronto", by = "name")
-}
+phu <- retrieve_phu_simple()
+resolve(phu, "Toronto", by = "name")
+#> # A tibble: 1 × 11
+#>   query     OGF_ID PHU_ID PHU_NAME_ENG        PHU_NAME_FR GEOMETRY_UPDATE_DATE…¹
+#>   <chr>      <int>  <int> <chr>               <chr>                        <dbl>
+#> 1 Toronto 71877938   3895 Toronto Public Hea… Bureau de …                     NA
+#> # ℹ abbreviated name: ¹​GEOMETRY_UPDATE_DATETIME
+#> # ℹ 5 more variables: EFFECTIVE_DATETIME <dbl>, SYSTEM_DATETIME <dbl>,
+#> #   OBJECTID <int>, source_url <chr>, retrieved_at <dttm>
 ```

@@ -34,7 +34,7 @@ source data are distributed under the Open Government Licence - Ontario.
 ## Examples
 
 ``` r
-if (interactive()) {
-  phu_simple <- retrieve_phu_simple()
-}
+phu_simple <- retrieve_phu_simple()
+nrow(phu_simple)
+#> [1] 34
 ```

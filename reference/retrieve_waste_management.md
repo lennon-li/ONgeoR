@@ -42,7 +42,8 @@ An `sf` object of waste management site boundary polygons, with
 ## Examples
 
 ``` r
-if (interactive()) {
-  waste_sites <- retrieve_waste_management()
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+waste_sites <- retrieve_waste_management()
+} # }
 ```

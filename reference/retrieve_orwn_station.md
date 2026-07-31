@@ -29,7 +29,8 @@ and `retrieved_at` attributes attached for provenance.
 ## Examples
 
 ``` r
-if (interactive()) {
-  stations <- retrieve_orwn_station()
-}
+if (FALSE) { # \dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+stations <- retrieve_orwn_station()
+} # }
 ```

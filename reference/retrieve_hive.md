@@ -30,7 +30,7 @@ columns) in EPSG:4326, with `source_url`, `source_name`, and
 ## Examples
 
 ``` r
-if (interactive()) {
-  hive <- retrieve_hive()
-}
+hive <- retrieve_hive()
+nrow(hive)
+#> [1] 1629
 ```

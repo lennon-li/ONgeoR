@@ -108,10 +108,15 @@ including the raster sampling paths this function delegates to.</p></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="va">points</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>lon <span class="op">=</span> <span class="op">-</span><span class="fl">79.3832</span>, lat <span class="op">=</span> <span class="fl">43.6532</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="fu">link</span><span class="op">(</span><span class="va">points</span>, <span class="fu"><a href="retrieve_phu.html">retrieve_phu</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">points</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>lon <span class="op">=</span> <span class="op">-</span><span class="fl">79.3832</span>, lat <span class="op">=</span> <span class="fl">43.6532</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">link</span><span class="op">(</span><span class="va">points</span>, <span class="fu"><a href="retrieve_phu_simple.html">retrieve_phu_simple</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 1 × 11</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     OGF_ID PHU_ID PHU_NAME_ENG          PHU_NAME_FR       GEOMETRY_UPDATE_DATE…¹</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> 71<span style="text-decoration: underline;">877</span>938   <span style="text-decoration: underline;">3</span>895 Toronto Public Health Bureau de santé …                     <span style="color: #BB0000;">NA</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ abbreviated name: ¹​GEOMETRY_UPDATE_DATETIME</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 6 more variables: EFFECTIVE_DATETIME &lt;dbl&gt;, SYSTEM_DATETIME &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   OBJECTID &lt;int&gt;, source_url &lt;lgl&gt;, target_url &lt;chr&gt;, retrieved_at &lt;dttm&gt;</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

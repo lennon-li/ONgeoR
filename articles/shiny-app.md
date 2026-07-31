@@ -32,6 +32,13 @@ missing.
 
 ## The Link tab
 
+![The Link tab at startup. Source and Target layer pickers are set to
+their defaults; the Join button is greyed out until a preview
+succeeds.](../reference/figures/app-link-tab.png)
+
+The Link tab at startup. Source and Target layer pickers are set to
+their defaults; the Join button is greyed out until a preview succeeds.
+
 The app has a single working tab. It retrieves two registered Ontario
 GeoHub or LIO layers and joins them spatially.
 
@@ -56,9 +63,24 @@ Workflow:
     to confirm the layers align as expected before joining. **Join stays
     greyed out until a preview succeeds** for the currently selected
     pair, and re-greys if you change either dropdown.
+
+![After a successful preview: both layers are drawn on the map and the
+Join button is enabled
+(blue).](../reference/figures/app-preview-map.png)
+
+After a successful preview: both layers are drawn on the map and the
+Join button is enabled (blue).
+
 4.  **Join** – Click **Join** to open a confirmation that names both
     layers with their dimensions and states the expected result shape.
     Nothing is retrieved or computed until you confirm.
+
+![The Join confirmation modal: layer names, feature counts, column
+counts, expected result shape, and the 'Run join'
+button.](../reference/figures/app-join-confirm.png)
+
+The Join confirmation modal: layer names, feature counts, column counts,
+expected result shape, and the ‘Run join’ button.
 
 Two point layers are joined the same way, on this same tab: each target
 point is matched to its single nearest source point, and the map draws
@@ -69,6 +91,14 @@ The direction is fixed: the result is shaped like the Target layer, one
 row per target feature.
 
 ## Two result tables
+
+![The Data sub-tab after a successful join: one row per target feature,
+with source attributes prefixed src\_ and target attributes prefixed
+tgt\_.](../reference/figures/app-data-tab.png)
+
+The Data sub-tab after a successful join: one row per target feature,
+with source attributes prefixed src\_ and target attributes prefixed
+tgt\_.
 
 A polygon-to-polygon join produces two views of one computation, and
 both are downloadable:

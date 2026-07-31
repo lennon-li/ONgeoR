@@ -153,6 +153,22 @@ that drives the Shiny app.
 | raster | polygon | Cell sampling into boundaries | Each cell centroid is matched to the boundary it falls inside. | linked values table |
 | raster | raster | Not supported | Not supported; align/resample with terra first. | none |
 
+## Shiny app
+
+ONgeoR ships a point-and-click Shiny app launched with
+[`ONgeoR::run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md).
+Select a Source layer and a Target layer, click **Preview on map**, then
+click **Join** to produce a downloadable crosswalk table — no R code
+required.
+
+![Link tab at startup](reference/figures/app-link-tab.png)
+
+Link tab at startup
+
+See
+[`vignette("shiny-app", package = "ONgeoR")`](https://lennon-li.github.io/ONgeoR/articles/shiny-app.md)
+for a full walkthrough with screenshots.
+
 ## Documentation
 
 - [Getting

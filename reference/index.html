@@ -18,9 +18,9 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/adding-data-sources.html">Adding a data source</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with ONgeoR</a></li>
     <li><a class="dropdown-item" href="../articles/building-crosswalks.html">Building geographic crosswalks</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with ONgeoR</a></li>
+    <li><a class="dropdown-item" href="../articles/adding-data-sources.html">Adding a data source</a></li>
     <li><a class="dropdown-item" href="../articles/shiny-app.html">Launching and using the ONgeoR Shiny app</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -39,9 +39,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="retrieve-data">Retrieve data<a class="anchor" aria-label="anchor" href="#retrieve-data"></a></h2>
 
-
+      <div class="section-desc"><p>Functions to retrieve Ontario spatial layers from authoritative sources.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -50,129 +50,38 @@
 
       <dl><dt>
 
-          <code><a href="build_crosswalk.html">build_crosswalk()</a></code>
+          <code><a href="retrieve_phu.html">retrieve_phu()</a></code>
 
         </dt>
-        <dd>Build an auditable crosswalk table between two geographic layers</dd>
+        <dd>Retrieve Public Health Unit boundaries</dd>
 
         <dt>
 
-          <code><a href="build_intersection.html">build_intersection()</a></code>
+          <code><a href="retrieve_phu_simple.html">retrieve_phu_simple()</a></code>
 
         </dt>
-        <dd>Build a polygon-to-polygon intersection table</dd>
+        <dd>Retrieve simplified Public Health Unit boundaries</dd>
 
         <dt>
 
-          <code><a href="build_link.html">build_link()</a></code>
+          <code><a href="retrieve_health_region.html">retrieve_health_region()</a></code>
 
         </dt>
-        <dd>Link two layers with no method choice</dd>
+        <dd>Retrieve Ontario Health Region boundaries</dd>
 
         <dt>
 
-          <code><a href="build_nearest_layers.html">build_nearest_layers()</a></code>
+          <code><a href="retrieve_municipal.html">retrieve_municipal()</a></code>
 
         </dt>
-        <dd>Build layers for a nearest-neighbour map</dd>
+        <dd>Retrieve municipal boundaries</dd>
 
         <dt>
 
-          <code><a href="build_nearest_pairs.html">build_nearest_pairs()</a></code>
+          <code><a href="retrieve_moh_service_locations.html">retrieve_moh_service_locations()</a></code>
 
         </dt>
-        <dd>Build a point-to-point nearest-match table</dd>
-
-        <dt>
-
-          <code><a href="clear_cache.html">clear_cache()</a></code>
-
-        </dt>
-        <dd>Clear Cached ONgeoR Data</dd>
-
-        <dt>
-
-          <code><a href="extract_polygon_collection.html">extract_polygon_collection()</a></code>
-
-        </dt>
-        <dd>Reduce GEOMETRYCOLLECTION geometries to their polygon parts</dd>
-
-        <dt>
-
-          <code><a href="get_source.html">get_source()</a></code>
-
-        </dt>
-        <dd>Get metadata for one data source</dd>
-
-        <dt>
-
-          <code><a href="guess_name_col.html">guess_name_col()</a></code>
-
-        </dt>
-        <dd>Guess a name column in an sf/data.frame layer</dd>
-
-        <dt>
-
-          <code><a href="link.html">link()</a></code>
-
-        </dt>
-        <dd>Link geometries to a target layer by spatial relationship</dd>
-
-        <dt>
-
-          <code><a href="list_cache.html">list_cache()</a></code>
-
-        </dt>
-        <dd>List Cached ONgeoR Data</dd>
-
-        <dt>
-
-          <code><a href="list_sources.html">list_sources()</a></code>
-
-        </dt>
-        <dd>List available data sources</dd>
-
-        <dt>
-
-          <code><a href="map_crosswalk.html">map_crosswalk()</a></code>
-
-        </dt>
-        <dd>Map crosswalk source layers</dd>
-
-        <dt>
-
-          <code><a href="map_layers.html">map_layers()</a></code>
-
-        </dt>
-        <dd>Map one or more layers on an interactive leaflet map</dd>
-
-        <dt>
-
-          <code><a href="map_nearest.html">map_nearest()</a></code>
-
-        </dt>
-        <dd>Map nearest targets and their connections to source points</dd>
-
-        <dt>
-
-          <code><a href="nearest.html">nearest()</a></code>
-
-        </dt>
-        <dd>Find the nearest targets to each source geometry</dd>
-
-        <dt>
-
-          <code><a href="render_reproducer_script.html">render_reproducer_script()</a></code>
-
-        </dt>
-        <dd>Render a reproducible R script for a CLI run</dd>
-
-        <dt>
-
-          <code><a href="resolve.html">resolve()</a></code>
-
-        </dt>
-        <dd>Resolve records from a layer by an identifier or name</dd>
+        <dd>Retrieve MOH service locations</dd>
 
         <dt>
 
@@ -190,66 +99,10 @@
 
         <dt>
 
-          <code><a href="retrieve_health_region.html">retrieve_health_region()</a></code>
-
-        </dt>
-        <dd>Retrieve Ontario Health Region boundaries</dd>
-
-        <dt>
-
-          <code><a href="retrieve_hive.html">retrieve_hive()</a></code>
-
-        </dt>
-        <dd>Retrieve HIVE Grid boundaries</dd>
-
-        <dt>
-
-          <code><a href="retrieve_moh_service_locations.html">retrieve_moh_service_locations()</a></code>
-
-        </dt>
-        <dd>Retrieve MOH service locations</dd>
-
-        <dt>
-
-          <code><a href="retrieve_municipal.html">retrieve_municipal()</a></code>
-
-        </dt>
-        <dd>Retrieve municipal boundaries</dd>
-
-        <dt>
-
           <code><a href="retrieve_orwn_station.html">retrieve_orwn_station()</a></code>
 
         </dt>
         <dd>Retrieve Ontario Railway Network (ORWN) station points</dd>
-
-        <dt>
-
-          <code><a href="retrieve_phu.html">retrieve_phu()</a></code>
-
-        </dt>
-        <dd>Retrieve Public Health Unit boundaries</dd>
-
-        <dt>
-
-          <code><a href="retrieve_phu_simple.html">retrieve_phu_simple()</a></code>
-
-        </dt>
-        <dd>Retrieve simplified Public Health Unit boundaries</dd>
-
-        <dt>
-
-          <code><a href="retrieve_source.html">retrieve_source()</a></code>
-
-        </dt>
-        <dd>Retrieve a layer by source registry id</dd>
-
-        <dt>
-
-          <code><a href="retrieve_synthetic_raster.html">retrieve_synthetic_raster()</a></code>
-
-        </dt>
-        <dd>Retrieve a synthetic coarse air-quality raster</dd>
 
         <dt>
 
@@ -260,10 +113,82 @@
 
         <dt>
 
-          <code><a href="run_app.html">run_app()</a></code>
+          <code><a href="retrieve_hive.html">retrieve_hive()</a></code>
 
         </dt>
-        <dd>Launch the ONgeoR Shiny app</dd>
+        <dd>Retrieve HIVE Grid boundaries</dd>
+
+        <dt>
+
+          <code><a href="retrieve_synthetic_raster.html">retrieve_synthetic_raster()</a></code>
+
+        </dt>
+        <dd>Retrieve a synthetic coarse air-quality raster</dd>
+
+        <dt>
+
+          <code><a href="retrieve_source.html">retrieve_source()</a></code>
+
+        </dt>
+        <dd>Retrieve a layer by source registry id</dd>
+      </dl></div><div class="section level2">
+      <h2 id="link-and-crosswalk">Link and crosswalk<a class="anchor" aria-label="anchor" href="#link-and-crosswalk"></a></h2>
+
+      <div class="section-desc"><p>Core spatial linking and crosswalk-building functions.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="link.html">link()</a></code>
+
+        </dt>
+        <dd>Link geometries to a target layer by spatial relationship</dd>
+
+        <dt>
+
+          <code><a href="nearest.html">nearest()</a></code>
+
+        </dt>
+        <dd>Find the nearest targets to each source geometry</dd>
+
+        <dt>
+
+          <code><a href="build_link.html">build_link()</a></code>
+
+        </dt>
+        <dd>Link two layers with no method choice</dd>
+
+        <dt>
+
+          <code><a href="build_crosswalk.html">build_crosswalk()</a></code>
+
+        </dt>
+        <dd>Build an auditable crosswalk table between two geographic layers</dd>
+
+        <dt>
+
+          <code><a href="build_intersection.html">build_intersection()</a></code>
+
+        </dt>
+        <dd>Build a polygon-to-polygon intersection table</dd>
+
+        <dt>
+
+          <code><a href="build_nearest_layers.html">build_nearest_layers()</a></code>
+
+        </dt>
+        <dd>Build layers for a nearest-neighbour map</dd>
+
+        <dt>
+
+          <code><a href="build_nearest_pairs.html">build_nearest_pairs()</a></code>
+
+        </dt>
+        <dd>Build a point-to-point nearest-match table</dd>
 
         <dt>
 
@@ -271,8 +196,163 @@
 
         </dt>
         <dd>Summarise an intersection or nearest table by target</dd>
+
+        <dt>
+
+          <code><a href="extract_polygon_collection.html">extract_polygon_collection()</a></code>
+
+        </dt>
+        <dd>Reduce GEOMETRYCOLLECTION geometries to their polygon parts</dd>
+      </dl></div><div class="section level2">
+      <h2 id="resolve-and-identify">Resolve and identify<a class="anchor" aria-label="anchor" href="#resolve-and-identify"></a></h2>
+
+      <div class="section-desc"><p>Resolve records by identifier or name.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="resolve.html">resolve()</a></code>
+
+        </dt>
+        <dd>Resolve records from a layer by an identifier or name</dd>
+
+        <dt>
+
+          <code><a href="guess_name_col.html">guess_name_col()</a></code>
+
+        </dt>
+        <dd>Guess a name column in an sf/data.frame layer</dd>
+      </dl></div><div class="section level2">
+      <h2 id="map">Map<a class="anchor" aria-label="anchor" href="#map"></a></h2>
+
+      <div class="section-desc"><p>Draw interactive Leaflet maps.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="map_layers.html">map_layers()</a></code>
+
+        </dt>
+        <dd>Map one or more layers on an interactive leaflet map</dd>
+
+        <dt>
+
+          <code><a href="map_crosswalk.html">map_crosswalk()</a></code>
+
+        </dt>
+        <dd>Map crosswalk source layers</dd>
+
+        <dt>
+
+          <code><a href="map_nearest.html">map_nearest()</a></code>
+
+        </dt>
+        <dd>Map nearest targets and their connections to source points</dd>
+      </dl></div><div class="section level2">
+      <h2 id="source-registry">Source registry<a class="anchor" aria-label="anchor" href="#source-registry"></a></h2>
+
+      <div class="section-desc"><p>Browse and query the built-in source metadata registry.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="list_sources.html">list_sources()</a></code>
+
+        </dt>
+        <dd>List available data sources</dd>
+
+        <dt>
+
+          <code><a href="get_source.html">get_source()</a></code>
+
+        </dt>
+        <dd>Get metadata for one data source</dd>
+      </dl></div><div class="section level2">
+      <h2 id="cache">Cache<a class="anchor" aria-label="anchor" href="#cache"></a></h2>
+
+      <div class="section-desc"><p>Inspect and clear the on-disk retrieval cache.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="list_cache.html">list_cache()</a></code>
+
+        </dt>
+        <dd>List Cached ONgeoR Data</dd>
+
+        <dt>
+
+          <code><a href="clear_cache.html">clear_cache()</a></code>
+
+        </dt>
+        <dd>Clear Cached ONgeoR Data</dd>
+      </dl></div><div class="section level2">
+      <h2 id="reproducibility">Reproducibility<a class="anchor" aria-label="anchor" href="#reproducibility"></a></h2>
+
+      <div class="section-desc"><p>Generate reproducible R scripts from a linking run.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="render_reproducer_script.html">render_reproducer_script()</a></code>
+
+        </dt>
+        <dd>Render a reproducible R script for a CLI run</dd>
+      </dl></div><div class="section level2">
+      <h2 id="shiny-app">Shiny app<a class="anchor" aria-label="anchor" href="#shiny-app"></a></h2>
+
+      <div class="section-desc"><p>Launch the interactive browser app.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="run_app.html">run_app()</a></code>
+
+        </dt>
+        <dd>Launch the ONgeoR Shiny app</dd>
+      </dl></div><div class="section level2">
+      <h2 id="data">Data<a class="anchor" aria-label="anchor" href="#data"></a></h2>
+
+      <div class="section-desc"><p>Built-in datasets bundled with the package.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hive.html">hive</a></code>
+
+        </dt>
+        <dd>HIVE Grid (Levels 1-3): a built-in hierarchical boundary dataset</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

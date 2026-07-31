@@ -33,9 +33,9 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/adding-data-sources.html">Adding a data source</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with ONgeoR</a></li>
     <li><a class="dropdown-item" href="../articles/building-crosswalks.html">Building geographic crosswalks</a></li>
-    <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with ONgeoR</a></li>
+    <li><a class="dropdown-item" href="../articles/adding-data-sources.html">Adding a data source</a></li>
     <li><a class="dropdown-item" href="../articles/shiny-app.html">Launching and using the ONgeoR Shiny app</a></li>
   </ul>
 </li>
@@ -91,6 +91,12 @@ you to install them if they are missing.</p>
 <div class="section level2">
 <h2 id="the-link-tab">The Link tab<a class="anchor" aria-label="anchor" href="#the-link-tab"></a>
 </h2>
+<div class="figure">
+<img src="../reference/figures/app-link-tab.png" class="r-plt" alt="The Link tab at startup. Source and Target layer pickers are set to their defaults; the Join button is greyed out until a preview succeeds." width="100%"><p class="caption">
+The Link tab at startup. Source and Target layer pickers are set to
+their defaults; the Join button is greyed out until a preview succeeds.
+</p>
+</div>
 <p>The app has a single working tab. It retrieves two registered Ontario
 GeoHub or LIO layers and joins them spatially.</p>
 <p>There is no match-rule control. Once you have picked a Source layer
@@ -117,12 +123,26 @@ Leaflet map. Inspect the map to confirm the layers align as expected
 before joining. <strong>Join stays greyed out until a preview
 succeeds</strong> for the currently selected pair, and re-greys if you
 change either dropdown.</li>
+</ol>
+<div class="figure">
+<img src="../reference/figures/app-preview-map.png" class="r-plt" alt="After a successful preview: both layers are drawn on the map and the Join button is enabled (blue)." width="100%"><p class="caption">
+After a successful preview: both layers are drawn on the map and the
+Join button is enabled (blue).
+</p>
+</div>
+<ol start="4" style="list-style-type: decimal">
 <li>
 <strong>Join</strong> – Click <strong>Join</strong> to open a
 confirmation that names both layers with their dimensions and states the
 expected result shape. Nothing is retrieved or computed until you
 confirm.</li>
 </ol>
+<div class="figure">
+<img src="../reference/figures/app-join-confirm.png" class="r-plt" alt="The Join confirmation modal: layer names, feature counts, column counts, expected result shape, and the 'Run join' button." width="100%"><p class="caption">
+The Join confirmation modal: layer names, feature counts, column counts,
+expected result shape, and the ‘Run join’ button.
+</p>
+</div>
 <p>Two point layers are joined the same way, on this same tab: each
 target point is matched to its single nearest source point, and the map
 draws connector lines between the pairs. There is no <code>k</code> and
@@ -134,6 +154,13 @@ one row per target feature.</p>
 <div class="section level2">
 <h2 id="two-result-tables">Two result tables<a class="anchor" aria-label="anchor" href="#two-result-tables"></a>
 </h2>
+<div class="figure">
+<img src="../reference/figures/app-data-tab.png" class="r-plt" alt="The Data sub-tab after a successful join: one row per target feature, with source attributes prefixed src_ and target attributes prefixed tgt_." width="100%"><p class="caption">
+The Data sub-tab after a successful join: one row per target feature,
+with source attributes prefixed src_ and target attributes prefixed
+tgt_.
+</p>
+</div>
 <p>A polygon-to-polygon join produces two views of one computation, and
 both are downloadable:</p>
 <ul>

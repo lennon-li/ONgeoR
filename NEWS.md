@@ -1,3 +1,15 @@
+# ONgeoR 0.4.0
+
+- The Shiny app moves to its own package,
+  [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp). `run_app()` is no longer
+  exported from ONgeoR; install ONgeoRapp and call `ONgeoRapp::run_app()`.
+  Nothing else changed — the app only ever used exported functions, so no
+  linking, retrieval, or crosswalk behaviour is affected.
+- `Suggests` drops `shiny`, `bslib`, `DT`, `shinytest2`, `chromote`, `future`,
+  `later`, and `promises`, which moved with the app. This also removes the
+  standing "detritus in the temp directory" `R CMD check` NOTE, which came from
+  the browser smoke test.
+
 # ONgeoR 0.3.0.9000
 
 - Add registry-driven LIO retrieval and 17 verified Ontario geography sources.

@@ -119,21 +119,24 @@ knitr::kable(mat, format = "pipe")
 
 ## Shiny app
 
-ONgeoR ships a point-and-click Shiny app launched with `ONgeoR::run_app()`.
-Select a Source layer and a Target layer, click **Preview on map**, then click
-**Join** to produce a downloadable crosswalk table — no R code required.
+The point-and-click app lives in its own package,
+[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). Select a Source layer
+and a Target layer, click **Preview on map**, then **Join** to produce a
+downloadable crosswalk table — no R code required.
 
-![Link tab at startup](man/figures/app-link-tab.png)
+```r
+pak::pkg_install("github::lennon-li/ONgeoRapp")
+ONgeoRapp::run_app()
+```
 
-See `vignette("shiny-app", package = "ONgeoR")` for a full walkthrough with
-screenshots.
+It was split out so that ONgeoR itself stays a lean data-and-linking package.
 
 ## Documentation
 
 - [Getting started](vignettes/getting-started.Rmd)
 - [Building crosswalks](vignettes/building-crosswalks.Rmd)
 - [Adding data sources](vignettes/adding-data-sources.Rmd)
-- [Launching and using the Shiny app](vignettes/shiny-app.Rmd)
+- [Launching and using the app](https://github.com/lennon-li/ONgeoRapp)
 
 ## Data Sources
 

@@ -14,7 +14,6 @@ articles:
       - getting-started
       - building-crosswalks
       - adding-data-sources
-      - shiny-app
 
 reference:
   - title: "Retrieve data"
@@ -75,11 +74,6 @@ reference:
     desc: "Generate reproducible R scripts from a linking run."
     contents:
       - render_reproducer_script
-
-  - title: "Shiny app"
-    desc: "Launch the interactive browser app."
-    contents:
-      - run_app
 
   - title: "Data"
     desc: "Built-in datasets bundled with the package."

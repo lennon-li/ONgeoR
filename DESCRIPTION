@@ -1,6 +1,6 @@
 Package: ONgeoR
 Title: Resolve Ontario Locations to Public Health Geography
-Version: 0.3.0.9000
+Version: 0.4.0
 Authors@R:
     person("Lennon", "Li", email = "lennon.yeli@gmail.com", role = c("aut", "cre"))
 Description: Provides a reproducible framework for retrieving Ontario
@@ -26,21 +26,14 @@ Imports:
     tibble,
     yaml
 Suggests:
-    bslib,
-    chromote,
-    DT,
-    future,
     knitr,
-    later,
     pkgdown,
-    promises,
     rmarkdown,
-    shiny (>= 1.8.0),
-    shinytest2,
     testthat (>= 3.0.0),
     withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/lennon-li/ONgeoR
+URL: https://github.com/lennon-li/ONgeoR,
+    https://lennon-li.github.io/ONgeoR/
 BugReports: https://github.com/lennon-li/ONgeoR/issues
 Config/roxygen2/version: 8.0.0

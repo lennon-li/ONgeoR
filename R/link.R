@@ -70,8 +70,8 @@ link <- function(source, target,
   # The point-like layer is always the join source, so the result is one row per
   # point for sampling and one row per cell for cell-into-boundary, whichever
   # slot the caller used. This is what the documented matrix already promised
-  # with "either slot order"; only inst/shiny/app_impl.R compensated, so direct
-  # package callers got the silent version.
+  # with "either slot order"; only the Shiny app (now the separate ONgeoRapp
+  # package) compensated, so direct package callers got the silent version.
   if (source_is_raster || target_is_raster) {
     raster_layer <- if (source_is_raster) source else target
     vector_layer <- if (source_is_raster) target else source

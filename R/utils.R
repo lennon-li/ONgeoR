@@ -51,6 +51,13 @@ validate_lio_feature_count <- function(n, registry_entry) {
   invisible(NULL)
 }
 
+# The maxAllowableOffset (in degrees, since the service returns EPSG:4326)
+# applied when simplify = TRUE. Shared between lio_query_url() (which sends
+# it) and fetch_lio_sf() (which records it as provenance), so the two can
+# never drift apart. See the measurement note in lio_query_url() for why
+# this value was chosen.
+lio_simplify_offset_deg <- 1e-04
+
 lio_simplify_guidance <- function(simplify) {
   if (simplify) {
     "Generalized geometry is already requested (simplify = TRUE)."
@@ -99,7 +106,7 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
     # 1e-04 degrees is ~11 m: fine enough that 28 of 29 boundaries stay
     # polygonal and areas match full resolution, while still generalizing
     # (12.8 MB versus a full-resolution request the service will not serve).
-    params$maxAllowableOffset <- 1e-04
+    params$maxAllowableOffset <- lio_simplify_offset_deg
   }
 
   parts <- strsplit(service_layer, "/", fixed = TRUE)[[1]]
@@ -219,8 +226,13 @@ lio_make_valid <- function(x) {
 #' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
 #'   older entries are re-fetched. Defaults to `NULL`.
 #'
-#' @return An `sf` object with `source_url`, `source_name`, and `retrieved_at`
-#'   attributes attached.
+#' @return An `sf` object with `source_url`, `source_name`, `retrieved_at`,
+#'   and `simplify` attributes attached. `simplify` records the
+#'   `maxAllowableOffset` (in degrees) actually applied to the retrieval: `0`
+#'   if `simplify = FALSE` (no generalization), or the offset value if
+#'   `simplify = TRUE`. This lets downstream area-ratio outputs (e.g.
+#'   `share_of_target`/`share_of_source` in [build_intersection()]) be traced
+#'   back to whether the geometry behind them was generalized.
 #' @keywords internal
 #' @noRd
 fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
@@ -417,6 +429,12 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
   attr(sf_obj, "source_url") <- url
   attr(sf_obj, "source_name") <- source_name
   attr(sf_obj, "retrieved_at") <- Sys.time()
+  # Record what was actually applied, not just the flag: the offset itself is
+  # what determines how much area error simplification could have introduced.
+  # 0 is unambiguous here because lio_query_url() never sends an offset of
+  # exactly 0 when simplify = TRUE (it sends lio_simplify_offset_deg), so 0
+  # can only mean "no simplification requested".
+  attr(sf_obj, "simplify") <- if (simplify) lio_simplify_offset_deg else 0
 
   registry <- load_source_registry()
   matching_entries <- which(vapply(

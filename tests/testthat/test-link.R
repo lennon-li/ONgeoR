@@ -100,6 +100,28 @@ test_that("link does not warn when source is points and target is polygons", {
   expect_no_warning(link(points, phu, predicate = "within"))
 })
 
+test_that("link warns when predicate = contains has a point source and polygon target", {
+  phu <- make_synthetic_phu()
+  points <- data.frame(point_id = 1:2, lon = c(-79.5, -81.5), lat = c(43.5, 43.5))
+
+  expect_warning(
+    result <- link(points, phu, predicate = "contains"),
+    class = "ongeor_link_degenerate_contains"
+  )
+  expect_equal(nrow(result), 2)
+  expect_true(all(is.na(result$PHU_NAME_ENG)))
+})
+
+test_that("link does not warn when source is polygons and target is points", {
+  phu <- make_synthetic_phu()
+  points <- sf::st_as_sf(
+    data.frame(point_id = 1, lon = -79.5, lat = 43.5),
+    coords = c("lon", "lat"), crs = 4326
+  )
+
+  expect_no_warning(link(phu, points, predicate = "contains"))
+})
+
 test_that("link aborts on raster-to-raster linking", {
   r <- retrieve_synthetic_raster()
 

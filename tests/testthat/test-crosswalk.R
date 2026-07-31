@@ -176,6 +176,56 @@ test_that("auto-reorder: matched facility has non-NA from_id and non-NA to_id (d
   expect_equal(inside_row$to_id, "10")
 })
 
+make_synthetic_two_point_layers <- function() {
+  from_points <- sf::st_sf(
+    FROM_ID = c(1, 2),
+    FROM_NAME = c("From A", "From B"),
+    geometry = sf::st_sfc(
+      sf::st_point(c(-79.5, 43.5)),
+      sf::st_point(c(-78.5, 43.1)),
+      crs = 4326
+    )
+  )
+  attr(from_points, "source_name") <- "Synthetic From Points"
+  attr(from_points, "source_url") <- "https://example.com/from-points"
+
+  to_points <- sf::st_sf(
+    TO_ID = c(10, 20),
+    TO_NAME = c("To X", "To Y"),
+    geometry = sf::st_sfc(
+      sf::st_point(c(-79.6, 43.4)),
+      sf::st_point(c(-78.4, 43.0)),
+      crs = 4326
+    )
+  )
+  attr(to_points, "source_name") <- "Synthetic To Points"
+  attr(to_points, "source_url") <- "https://example.com/to-points"
+
+  list(from = from_points, to = to_points)
+}
+
+test_that("build_crosswalk warns on point-to-point containment for within/intersects", {
+  layers <- make_synthetic_two_point_layers()
+
+  expect_warning(
+    crosswalk_within <- build_crosswalk(layers$from, layers$to, method = "within"),
+    class = "ongeor_crosswalk_point_point_containment"
+  )
+  expect_true(all(is.na(crosswalk_within$to_id)))
+
+  expect_warning(
+    crosswalk_intersects <- build_crosswalk(layers$from, layers$to, method = "intersects"),
+    class = "ongeor_crosswalk_point_point_containment"
+  )
+  expect_true(all(is.na(crosswalk_intersects$to_id)))
+})
+
+test_that("build_crosswalk does not warn for a good point-in-polygon join", {
+  layers <- make_synthetic_layers()
+
+  expect_no_warning(build_crosswalk(layers$municipal, layers$phu, method = "within"))
+})
+
 # --- helpers for polygon-to-polygon method tests ---------------------------
 
 make_two_base_layer <- function() {
@@ -387,6 +437,37 @@ test_that("weighted aborts when either layer is point-type", {
     build_crosswalk(points, layers$to, method = "weighted"),
     class = "ongeor_crosswalk_weighted_needs_polygons"
   )
+})
+
+test_that("largest_overlap reports NA (not NaN) coverage for a zero-area from polygon", {
+  base <- make_two_base_layer()
+  # Degenerate ring: every vertex is collinear (y constant throughout), so
+  # st_area() is 0. Built directly in EPSG:3347 (the same projected CRS
+  # crosswalk_largest_overlap transforms into) so the collinearity survives
+  # as an exact planar zero rather than picking up spurious s2 area from a
+  # lon/lat CRS. This mirrors a real failure mode -- a bad generalization
+  # tolerance collapsing a polygon to a line. It still overlaps base A, so
+  # it gets a winner, but 0/0 coverage must come back NA, not NaN.
+  flat <- sf::st_polygon(list(rbind(
+    c(7180000, 900000), c(7220000, 900000), c(7250000, 900000), c(7180000, 900000)
+  )))
+  from <- sf::st_sf(
+    FROM_ID = 1,
+    FROM_NAME = "Flat",
+    geometry = sf::st_sfc(flat, crs = 3347)
+  )
+  attr(from, "source_name") <- "Synthetic From Layer"
+  attr(from, "source_url") <- "https://example.com/from"
+
+  expect_warning(
+    crosswalk <- build_crosswalk(from, base, method = "largest_overlap"),
+    class = "ongeor_crosswalk_zero_area_from"
+  )
+
+  expect_equal(nrow(crosswalk), 1)
+  # is.na(NaN) is also TRUE, so distinguish explicitly with is.nan().
+  expect_true(is.na(crosswalk$coverage))
+  expect_false(is.nan(crosswalk$coverage))
 })
 
 test_that("registry key fields drive crosswalk identifiers and names", {

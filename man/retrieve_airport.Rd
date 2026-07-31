@@ -8,13 +8,14 @@ retrieve_airport(simplify = FALSE, refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE}, requests generalized geometry from the
-service (\code{maxAllowableOffset = 10}). Defaults to \code{FALSE}: confirmed live
-that the simplified request returns corrupted geometry for this layer
-(\code{GEOMETRYCOLLECTION} instead of polygons, for all 403 features) rather
-than valid generalized boundaries -- the same class of distortion
-documented for \code{\link[=retrieve_phu]{retrieve_phu()}}, caught here by live-testing rather than
-assumed from feature count. Do not flip this default without re-testing
-live.}
+service (\code{maxAllowableOffset = 1e-04}, i.e. 0.0001 degrees, since the
+service returns EPSG:4326 -- roughly 11 m on the ground). Defaults to
+\code{FALSE}: confirmed live that the simplified request returns corrupted
+geometry for this layer (\code{GEOMETRYCOLLECTION} instead of polygons, for
+all 403 features) rather than valid generalized boundaries -- the same
+class of distortion documented for \code{\link[=retrieve_phu]{retrieve_phu()}}, caught here by
+live-testing rather than assumed from feature count. Do not flip this
+default without re-testing live.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}

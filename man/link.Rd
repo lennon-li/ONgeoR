@@ -26,7 +26,10 @@ borders. For very complex geometry, simplify first
 \code{predicate = "within"} with a polygon \code{source} and point \code{target} is
 geometrically degenerate (a polygon is never "within" a point): every
 row will be unmatched (NA), and \code{link()} emits a warning before running
-the join. The join still runs and the return shape is unchanged.}
+the join. The join still runs and the return shape is unchanged.
+\code{predicate = "contains"} with a point \code{source} and polygon \code{target} is
+the mirror case (a point never "contains" a polygon) and warns the same
+way.}
 }
 \value{
 A \code{\link[tibble:tibble]{tibble::tibble()}} with the source's non-geometry columns, the

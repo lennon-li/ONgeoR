@@ -8,11 +8,12 @@ retrieve_phu(simplify = TRUE, refresh = FALSE, max_age = NULL)
 }
 \arguments{
 \item{simplify}{Logical. If \code{TRUE} (the default), requests generalized
-geometry from the service (\code{maxAllowableOffset = 10}) to reduce payload
-size. Set to \code{FALSE} if you need full-precision geometry, but be aware
-that the LIO service may fail to serve the full-resolution layer
-intermittently; if that occurs, retry with \code{simplify = TRUE} or set
-\code{refresh = TRUE}.}
+geometry from the service (\code{maxAllowableOffset = 1e-04}, i.e. 0.0001
+degrees, since the service returns EPSG:4326 -- roughly 11 m on the
+ground) to reduce payload size. Set to \code{FALSE} if you need full-precision
+geometry, but be aware that the LIO service may fail to serve the
+full-resolution layer intermittently; if that occurs, retry with
+\code{simplify = TRUE} or set \code{refresh = TRUE}.}
 
 \item{refresh}{Logical. If \code{TRUE}, bypasses any cached copy and re-fetches
 from the live API. Defaults to \code{FALSE}.}

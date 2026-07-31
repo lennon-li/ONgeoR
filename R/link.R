@@ -23,6 +23,9 @@
 #'   geometrically degenerate (a polygon is never "within" a point): every
 #'   row will be unmatched (NA), and `link()` emits a warning before running
 #'   the join. The join still runs and the return shape is unchanged.
+#'   `predicate = "contains"` with a point `source` and polygon `target` is
+#'   the mirror case (a point never "contains" a polygon) and warns the same
+#'   way.
 #'
 #' @return A [tibble::tibble()] with the source's non-geometry columns, the
 #'   matched target columns, and `source_url` / `target_url` / `retrieved_at`
@@ -103,6 +106,17 @@ link <- function(source, target,
         "swap `source` and `target`, or use predicate = \"contains\"?"
       ),
       class = "ongeor_link_degenerate_within"
+    )
+  }
+
+  if (predicate == "contains" && is_point_geom(source) && is_polygon_geom(target)) {
+    rlang::warn(
+      paste(
+        "predicate = \"contains\" with a point source and polygon target",
+        "matches nothing; every row will be unmatched (NA). Did you mean to",
+        "swap `source` and `target`, or use predicate = \"within\"?"
+      ),
+      class = "ongeor_link_degenerate_contains"
     )
   }
 

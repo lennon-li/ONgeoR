@@ -22,7 +22,12 @@ build_crosswalk(
 the join direction is geometrically degenerate (a polygon is never
 "within" a point). In that case \code{build_crosswalk()} auto-corrects by
 joining \code{to} within \code{from} instead, emits an informative message, and
-builds the same output schema from the corrected join.
+builds the same output schema from the corrected join. If \code{from} and
+\code{to} are both point layers, containment has no meaningful direction to
+auto-correct (a point is only within/intersects another point when
+exactly coincident), so \code{build_crosswalk()} instead emits a warning
+and proceeds with the join as-is; use \code{\link[=nearest]{nearest()}} or \code{\link[=build_link]{build_link()}}
+for point-to-point matching.
 \item \code{"point_on_surface"}: representative-point assignment for point-like
 \code{from} polygons. Each \code{from} polygon is reduced to a single
 guaranteed-interior point (\code{sf::st_point_on_surface()}, not the

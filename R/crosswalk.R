@@ -11,7 +11,12 @@
 #'     the join direction is geometrically degenerate (a polygon is never
 #'     "within" a point). In that case `build_crosswalk()` auto-corrects by
 #'     joining `to` within `from` instead, emits an informative message, and
-#'     builds the same output schema from the corrected join.
+#'     builds the same output schema from the corrected join. If `from` and
+#'     `to` are both point layers, containment has no meaningful direction to
+#'     auto-correct (a point is only within/intersects another point when
+#'     exactly coincident), so `build_crosswalk()` instead emits a warning
+#'     and proceeds with the join as-is; use [nearest()] or [build_link()]
+#'     for point-to-point matching.
 #'   * `"point_on_surface"`: representative-point assignment for point-like
 #'     `from` polygons. Each `from` polygon is reduced to a single
 #'     guaranteed-interior point (`sf::st_point_on_surface()`, not the
@@ -114,6 +119,20 @@ build_crosswalk <- function(from, to,
       )
       linked <- link(to, from, predicate = method)
     } else {
+      if (is_point_geom(from) && is_point_geom(to)) {
+        rlang::warn(
+          paste0(
+            "build_crosswalk(): method = \"", method, "\" is a containment ",
+            "predicate, but both `from` and `to` are point layers; a point ",
+            "is only ", method, " another point when they are exactly ",
+            "coincident, so every to_id/to_name will likely come back NA. ",
+            "Containment does not apply to two point layers -- use ",
+            "nearest() or build_link() instead, which match points to ",
+            "points by distance."
+          ),
+          class = "ongeor_crosswalk_point_point_containment"
+        )
+      }
       linked <- link(from, to, predicate = method)
     }
     from_id <- as.character(linked[[from_id_col]])
@@ -220,7 +239,29 @@ crosswalk_largest_overlap <- function(from, to) {
     }, numeric(1))
     best <- which.max(inter_areas)
     winner[i] <- cand[best]
-    coverage[i] <- inter_areas[best] / from_areas[i]
+    # A zero-area from polygon (degenerate/collapsed geometry) makes the
+    # coverage share 0/0 = NaN; coverage is genuinely undefined here, not 0,
+    # so report NA_real_ instead and warn once after the loop.
+    coverage[i] <- if (from_areas[i] == 0) {
+      NA_real_
+    } else {
+      inter_areas[best] / from_areas[i]
+    }
+  }
+
+  zero_area_n <- sum(from_areas == 0)
+  if (zero_area_n > 0) {
+    rlang::warn(
+      sprintf(
+        paste(
+          "%d `from` feature(s) have zero area, so their coverage is",
+          "reported as NA rather than a share; a zero-area geometry usually",
+          "indicates a degenerate or over-simplified polygon upstream."
+        ),
+        zero_area_n
+      ),
+      class = "ongeor_crosswalk_zero_area_from"
+    )
   }
 
   list(winner = winner, coverage = coverage)

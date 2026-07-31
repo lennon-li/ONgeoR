@@ -407,6 +407,54 @@ test_that("nearest() disambiguates shared column names instead of failing", {
   expect_true(all(!is.na(res$distance_km)))
 })
 
+test_that("simplify_used carries the provenance attribute when present", {
+  square <- function(x) sf::st_polygon(list(rbind(
+    c(x, 0), c(x + 1, 0), c(x + 1, 1), c(x, 1), c(x, 0)
+  )))
+  source <- fixture_provenance(sf::st_sf(
+    SRC_ID = "S1", SRC_NAME = "Source Square",
+    geometry = sf::st_sfc(square(0), crs = 3347)
+  ))
+  attr(source, "simplify") <- 1e-04
+  target <- fixture_provenance(sf::st_sf(
+    TGT_ID = "T1", TGT_NAME = "Target Square",
+    geometry = sf::st_sfc(square(0), crs = 3347)
+  ))
+
+  result <- build_intersection(source, target)
+
+  expect_true(all(!is.na(result$simplify_used)))
+  expect_equal(unique(result$simplify_used), 1e-04)
+})
+
+test_that("simplify_used is NA without error when the attribute is absent", {
+  layers <- fixture_overlapping_squares()
+
+  result <- build_intersection(layers$source, layers$target)
+
+  expect_true(all(is.na(result$simplify_used)))
+})
+
+test_that("build_nearest_pairs simplify_used carries the attribute when present", {
+  source_pts <- fixture_provenance(sf::st_as_sf(
+    tibble::tibble(src_id = c("A", "B"), x = c(0, 10), y = c(0, 0)),
+    coords = c("x", "y"), crs = 3347
+  ))
+  attr(source_pts, "simplify") <- 0
+  target_pts <- fixture_provenance(sf::st_as_sf(
+    tibble::tibble(
+      tgt_id = c("X", "Y", "Z"),
+      x = c(1, 9, 20), y = c(0, 0, 0)
+    ),
+    coords = c("x", "y"), crs = 3347
+  ))
+
+  result <- build_nearest_pairs(source_pts, target_pts)
+
+  expect_true(all(!is.na(result$simplify_used)))
+  expect_equal(unique(result$simplify_used), 0)
+})
+
 test_that("summarise_by_target output is stable across optimization", {
   square <- function(x) sf::st_polygon(list(rbind(
     c(x, 0), c(x + 1, 0), c(x + 1, 1), c(x, 1), c(x, 0)

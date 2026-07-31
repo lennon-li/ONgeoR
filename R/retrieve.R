@@ -4,11 +4,12 @@
 #' Open Data REST service (`LIO_Open09/44`).
 #'
 #' @param simplify Logical. If `TRUE` (the default), requests generalized
-#'   geometry from the service (`maxAllowableOffset = 10`) to reduce payload
-#'   size. Set to `FALSE` if you need full-precision geometry, but be aware
-#'   that the LIO service may fail to serve the full-resolution layer
-#'   intermittently; if that occurs, retry with `simplify = TRUE` or set
-#'   `refresh = TRUE`.
+#'   geometry from the service (`maxAllowableOffset = 1e-04`, i.e. 0.0001
+#'   degrees, since the service returns EPSG:4326 -- roughly 11 m on the
+#'   ground) to reduce payload size. Set to `FALSE` if you need full-precision
+#'   geometry, but be aware that the LIO service may fail to serve the
+#'   full-resolution layer intermittently; if that occurs, retry with
+#'   `simplify = TRUE` or set `refresh = TRUE`.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
 #' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
@@ -120,13 +121,14 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
 #' (`LIO_Open05/0`).
 #'
 #' @param simplify Logical. If `TRUE`, requests generalized geometry from the
-#'   service (`maxAllowableOffset = 10`). Defaults to `FALSE`: confirmed live
-#'   that the simplified request returns corrupted geometry for this layer
-#'   (`GEOMETRYCOLLECTION` instead of polygons, for all 403 features) rather
-#'   than valid generalized boundaries -- the same class of distortion
-#'   documented for [retrieve_phu()], caught here by live-testing rather than
-#'   assumed from feature count. Do not flip this default without re-testing
-#'   live.
+#'   service (`maxAllowableOffset = 1e-04`, i.e. 0.0001 degrees, since the
+#'   service returns EPSG:4326 -- roughly 11 m on the ground). Defaults to
+#'   `FALSE`: confirmed live that the simplified request returns corrupted
+#'   geometry for this layer (`GEOMETRYCOLLECTION` instead of polygons, for
+#'   all 403 features) rather than valid generalized boundaries -- the same
+#'   class of distortion documented for [retrieve_phu()], caught here by
+#'   live-testing rather than assumed from feature count. Do not flip this
+#'   default without re-testing live.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
 #' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
@@ -156,13 +158,14 @@ retrieve_airport <- function(simplify = FALSE, refresh = FALSE, max_age = NULL) 
 #' service (`LIO_Open08/9`).
 #'
 #' @param simplify Logical. If `TRUE`, requests generalized geometry from the
-#'   service (`maxAllowableOffset = 10`). Defaults to `FALSE`: confirmed live
-#'   that the simplified request returns corrupted geometry for this layer
-#'   (`GEOMETRYCOLLECTION` instead of polygons, for all 813 features) rather
-#'   than valid generalized boundaries -- the same class of distortion
-#'   documented for [retrieve_phu()], caught here by live-testing rather than
-#'   assumed from feature count. Do not flip this default without re-testing
-#'   live.
+#'   service (`maxAllowableOffset = 1e-04`, i.e. 0.0001 degrees, since the
+#'   service returns EPSG:4326 -- roughly 11 m on the ground). Defaults to
+#'   `FALSE`: confirmed live that the simplified request returns corrupted
+#'   geometry for this layer (`GEOMETRYCOLLECTION` instead of polygons, for
+#'   all 813 features) rather than valid generalized boundaries -- the same
+#'   class of distortion documented for [retrieve_phu()], caught here by
+#'   live-testing rather than assumed from feature count. Do not flip this
+#'   default without re-testing live.
 #' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
 #'   from the live API. Defaults to `FALSE`.
 #' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;

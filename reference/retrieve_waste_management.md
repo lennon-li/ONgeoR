@@ -14,10 +14,11 @@ retrieve_waste_management(simplify = FALSE, refresh = FALSE, max_age = NULL)
 - simplify:
 
   Logical. If `TRUE`, requests generalized geometry from the service
-  (`maxAllowableOffset = 10`). Defaults to `FALSE`: confirmed live that
-  the simplified request returns corrupted geometry for this layer
-  (`GEOMETRYCOLLECTION` instead of polygons, for all 813 features)
-  rather than valid generalized boundaries – the same class of
+  (`maxAllowableOffset = 1e-04`, i.e. 0.0001 degrees, since the service
+  returns EPSG:4326 – roughly 11 m on the ground). Defaults to `FALSE`:
+  confirmed live that the simplified request returns corrupted geometry
+  for this layer (`GEOMETRYCOLLECTION` instead of polygons, for all 813
+  features) rather than valid generalized boundaries – the same class of
   distortion documented for
   [`retrieve_phu()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_phu.md),
   caught here by live-testing rather than assumed from feature count. Do

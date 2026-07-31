@@ -58,11 +58,12 @@ Open Data REST service (<code>LIO_Open09/44</code>).</p>
 
 <dl><dt id="arg-simplify">simplify<a class="anchor" aria-label="anchor" href="#arg-simplify"></a></dt>
 <dd><p>Logical. If <code>TRUE</code> (the default), requests generalized
-geometry from the service (<code>maxAllowableOffset = 10</code>) to reduce payload
-size. Set to <code>FALSE</code> if you need full-precision geometry, but be aware
-that the LIO service may fail to serve the full-resolution layer
-intermittently; if that occurs, retry with <code>simplify = TRUE</code> or set
-<code>refresh = TRUE</code>.</p></dd>
+geometry from the service (<code>maxAllowableOffset = 1e-04</code>, i.e. 0.0001
+degrees, since the service returns EPSG:4326 – roughly 11 m on the
+ground) to reduce payload size. Set to <code>FALSE</code> if you need full-precision
+geometry, but be aware that the LIO service may fail to serve the
+full-resolution layer intermittently; if that occurs, retry with
+<code>simplify = TRUE</code> or set <code>refresh = TRUE</code>.</p></dd>
 
 
 <dt id="arg-refresh">refresh<a class="anchor" aria-label="anchor" href="#arg-refresh"></a></dt>

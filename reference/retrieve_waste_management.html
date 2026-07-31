@@ -58,13 +58,14 @@ service (<code>LIO_Open08/9</code>).</p>
 
 <dl><dt id="arg-simplify">simplify<a class="anchor" aria-label="anchor" href="#arg-simplify"></a></dt>
 <dd><p>Logical. If <code>TRUE</code>, requests generalized geometry from the
-service (<code>maxAllowableOffset = 10</code>). Defaults to <code>FALSE</code>: confirmed live
-that the simplified request returns corrupted geometry for this layer
-(<code>GEOMETRYCOLLECTION</code> instead of polygons, for all 813 features) rather
-than valid generalized boundaries – the same class of distortion
-documented for <code><a href="retrieve_phu.html">retrieve_phu()</a></code>, caught here by live-testing rather than
-assumed from feature count. Do not flip this default without re-testing
-live.</p></dd>
+service (<code>maxAllowableOffset = 1e-04</code>, i.e. 0.0001 degrees, since the
+service returns EPSG:4326 – roughly 11 m on the ground). Defaults to
+<code>FALSE</code>: confirmed live that the simplified request returns corrupted
+geometry for this layer (<code>GEOMETRYCOLLECTION</code> instead of polygons, for
+all 813 features) rather than valid generalized boundaries – the same
+class of distortion documented for <code><a href="retrieve_phu.html">retrieve_phu()</a></code>, caught here by
+live-testing rather than assumed from feature count. Do not flip this
+default without re-testing live.</p></dd>
 
 
 <dt id="arg-refresh">refresh<a class="anchor" aria-label="anchor" href="#arg-refresh"></a></dt>

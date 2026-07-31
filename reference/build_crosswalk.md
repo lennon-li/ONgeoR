@@ -33,7 +33,15 @@ build_crosswalk(
     polygon is never "within" a point). In that case `build_crosswalk()`
     auto-corrects by joining `to` within `from` instead, emits an
     informative message, and builds the same output schema from the
-    corrected join.
+    corrected join. If `from` and `to` are both point layers,
+    containment has no meaningful direction to auto-correct (a point is
+    only within/intersects another point when exactly coincident), so
+    `build_crosswalk()` instead emits a warning and proceeds with the
+    join as-is; use
+    [`nearest()`](https://lennon-li.github.io/ONgeoR/reference/nearest.md)
+    or
+    [`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
+    for point-to-point matching.
 
   - `"point_on_surface"`: representative-point assignment for point-like
     `from` polygons. Each `from` polygon is reduced to a single

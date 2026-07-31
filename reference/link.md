@@ -40,7 +40,9 @@ link(source, target, predicate = c("within", "intersects", "contains"))
   `target` is geometrically degenerate (a polygon is never "within" a
   point): every row will be unmatched (NA), and `link()` emits a warning
   before running the join. The join still runs and the return shape is
-  unchanged.
+  unchanged. `predicate = "contains"` with a point `source` and polygon
+  `target` is the mirror case (a point never "contains" a polygon) and
+  warns the same way.
 
 ## Value
 

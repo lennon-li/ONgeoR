@@ -86,7 +86,10 @@ borders. For very complex geometry, simplify first
 <code>predicate = "within"</code> with a polygon <code>source</code> and point <code>target</code> is
 geometrically degenerate (a polygon is never "within" a point): every
 row will be unmatched (NA), and <code>link()</code> emits a warning before running
-the join. The join still runs and the return shape is unchanged.</p></dd>
+the join. The join still runs and the return shape is unchanged.
+<code>predicate = "contains"</code> with a point <code>source</code> and polygon <code>target</code> is
+the mirror case (a point never "contains" a polygon) and warns the same
+way.</p></dd>
 
 </dl></div>
     <div class="section level2">

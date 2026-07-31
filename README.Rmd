@@ -112,10 +112,21 @@ the appropriate operation. The table below is rendered from the same matrix
 that drives the Shiny app.
 
 ```{r link-matrix, echo = FALSE}
-pkgload::load_all(".", quiet = TRUE)
+library(ONgeoR)
 mat <- getFromNamespace("link_matrix_df", "ONgeoR")()
 knitr::kable(mat, format = "pipe")
 ```
+
+## Shiny app
+
+ONgeoR ships a point-and-click Shiny app launched with `ONgeoR::run_app()`.
+Select a Source layer and a Target layer, click **Preview on map**, then click
+**Join** to produce a downloadable crosswalk table — no R code required.
+
+![Link tab at startup](man/figures/app-link-tab.png)
+
+See `vignette("shiny-app", package = "ONgeoR")` for a full walkthrough with
+screenshots.
 
 ## Documentation
 

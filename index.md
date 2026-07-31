@@ -55,8 +55,7 @@ constant maintenance.
   [`map_layers()`](https://lennon-li.github.io/ONgeoR/reference/map_layers.md)
   and nearest-match maps with
   [`map_nearest()`](https://lennon-li.github.io/ONgeoR/reference/map_nearest.md)
-- Ships a Shiny app launched with
-  [`run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md)
+- Ships a Shiny app launched with `run_app()`
 
 See [ROADMAP.md](https://lennon-li.github.io/ONgeoR/ROADMAP.md) for
 planned additional sources and performance work.
@@ -155,19 +154,19 @@ that drives the Shiny app.
 
 ## Shiny app
 
-ONgeoR ships a point-and-click Shiny app launched with
-[`ONgeoR::run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md).
-Select a Source layer and a Target layer, click **Preview on map**, then
-click **Join** to produce a downloadable crosswalk table — no R code
-required.
+The point-and-click app lives in its own package,
+[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). Select a Source
+layer and a Target layer, click **Preview on map**, then **Join** to
+produce a downloadable crosswalk table — no R code required.
 
-![Link tab at startup](reference/figures/app-link-tab.png)
+``` r
 
-Link tab at startup
+pak::pkg_install("github::lennon-li/ONgeoRapp")
+ONgeoRapp::run_app()
+```
 
-See
-[`vignette("shiny-app", package = "ONgeoR")`](https://lennon-li.github.io/ONgeoR/articles/shiny-app.md)
-for a full walkthrough with screenshots.
+It was split out so that ONgeoR itself stays a lean data-and-linking
+package.
 
 ## Documentation
 
@@ -177,8 +176,7 @@ for a full walkthrough with screenshots.
   crosswalks](https://lennon-li.github.io/ONgeoR/vignettes/building-crosswalks.Rmd)
 - [Adding data
   sources](https://lennon-li.github.io/ONgeoR/vignettes/adding-data-sources.Rmd)
-- [Launching and using the Shiny
-  app](https://lennon-li.github.io/ONgeoR/vignettes/shiny-app.Rmd)
+- [Launching and using the app](https://github.com/lennon-li/ONgeoRapp)
 
 ## Data Sources
 

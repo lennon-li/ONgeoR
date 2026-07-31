@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ONgeoR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
 <li><a class="dropdown-item" href="articles/getting-started.html">Getting started with ONgeoR</a></li>
     <li><a class="dropdown-item" href="articles/building-crosswalks.html">Building geographic crosswalks</a></li>
     <li><a class="dropdown-item" href="articles/adding-data-sources.html">Adding a data source</a></li>
-    <li><a class="dropdown-item" href="articles/shiny-app.html">Launching and using the ONgeoR Shiny app</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -78,7 +77,7 @@
 <li>Generates auditable crosswalk tables with full provenance metadata via <code><a href="reference/build_crosswalk.html">build_crosswalk()</a></code>, including weighted apportionment; <code><a href="reference/build_intersection.html">build_intersection()</a></code> returns every overlapping polygon pair with area shares in one pass</li>
 <li>Draws interactive leaflet maps with <code><a href="reference/map_layers.html">map_layers()</a></code> and nearest-match maps with <code><a href="reference/map_nearest.html">map_nearest()</a></code>
 </li>
-<li>Ships a Shiny app launched with <code><a href="reference/run_app.html">run_app()</a></code>
+<li>Ships a Shiny app launched with <code>run_app()</code>
 </li>
 </ul>
 <p>See <a href="ROADMAP.html">ROADMAP.md</a> for planned additional sources and performance work.</p>
@@ -168,7 +167,7 @@
 <col width="6%">
 <col width="6%">
 <col width="16%">
-<col width="58%">
+<col width="59%">
 <col width="11%">
 </colgroup>
 <thead><tr>
@@ -248,10 +247,11 @@
 <div class="section level2">
 <h2 id="shiny-app">Shiny app<a class="anchor" aria-label="anchor" href="#shiny-app"></a>
 </h2>
-<p>ONgeoR ships a point-and-click Shiny app launched with <code><a href="reference/run_app.html">ONgeoR::run_app()</a></code>. Select a Source layer and a Target layer, click <strong>Preview on map</strong>, then click <strong>Join</strong> to produce a downloadable crosswalk table — no R code required.</p>
-<figure><img src="reference/figures/app-link-tab.png" alt="Link tab at startup"><figcaption aria-hidden="true">
-Link tab at startup
-</figcaption></figure><p>See <code><a href="articles/shiny-app.html">vignette("shiny-app", package = "ONgeoR")</a></code> for a full walkthrough with screenshots.</p>
+<p>The point-and-click app lives in its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link"><strong>ONgeoRapp</strong></a>. Select a Source layer and a Target layer, click <strong>Preview on map</strong>, then <strong>Join</strong> to produce a downloadable crosswalk table — no R code required.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"github::lennon-li/ONgeoRapp"</span><span class="op">)</span></span>
+<span><span class="fu">ONgeoRapp</span><span class="fu">::</span><span class="fu">run_app</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>It was split out so that ONgeoR itself stays a lean data-and-linking package.</p>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
@@ -260,7 +260,7 @@ Link tab at startup
 <li><a href="vignettes/getting-started.Rmd">Getting started</a></li>
 <li><a href="vignettes/building-crosswalks.Rmd">Building crosswalks</a></li>
 <li><a href="vignettes/adding-data-sources.Rmd">Adding data sources</a></li>
-<li><a href="vignettes/shiny-app.Rmd">Launching and using the Shiny app</a></li>
+<li><a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">Launching and using the app</a></li>
 </ul>
 </div>
 <div class="section level2">

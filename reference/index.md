@@ -97,13 +97,6 @@ Generate reproducible R scripts from a linking run.
 - [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
   : Render a reproducible R script for a CLI run
 
-## Shiny app
-
-Launch the interactive browser app.
-
-- [`run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md)
-  : Launch the ONgeoR Shiny app
-
 ## Data
 
 Built-in datasets bundled with the package.

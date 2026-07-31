@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ONgeoR</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,7 +21,6 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started with ONgeoR</a></li>
     <li><a class="dropdown-item" href="../articles/building-crosswalks.html">Building geographic crosswalks</a></li>
     <li><a class="dropdown-item" href="../articles/adding-data-sources.html">Adding a data source</a></li>
-    <li><a class="dropdown-item" href="../articles/shiny-app.html">Launching and using the ONgeoR Shiny app</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -40,6 +39,12 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.0" id="ongeor-040">ONgeoR 0.4.0<a class="anchor" aria-label="anchor" href="#ongeor-040"></a></h2>
+<ul><li>The Shiny app moves to its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>. <code>run_app()</code> is no longer exported from ONgeoR; install ONgeoRapp and call <code>ONgeoRapp::run_app()</code>. Nothing else changed — the app only ever used exported functions, so no linking, retrieval, or crosswalk behaviour is affected.</li>
+<li>
+<code>Suggests</code> drops <code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>shinytest2</code>, <code>chromote</code>, <code>future</code>, <code>later</code>, and <code>promises</code>, which moved with the app. This also removes the standing “detritus in the temp directory” <code>R CMD check</code> NOTE, which came from the browser smoke test.</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0.9000" id="ongeor-0309000">ONgeoR 0.3.0.9000<a class="anchor" aria-label="anchor" href="#ongeor-0309000"></a></h2>
 <ul><li>Add registry-driven LIO retrieval and 17 verified Ontario geography sources.</li>
 <li>Fix generalized geometry silently dropping small polygons. <code>maxAllowableOffset</code> was 10, but the service returns EPSG:4326, making that a ~1,100 km tolerance: Toronto, Peel, Halton, Hamilton, Windsor-Essex, Niagara, York, Ottawa and Middlesex-London all came back with zero area, and PHU boundaries totalled 646,394 km2 instead of 983,322 km2. Now 1e-04 degrees (~11 m).</li>
@@ -56,7 +61,8 @@
 <li>Duplicate id values in either layer now abort early in <code><a href="../reference/build_intersection.html">build_intersection()</a></code> and <code><a href="../reference/build_nearest_pairs.html">build_nearest_pairs()</a></code>, because <code><a href="../reference/summarise_by_target.html">summarise_by_target()</a></code> keys on <code>target_id</code> and two distinct features sharing an id would silently collapse.</li>
 <li>All changes are additive: <code><a href="../reference/build_crosswalk.html">build_crosswalk()</a></code> and its five methods (<code>within</code>, <code>intersects</code>, <code>point_on_surface</code>, <code>largest_overlap</code>, <code>weighted</code>) are unchanged and remain available for direct callers.</li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

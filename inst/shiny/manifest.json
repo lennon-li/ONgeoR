@@ -149,16 +149,16 @@
         "RemoteUsername": "lennon-li",
         "RemotePkgRef": "github::lennon-li/ONgeoR",
         "RemoteRef": "HEAD",
-        "RemoteSha": "bb1215d3c845d3c97808707853bb7f76a1e208a6",
+        "RemoteSha": "b2c33aff07b2da2e536acbb27a0d893c0d3573a3",
         "GithubRepo": "ONgeoR",
         "GithubUsername": "lennon-li",
         "GithubRef": "HEAD",
-        "GithubSHA1": "bb1215d3c845d3c97808707853bb7f76a1e208a6",
+        "GithubSHA1": "b2c33aff07b2da2e536acbb27a0d893c0d3573a3",
         "NeedsCompilation": "no",
-        "Packaged": "2026-07-30 23:15:39 UTC; yeli",
+        "Packaged": "2026-07-31 01:19:58 UTC; yeli",
         "Author": "Lennon Li [aut, cre]",
         "Maintainer": "Lennon Li <lennon.yeli@gmail.com>",
-        "Built": "R 4.6.1; ; 2026-07-30 23:15:40 UTC; unix"
+        "Built": "R 4.6.1; ; 2026-07-31 01:19:59 UTC; unix"
       }
     },
     "R6": {

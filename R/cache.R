@@ -113,9 +113,11 @@ cache_write <- function(key, sf_obj, meta) {
 #' @return Invisibly, the number of files removed.
 #'
 #' @examples
-#' if (interactive()) {
-#'   clear_cache()
-#'   clear_cache("phu_boundaries")
+#' \dontrun{
+#' # Not run: clear_cache() deletes the user's cached layers, which an
+#' # automated check must not do on their behalf.
+#' clear_cache()
+#' clear_cache("phu_boundaries")
 #' }
 #'
 #' @export
@@ -165,8 +167,9 @@ clear_cache <- function(source_id = NULL) {
 #'   age_days, file_size_kb -- one row per cached entry.
 #'
 #' @examples
-#' if (interactive()) {
-#'   list_cache()
+#' \dontrun{
+#' # Not run: list_cache() creates the cache directory as a side effect.
+#' list_cache()
 #' }
 #'
 #' @export

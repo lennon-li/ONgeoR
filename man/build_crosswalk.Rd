@@ -80,11 +80,9 @@ layers, not by a match-rule argument:
 }
 
 \examples{
-if (interactive()) {
-  upper_tier <- retrieve_municipal("upper")
-  phu <- retrieve_phu()
-  crosswalk <- build_crosswalk(upper_tier, phu, method = "within")
-}
+hive <- retrieve_hive()
+cells <- hive[hive$Level == "Level 3", ][1:50, ]
+build_crosswalk(cells, retrieve_phu_simple(), method = "within")
 
 }
 \seealso{

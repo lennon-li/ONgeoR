@@ -31,8 +31,9 @@ Retrieves Ontario Health Region boundaries from the LIO Open Data REST
 service (\code{LIO_Open09/52}).
 }
 \examples{
-if (interactive()) {
-  health_regions <- retrieve_health_region()
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+health_regions <- retrieve_health_region()
 }
 
 }

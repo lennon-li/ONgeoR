@@ -25,8 +25,9 @@ id, so callers can retrieve any registered layer without knowing which
 underlying retrieval function backs it.
 }
 \examples{
-if (interactive()) {
-  phu <- retrieve_source("phu_boundaries")
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+phu <- retrieve_source("phu_boundaries")
 }
 
 }

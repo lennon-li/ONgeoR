@@ -31,8 +31,9 @@ and other health service facilities) from the LIO Open Data REST service
 (\code{LIO_Open09/26}), optionally filtered by service type.
 }
 \examples{
-if (interactive()) {
-  hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
 }
 
 }

@@ -1,3 +1,24 @@
+#' Read a bundled sf layer from an .rds file
+#'
+#' The bundled layers are plain `readRDS()` reads that never call into sf, so
+#' nothing would otherwise load the sf namespace. Without it loaded, sf's S3
+#' methods are not registered and `[` falls through to `[.data.frame`, which
+#' silently degrades the geometry column from `sfc` to a bare list: the object
+#' still prints as `sf` and still carries an `sf_column` attribute, but the
+#' next spatial operation fails far from the cause with
+#' "attr(obj, \"sf_column\") does not point to a geometry column".
+#'
+#' Loading the namespace before handing the object back makes subsetting behave
+#' for callers who have not attached sf themselves.
+#'
+#' @return The `sf` object stored at `path`.
+#' @keywords internal
+#' @noRd
+read_bundled_sf <- function(path) {
+  loadNamespace("sf")
+  readRDS(path)
+}
+
 #' Retrieve Public Health Unit boundaries
 #'
 #' Retrieves Ontario Public Health Unit (PHU) boundaries from the LIO
@@ -19,8 +40,9 @@
 #'   `source_name`, and `retrieved_at` attributes attached for provenance.
 #'
 #' @examples
-#' if (interactive()) {
-#'   phu <- retrieve_phu()
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' phu <- retrieve_phu()
 #' }
 #'
 #' @export
@@ -55,8 +77,9 @@ retrieve_phu <- function(simplify = TRUE, refresh = FALSE, max_age = NULL) {
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
 #'
 #' @examples
-#' if (interactive()) {
-#'   health_regions <- retrieve_health_region()
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' health_regions <- retrieve_health_region()
 #' }
 #'
 #' @export
@@ -89,8 +112,9 @@ retrieve_health_region <- function(simplify = TRUE, refresh = FALSE, max_age = N
 #'   `source_name`, and `retrieved_at` attributes attached.
 #'
 #' @examples
-#' if (interactive()) {
-#'   upper_tier <- retrieve_municipal("upper")
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' upper_tier <- retrieve_municipal("upper")
 #' }
 #'
 #' @export
@@ -138,8 +162,9 @@ retrieve_municipal <- function(tier = c("upper", "lower"), simplify = TRUE,
 #'   `source_name`, and `retrieved_at` attributes attached.
 #'
 #' @examples
-#' if (interactive()) {
-#'   airports <- retrieve_airport()
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' airports <- retrieve_airport()
 #' }
 #'
 #' @export
@@ -175,8 +200,9 @@ retrieve_airport <- function(simplify = FALSE, refresh = FALSE, max_age = NULL) 
 #'   `source_url`, `source_name`, and `retrieved_at` attributes attached.
 #'
 #' @examples
-#' if (interactive()) {
-#'   waste_sites <- retrieve_waste_management()
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' waste_sites <- retrieve_waste_management()
 #' }
 #'
 #' @export
@@ -213,10 +239,8 @@ retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE, max_age
 #'   an NA-safe fallback.
 #'
 #' @examples
-#' if (interactive()) {
-#'   r <- retrieve_synthetic_raster()
-#'   terra::plot(r)
-#' }
+#' r <- retrieve_synthetic_raster()
+#' r
 #'
 #' @export
 retrieve_synthetic_raster <- function(refresh = FALSE) {
@@ -273,8 +297,9 @@ retrieve_synthetic_raster <- function(refresh = FALSE) {
 #'   `source_name`, and `retrieved_at` attributes attached.
 #'
 #' @examples
-#' if (interactive()) {
-#'   hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
 #' }
 #'
 #' @export
@@ -316,8 +341,9 @@ retrieve_moh_service_locations <- function(service_type = NULL,
 #'   provenance.
 #'
 #' @examples
-#' if (interactive()) {
-#'   ca_areas <- retrieve_conservation_authority()
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' ca_areas <- retrieve_conservation_authority()
 #' }
 #'
 #' @export
@@ -345,8 +371,9 @@ retrieve_conservation_authority <- function(simplify = TRUE, refresh = FALSE,
 #'   `source_name`, and `retrieved_at` attributes attached for provenance.
 #'
 #' @examples
-#' if (interactive()) {
-#'   stations <- retrieve_orwn_station()
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' stations <- retrieve_orwn_station()
 #' }
 #'
 #' @export
@@ -377,9 +404,8 @@ retrieve_orwn_station <- function(refresh = FALSE, max_age = NULL) {
 #'   `retrieved_at` attributes attached for provenance.
 #'
 #' @examples
-#' if (interactive()) {
-#'   hive <- retrieve_hive()
-#' }
+#' hive <- retrieve_hive()
+#' nrow(hive)
 #'
 #' @export
 retrieve_hive <- function(refresh = FALSE) {
@@ -390,7 +416,7 @@ retrieve_hive <- function(refresh = FALSE) {
       class = "ongeor_hive_missing"
     )
   }
-  readRDS(path)
+  read_bundled_sf(path)
 }
 
 #' @keywords internal
@@ -420,9 +446,8 @@ hive_data_path <- function() {
 #'   the full-resolution source.
 #'
 #' @examples
-#' if (interactive()) {
-#'   phu_simple <- retrieve_phu_simple()
-#' }
+#' phu_simple <- retrieve_phu_simple()
+#' nrow(phu_simple)
 #'
 #' @export
 retrieve_phu_simple <- function() {
@@ -433,7 +458,7 @@ retrieve_phu_simple <- function() {
       class = "ongeor_phu_simple_missing"
     )
   }
-  readRDS(path)
+  read_bundled_sf(path)
 }
 
 #' @keywords internal

@@ -19,11 +19,8 @@
 #'   warning lists all unmatched query values.
 #'
 #' @examples
-#' if (interactive()) {
-#'   airports <- retrieve_airport()
-#'   resolve(airports, "CYYZ")
-#'   resolve(airports, "toronto", by = "name")
-#' }
+#' phu <- retrieve_phu_simple()
+#' resolve(phu, "Toronto", by = "name")
 #'
 #' @export
 resolve <- function(layer, query,

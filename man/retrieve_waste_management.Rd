@@ -32,8 +32,9 @@ Retrieves waste management site boundaries from the LIO Open Data REST
 service (\code{LIO_Open08/9}).
 }
 \examples{
-if (interactive()) {
-  waste_sites <- retrieve_waste_management()
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+waste_sites <- retrieve_waste_management()
 }
 
 }

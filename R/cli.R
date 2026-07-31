@@ -17,8 +17,9 @@ NULL
 #'   `"synthetic_air_quality"`).
 #'
 #' @examples
-#' if (interactive()) {
-#'   phu <- retrieve_source("phu_boundaries")
+#' \dontrun{
+#' # Retrieves from the Ontario LIO REST service and caches the result.
+#' phu <- retrieve_source("phu_boundaries")
 #' }
 #'
 #' @export
@@ -139,12 +140,11 @@ cross_crosswalk <- function(from_ids, to_ids, refresh = FALSE,
 #' @return A `leaflet` htmlwidget.
 #'
 #' @examples
-#' if (interactive()) {
-#'   from_ids <- "municipal_upper"
-#'   to_ids <- "phu_boundaries"
-#'   layers <- retrieve_layers(c(from_ids, to_ids))
-#'   map_crosswalk(layers, from_ids, to_ids)
-#' }
+#' layers <- list(
+#'   hive = retrieve_hive()[1:50, ],
+#'   phu = retrieve_phu_simple()
+#' )
+#' map_crosswalk(layers, from_ids = "hive", to_ids = "phu")
 #'
 #' @export
 map_crosswalk <- function(layers, from_ids, to_ids) {

@@ -32,10 +32,7 @@ return the matching record(s) from a layer. By default matches an id column
 exactly or a name column by substring; either can be overridden.
 }
 \examples{
-if (interactive()) {
-  airports <- retrieve_airport()
-  resolve(airports, "CYYZ")
-  resolve(airports, "toronto", by = "name")
-}
+phu <- retrieve_phu_simple()
+resolve(phu, "Toronto", by = "name")
 
 }

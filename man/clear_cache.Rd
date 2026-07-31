@@ -20,9 +20,11 @@ cached entries are removed. Supplying a source id removes only entries whose
 cached metadata matches that source in the bundled source registry.
 }
 \examples{
-if (interactive()) {
-  clear_cache()
-  clear_cache("phu_boundaries")
+\dontrun{
+# Not run: clear_cache() deletes the user's cached layers, which an
+# automated check must not do on their behalf.
+clear_cache()
+clear_cache("phu_boundaries")
 }
 
 }

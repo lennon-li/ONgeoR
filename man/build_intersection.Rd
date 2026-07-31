@@ -32,10 +32,8 @@ returns one row per pair with area shares. Targets with no overlap at all
 receive one explicit all-NA-match row so every target feature is represented.
 }
 \examples{
-if (interactive()) {
-  municipal <- retrieve_municipal("upper")
-  phu <- retrieve_phu()
-  pairs <- build_intersection(municipal, phu)
-}
+hive <- retrieve_hive()
+cells <- hive[hive$Level == "Level 3", ][1:50, ]
+build_intersection(cells, retrieve_phu_simple())
 
 }

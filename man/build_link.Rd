@@ -38,10 +38,8 @@ layers, not by a match-rule argument:
 }
 
 \examples{
-if (interactive()) {
-  municipal <- retrieve_municipal("upper")
-  phu <- retrieve_phu()
-  result <- build_link(municipal, phu)
-}
+hive <- retrieve_hive()
+cells <- hive[hive$Level == "Level 3", ][1:50, ]
+build_link(cells, retrieve_phu_simple())
 
 }

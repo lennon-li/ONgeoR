@@ -24,8 +24,6 @@ polygons are drawn as filled outlines, points as circle markers. A
 Layers get a toggle in a layers-control.
 }
 \examples{
-if (interactive()) {
-  map_layers(retrieve_phu(), retrieve_moh_service_locations(service_type = "Hospital"))
-}
+map_layers(retrieve_phu_simple(), retrieve_hive()[1:50, ])
 
 }

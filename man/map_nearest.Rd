@@ -28,9 +28,7 @@ are drawn. If no target is within \code{max_dist_km}, the returned map contains
 the source points without target or connector layers.
 }
 \examples{
-if (interactive()) {
-  points <- data.frame(lon = -79.3832, lat = 43.6532)
-  map_nearest(points, retrieve_moh_service_locations(), k = 3)
-}
+points <- data.frame(lon = -79.3832, lat = 43.6532)
+map_nearest(points, retrieve_hive()[1:50, ], k = 3)
 
 }

@@ -17,3 +17,4 @@
 ^data$
 ^data-raw$
 ^README\.html$
+^cran-comments\.md$

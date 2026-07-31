@@ -32,9 +32,7 @@ south) plus two fixed Gaussian hotspots near Toronto and Ottawa. There is
 no random component, so two calls return identical rasters.
 }
 \examples{
-if (interactive()) {
-  r <- retrieve_synthetic_raster()
-  terra::plot(r)
-}
+r <- retrieve_synthetic_raster()
+r
 
 }

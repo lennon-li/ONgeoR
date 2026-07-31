@@ -38,10 +38,8 @@
 #'   including the raster sampling paths this function delegates to.
 #'
 #' @examples
-#' if (interactive()) {
-#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
-#'   result <- link(points, retrieve_phu())
-#' }
+#' points <- data.frame(lon = -79.3832, lat = 43.6532)
+#' link(points, retrieve_phu_simple())
 #'
 #' @export
 link <- function(source, target,
@@ -159,10 +157,8 @@ link <- function(source, target,
 #'   `ROADMAP.md`.
 #'
 #' @examples
-#' if (interactive()) {
-#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
-#'   result <- nearest(points, retrieve_moh_service_locations(), k = 3)
-#' }
+#' points <- data.frame(lon = -79.3832, lat = 43.6532)
+#' nearest(points, retrieve_hive()[1:50, ], k = 3)
 #'
 #' @export
 nearest <- function(source, target, k = 1, max_dist_km = NULL) {

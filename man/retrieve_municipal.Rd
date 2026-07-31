@@ -35,8 +35,9 @@ service, either the upper/district tier (\code{LIO_Open03/13}) or the
 lower/single tier (\code{LIO_Open03/14}).
 }
 \examples{
-if (interactive()) {
-  upper_tier <- retrieve_municipal("upper")
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+upper_tier <- retrieve_municipal("upper")
 }
 
 }

@@ -33,9 +33,7 @@ distance, optionally capped at \code{max_dist_km}. Use \code{k = Inf} with
 \code{max_dist_km} for a pure radius search.
 }
 \examples{
-if (interactive()) {
-  points <- data.frame(lon = -79.3832, lat = 43.6532)
-  result <- nearest(points, retrieve_moh_service_locations(), k = 3)
-}
+points <- data.frame(lon = -79.3832, lat = 43.6532)
+nearest(points, retrieve_hive()[1:50, ], k = 3)
 
 }

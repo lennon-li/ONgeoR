@@ -14,9 +14,7 @@
 #' @return A `leaflet` htmlwidget.
 #'
 #' @examples
-#' if (interactive()) {
-#'   map_layers(retrieve_phu(), retrieve_moh_service_locations(service_type = "Hospital"))
-#' }
+#' map_layers(retrieve_phu_simple(), retrieve_hive()[1:50, ])
 #'
 #' @export
 map_layers <- function(..., colors = NULL) {
@@ -158,10 +156,8 @@ build_nearest_layers <- function(source, target, k = 1, max_dist_km = NULL) {
 #' @return A `leaflet` htmlwidget.
 #'
 #' @examples
-#' if (interactive()) {
-#'   points <- data.frame(lon = -79.3832, lat = 43.6532)
-#'   map_nearest(points, retrieve_moh_service_locations(), k = 3)
-#' }
+#' points <- data.frame(lon = -79.3832, lat = 43.6532)
+#' map_nearest(points, retrieve_hive()[1:50, ], k = 3)
 #'
 #' @export
 map_nearest <- function(source, target, k = 1, max_dist_km = NULL) {

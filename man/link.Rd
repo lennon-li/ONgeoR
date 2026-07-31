@@ -44,10 +44,8 @@ targets via the package's raster linking model (rasters are reduced to
 vector geometries and delegated to the vector join path).
 }
 \examples{
-if (interactive()) {
-  points <- data.frame(lon = -79.3832, lat = 43.6532)
-  result <- link(points, retrieve_phu())
-}
+points <- data.frame(lon = -79.3832, lat = 43.6532)
+link(points, retrieve_phu_simple())
 
 }
 \seealso{

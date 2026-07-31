@@ -32,8 +32,9 @@ Retrieves Conservation Authority administrative area boundaries from the LIO
 Open Data REST service (\code{LIO_Open03/11}).
 }
 \examples{
-if (interactive()) {
-  ca_areas <- retrieve_conservation_authority()
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+ca_areas <- retrieve_conservation_authority()
 }
 
 }

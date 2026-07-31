@@ -32,8 +32,9 @@ Retrieves official airport boundaries from the LIO Open Data REST service
 (\code{LIO_Open05/0}).
 }
 \examples{
-if (interactive()) {
-  airports <- retrieve_airport()
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+airports <- retrieve_airport()
 }
 
 }

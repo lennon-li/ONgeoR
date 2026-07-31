@@ -14,8 +14,9 @@ age_days, file_size_kb -- one row per cached entry.
 Lists the source metadata currently stored in ONgeoR's on-disk cache.
 }
 \examples{
-if (interactive()) {
-  list_cache()
+\dontrun{
+# Not run: list_cache() creates the cache directory as a side effect.
+list_cache()
 }
 
 }

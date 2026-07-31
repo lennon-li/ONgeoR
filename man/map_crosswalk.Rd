@@ -23,11 +23,10 @@ as polygons and point layers are rendered as circle markers. Popups show the
 layer's guessed name field.
 }
 \examples{
-if (interactive()) {
-  from_ids <- "municipal_upper"
-  to_ids <- "phu_boundaries"
-  layers <- retrieve_layers(c(from_ids, to_ids))
-  map_crosswalk(layers, from_ids, to_ids)
-}
+layers <- list(
+  hive = retrieve_hive()[1:50, ],
+  phu = retrieve_phu_simple()
+)
+map_crosswalk(layers, from_ids = "hive", to_ids = "phu")
 
 }

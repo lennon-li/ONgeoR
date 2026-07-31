@@ -25,8 +25,7 @@ service: the data ships with the package as a static, pre-simplified
 that generated it from the author's source shapefile).
 }
 \examples{
-if (interactive()) {
-  hive <- retrieve_hive()
-}
+hive <- retrieve_hive()
+nrow(hive)
 
 }

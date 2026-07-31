@@ -30,8 +30,9 @@ Retrieves Ontario Public Health Unit (PHU) boundaries from the LIO
 Open Data REST service (\code{LIO_Open09/44}).
 }
 \examples{
-if (interactive()) {
-  phu <- retrieve_phu()
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+phu <- retrieve_phu()
 }
 
 }

@@ -21,11 +21,9 @@
 #'   No geometry column is ever emitted.
 #'
 #' @examples
-#' if (interactive()) {
-#'   municipal <- retrieve_municipal("upper")
-#'   phu <- retrieve_phu()
-#'   pairs <- build_intersection(municipal, phu)
-#' }
+#' hive <- retrieve_hive()
+#' cells <- hive[hive$Level == "Level 3", ][1:50, ]
+#' build_intersection(cells, retrieve_phu_simple())
 #'
 #' @export
 build_intersection <- function(source, target, min_overlap = 0) {
@@ -196,11 +194,15 @@ build_intersection <- function(source, target, min_overlap = 0) {
 #'   `share_of_target`, `share_of_source` are `NA`.
 #'
 #' @examples
-#' if (interactive()) {
-#'   stations <- retrieve_orwn_station()
-#'   airports <- retrieve_airport()
-#'   pairs <- build_nearest_pairs(stations, airports)
-#' }
+#' source <- sf::st_as_sf(
+#'   data.frame(id = c("s1", "s2"), lon = c(-79.4, -79.5), lat = c(43.6, 43.7)),
+#'   coords = c("lon", "lat"), crs = 4326
+#' )
+#' target <- sf::st_as_sf(
+#'   data.frame(id = c("t1", "t2"), lon = c(-79.41, -79.6), lat = c(43.61, 43.8)),
+#'   coords = c("lon", "lat"), crs = 4326
+#' )
+#' build_nearest_pairs(source, target)
 #'
 #' @export
 build_nearest_pairs <- function(source, target) {
@@ -327,10 +329,10 @@ build_nearest_pairs <- function(source, target) {
 #'   all `tgt_*` attributes, and provenance columns.
 #'
 #' @examples
-#' if (interactive()) {
-#'   pairs <- build_intersection(retrieve_municipal("upper"), retrieve_phu())
-#'   summary_tbl <- summarise_by_target(pairs)
-#' }
+#' hive <- retrieve_hive()
+#' cells <- hive[hive$Level == "Level 3", ][1:50, ]
+#' pairs <- build_intersection(cells, retrieve_phu_simple())
+#' summarise_by_target(pairs)
 #'
 #' @export
 summarise_by_target <- function(pairs) {
@@ -483,11 +485,9 @@ summarise_by_target <- function(pairs) {
 #' @eval link_matrix_roxygen()
 #'
 #' @examples
-#' if (interactive()) {
-#'   municipal <- retrieve_municipal("upper")
-#'   phu <- retrieve_phu()
-#'   result <- build_link(municipal, phu)
-#' }
+#' hive <- retrieve_hive()
+#' cells <- hive[hive$Level == "Level 3", ][1:50, ]
+#' build_link(cells, retrieve_phu_simple())
 #'
 #' @export
 build_link <- function(source, target) {

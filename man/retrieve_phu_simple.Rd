@@ -27,8 +27,7 @@ casting to \code{MULTIPOLYGON}.  The source data are distributed under the
 Open Government Licence - Ontario.
 }
 \examples{
-if (interactive()) {
-  phu_simple <- retrieve_phu_simple()
-}
+phu_simple <- retrieve_phu_simple()
+nrow(phu_simple)
 
 }

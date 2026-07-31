@@ -22,8 +22,9 @@ Retrieves railway station point locations from the Ontario Railway Network
 (ORWN) via the LIO Open Data REST service (\code{LIO_Open04/15}).
 }
 \examples{
-if (interactive()) {
-  stations <- retrieve_orwn_station()
+\dontrun{
+# Retrieves from the Ontario LIO REST service and caches the result.
+stations <- retrieve_orwn_station()
 }
 
 }

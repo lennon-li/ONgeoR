@@ -24,9 +24,9 @@ Collapses a pairs table (from \code{\link[=build_intersection]{build_intersectio
 multi-valued fields as \code{"; "}-delimited strings.
 }
 \examples{
-if (interactive()) {
-  pairs <- build_intersection(retrieve_municipal("upper"), retrieve_phu())
-  summary_tbl <- summarise_by_target(pairs)
-}
+hive <- retrieve_hive()
+cells <- hive[hive$Level == "Level 3", ][1:50, ]
+pairs <- build_intersection(cells, retrieve_phu_simple())
+summarise_by_target(pairs)
 
 }

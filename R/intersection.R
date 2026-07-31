@@ -335,85 +335,137 @@ build_nearest_pairs <- function(source, target) {
 #' @export
 summarise_by_target <- function(pairs) {
   target_ids <- unique(pairs$target_id)
+  split_pairs <- split(pairs, pairs$target_id)
+
+  n_targets <- length(target_ids)
+
+  res_target_id <- target_ids
+  res_target_name <- character(n_targets)
+  res_target_source <- character(n_targets)
+  res_n_source <- integer(n_targets)
+  res_source_ids <- character(n_targets)
+  res_source_names <- character(n_targets)
+  res_shares_of_target <- character(n_targets)
+  res_shares_of_source <- character(n_targets)
+  res_dominant_source_id <- character(n_targets)
+  res_dominant_source_name <- character(n_targets)
+  res_dominant_share_of_target <- numeric(n_targets)
+  res_covered_share <- numeric(n_targets)
+  res_match_distance_km <- numeric(n_targets)
 
   tgt_attr_cols <- grep("^tgt_", colnames(pairs), value = TRUE)
   src_attr_cols <- grep("^src_", colnames(pairs), value = TRUE)
 
-  rows <- lapply(target_ids, function(tid) {
-    if (is.na(tid)) {
-      sub <- pairs[is.na(pairs$target_id), , drop = FALSE]
-    } else {
-      sub <- pairs[pairs$target_id == tid & !is.na(pairs$source_id), , drop = FALSE]
-    }
-    all_sub <- pairs[!is.na(pairs$target_id) & pairs$target_id == tid, , drop = FALSE]
-    if (nrow(all_sub) == 0) all_sub <- pairs[is.na(pairs$target_id), , drop = FALSE]
+  src_attr_results <- lapply(src_attr_cols, function(col) character(n_targets))
+  names(src_attr_results) <- src_attr_cols
 
+  tgt_attr_results <- lapply(tgt_attr_cols, function(col) character(n_targets))
+  names(tgt_attr_results) <- tgt_attr_cols
+
+  res_source_url_source <- character(n_targets)
+  res_source_url_target <- character(n_targets)
+  res_retrieved_at <- vector("list", n_targets)
+  res_simplify_used <- character(n_targets)
+
+  for (i in seq_along(target_ids)) {
+    tid <- target_ids[i]
+    group_key <- if (is.na(tid)) "NA" else as.character(tid)
+    group <- split_pairs[[group_key]]
+
+    sub <- group[!is.na(group$source_id), , drop = FALSE]
     n_source <- nrow(sub)
 
+    res_target_name[i] <- group$target_name[1]
+    res_target_source[i] <- group$target_source[1]
+    res_n_source[i] <- n_source
+
     if (n_source == 0) {
-      tgt_vals <- if (nrow(all_sub) > 0) all_sub[1, tgt_attr_cols, drop = FALSE] else NULL
-      row <- tibble::tibble(
-        target_id = tid,
-        target_name = if (nrow(all_sub) > 0) all_sub$target_name[1] else NA_character_,
-        target_source = if (nrow(all_sub) > 0) all_sub$target_source[1] else NA_character_,
-        n_source = 0L,
-        source_ids = NA_character_,
-        source_names = NA_character_,
-        shares_of_target = NA_character_,
-        shares_of_source = NA_character_,
-        dominant_source_id = NA_character_,
-        dominant_source_name = NA_character_,
-        dominant_share_of_target = NA_real_,
-        covered_share = 0,
-        match_distance_km = NA_real_
-      )
+      res_source_ids[i] <- NA_character_
+      res_source_names[i] <- NA_character_
+      res_shares_of_target[i] <- NA_character_
+      res_shares_of_source[i] <- NA_character_
+      res_dominant_source_id[i] <- NA_character_
+      res_dominant_source_name[i] <- NA_character_
+      res_dominant_share_of_target[i] <- NA_real_
+      res_covered_share[i] <- 0
+      res_match_distance_km[i] <- NA_real_
+
       for (col in src_attr_cols) {
-        row[[col]] <- NA_character_
+        src_attr_results[[col]][i] <- NA_character_
       }
-      if (!is.null(tgt_vals)) {
-        row <- dplyr_bind_cols(row, tibble::as_tibble(tgt_vals))
+
+      for (col in tgt_attr_cols) {
+        tgt_attr_results[[col]][i] <- group[[col]][1]
       }
-      row$source_url_source <- if (nrow(all_sub) > 0) all_sub$source_url_source[1] else NA_character_
-      row$source_url_target <- if (nrow(all_sub) > 0) all_sub$source_url_target[1] else NA_character_
-      row$retrieved_at <- if (nrow(all_sub) > 0) all_sub$retrieved_at[1] else NA
-      row$simplify_used <- if (nrow(all_sub) > 0) all_sub$simplify_used[1] else NA
-      return(row)
-    }
 
-    shares_tgt <- sub$share_of_target
-    dominant_idx <- which.max(shares_tgt)
+      res_source_url_source[i] <- group$source_url_source[1]
+      res_source_url_target[i] <- group$source_url_target[1]
+      res_retrieved_at[[i]] <- group$retrieved_at[1]
+      res_simplify_used[i] <- group$simplify_used[1]
+    } else {
+      shares_tgt <- sub$share_of_target
+      all_na_shares <- all(is.na(shares_tgt))
+      dominant_idx <- if (all_na_shares) 1L else which.max(shares_tgt)
 
-    row <- tibble::tibble(
-      target_id = tid,
-      target_name = sub$target_name[1],
-      target_source = sub$target_source[1],
-      n_source = n_source,
-      source_ids = paste(sub$source_id, collapse = "; "),
-      source_names = paste(sub$source_name, collapse = "; "),
-      shares_of_target = paste(shares_tgt, collapse = "; "),
-      shares_of_source = paste(sub$share_of_source, collapse = "; "),
-      dominant_source_id = sub$source_id[dominant_idx],
-      dominant_source_name = sub$source_name[dominant_idx],
-      dominant_share_of_target = shares_tgt[dominant_idx],
-      covered_share = sum(shares_tgt, na.rm = TRUE),
-      match_distance_km = if (all(is.na(sub$match_distance_km))) {
+      res_source_ids[i] <- paste(sub$source_id, collapse = "; ")
+      res_source_names[i] <- paste(sub$source_name, collapse = "; ")
+      res_shares_of_target[i] <- paste(shares_tgt, collapse = "; ")
+      res_shares_of_source[i] <- paste(sub$share_of_source, collapse = "; ")
+      res_dominant_source_id[i] <- sub$source_id[dominant_idx]
+      res_dominant_source_name[i] <- sub$source_name[dominant_idx]
+      res_dominant_share_of_target[i] <- shares_tgt[dominant_idx]
+      res_covered_share[i] <- if (all_na_shares) 0 else sum(shares_tgt, na.rm = TRUE)
+      res_match_distance_km[i] <- if (all(is.na(sub$match_distance_km))) {
         NA_real_
       } else {
         sub$match_distance_km[dominant_idx]
       }
-    )
-    for (col in src_attr_cols) {
-      row[[col]] <- paste(as.character(sub[[col]]), collapse = "; ")
-    }
-    row <- dplyr_bind_cols(row, tibble::as_tibble(sub[1, tgt_attr_cols, drop = FALSE]))
-    row$source_url_source <- sub$source_url_source[1]
-    row$source_url_target <- sub$source_url_target[1]
-    row$retrieved_at <- sub$retrieved_at[1]
-    row$simplify_used <- sub$simplify_used[1]
-    row
-  })
 
-  do.call(rbind, rows)
+      for (col in src_attr_cols) {
+        src_attr_results[[col]][i] <- paste(as.character(sub[[col]]), collapse = "; ")
+      }
+
+      for (col in tgt_attr_cols) {
+        tgt_attr_results[[col]][i] <- sub[[col]][1]
+      }
+
+      res_source_url_source[i] <- sub$source_url_source[1]
+      res_source_url_target[i] <- sub$source_url_target[1]
+      res_retrieved_at[[i]] <- sub$retrieved_at[1]
+      res_simplify_used[i] <- sub$simplify_used[1]
+    }
+  }
+
+  result <- tibble::tibble(
+    target_id = res_target_id,
+    target_name = res_target_name,
+    target_source = res_target_source,
+    n_source = res_n_source,
+    source_ids = res_source_ids,
+    source_names = res_source_names,
+    shares_of_target = res_shares_of_target,
+    shares_of_source = res_shares_of_source,
+    dominant_source_id = res_dominant_source_id,
+    dominant_source_name = res_dominant_source_name,
+    dominant_share_of_target = res_dominant_share_of_target,
+    covered_share = res_covered_share,
+    match_distance_km = res_match_distance_km
+  )
+
+  for (col in src_attr_cols) {
+    result[[col]] <- src_attr_results[[col]]
+  }
+
+  for (col in tgt_attr_cols) {
+    result[[col]] <- tgt_attr_results[[col]]
+  }
+
+  result$source_url_source <- res_source_url_source
+  result$source_url_target <- res_source_url_target
+  result$retrieved_at <- do.call(c, res_retrieved_at)
+  result$simplify_used <- res_simplify_used
+
+  result
 }
 
 #' Link two layers with no method choice

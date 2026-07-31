@@ -406,3 +406,55 @@ test_that("nearest() disambiguates shared column names instead of failing", {
   expect_equal(nrow(res), nrow(a))
   expect_true(all(!is.na(res$distance_km)))
 })
+
+test_that("summarise_by_target output is stable across optimization", {
+  square <- function(x) sf::st_polygon(list(rbind(
+    c(x, 0), c(x + 1, 0), c(x + 1, 1), c(x, 1), c(x, 0)
+  )))
+  
+  source <- fixture_provenance(sf::st_sf(
+    SRC_ID = c("S1", "S2", "S3", "S4"),
+    SRC_NAME = c("Source A", "Source B", "Source C", "Source D"),
+    POP = c(100L, 200L, 300L, 400L),
+    geometry = sf::st_sfc(square(0), square(1), square(5), square(6), crs = 3347)
+  ))
+  
+  target <- fixture_provenance(sf::st_sf(
+    TGT_ID = c("T1", "T2", "T3"),
+    TGT_NAME = c("Target A", "Target B", "Target C"),
+    REGION = c("R1", "R2", "R3"),
+    geometry = sf::st_sfc(
+      sf::st_polygon(list(rbind(
+        c(0, 0), c(2.5, 0), c(2.5, 1), c(0, 1), c(0, 0)
+      ))),
+      sf::st_polygon(list(rbind(
+        c(5, 0), c(6, 0), c(6, 1), c(5, 1), c(5, 0)
+      ))),
+      sf::st_polygon(list(rbind(
+        c(10, 0), c(11, 0), c(11, 1), c(10, 1), c(10, 0)
+      ))),
+      crs = 3347
+    )
+  ))
+  
+  pairs <- build_intersection(source, target)
+  result <- summarise_by_target(pairs)
+  
+  expect_equal(nrow(result), 3)
+  expect_equal(result$target_id, c("T1", "T2", "T3"))
+  
+  t1 <- result[result$target_id == "T1", ]
+  expect_equal(t1$n_source, 2L)
+  expect_equal(t1$target_name, "Target A")
+  expect_equal(t1$tgt_REGION, "R1")
+  expect_true(t1$covered_share > 0)
+  
+  t2 <- result[result$target_id == "T2", ]
+  expect_equal(t2$n_source, 1L)
+  expect_equal(t2$source_ids, "S3")
+  
+  t3 <- result[result$target_id == "T3", ]
+  expect_equal(t3$n_source, 0L)
+  expect_true(is.na(t3$source_ids))
+  expect_equal(t3$covered_share, 0)
+})

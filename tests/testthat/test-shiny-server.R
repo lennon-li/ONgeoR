@@ -398,12 +398,12 @@ test_that("two point layers preview and join on the main tab as a nearest result
     expect_gt(nrow(cw_result$pairs), 0)
     expect_true(all(cw_result$pairs$relation == "nearest"))
     expect_equal(nrow(cw_result$pairs), nrow(points_b))
-    # CHARACTERIZATION of a Stage 1 bug: summarise_by_target() collapses a
-    # nearest pair table to 0 rows (which.max(NA) is integer(0) because nearest
-    # pairs carry NA share_of_target). The target-level table SHOULD have one
-    # row per target (nrow(points_b)); R/intersection.R is frozen for Stage 2,
-    # so this locks in current behaviour - flip it when that bug is fixed.
-    expect_equal(nrow(cw_result$crosswalk), 0)
+    # Was a characterization test for a real bug: summarise_by_target()
+    # collapsed a nearest pair table to 0 rows, because nearest pairs carry NA
+    # share_of_target and which.max(NA) is integer(0). That silently emptied the
+    # point-to-point mapping.csv download. Fixed, so this now asserts the
+    # one-row-per-target guarantee the function exists to provide.
+    expect_equal(nrow(cw_result$crosswalk), nrow(points_b))
   })
 })
 

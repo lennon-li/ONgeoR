@@ -32,6 +32,7 @@ render_reproducer_script("airport_official", "phu_boundaries", "output")
 Other app support interfaces:
 \code{\link[=build_nearest_layers]{build_nearest_layers()}},
 \code{\link[=extract_polygon_collection]{extract_polygon_collection()}},
-\code{\link[=guess_name_col]{guess_name_col()}}
+\code{\link[=guess_name_col]{guess_name_col()}},
+\code{\link[=render_postal_reproducer_script]{render_postal_reproducer_script()}}
 }
 \concept{app support interfaces}

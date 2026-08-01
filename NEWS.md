@@ -1,5 +1,8 @@
 # ONgeoR 0.4.0
 
+- Add `resolve_postal()` for checksum-verified OPCC M5 postal-code to
+  dissemination-area resolution, plus `render_postal_reproducer_script()`.
+
 - The Shiny app moves to its own package,
   [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp). `run_app()` is no longer
   exported from ONgeoR; install ONgeoRapp and call `ONgeoRapp::run_app()`.

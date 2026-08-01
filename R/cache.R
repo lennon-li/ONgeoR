@@ -38,9 +38,9 @@ cache_key <- function(source_name, service_layer, where, simplify,
   paste0(slug, "__", hash)
 }
 
-#' Read a cached sf object
+#' Read a cached object
 #'
-#' @return An `sf` object, or `NULL` if no cache file exists.
+#' @return An object, or `NULL` if no cache file exists.
 #' @keywords internal
 #' @noRd
 cache_read <- function(key) {
@@ -86,7 +86,7 @@ cache_is_stale <- function(age_days, max_age) {
   is.na(age_days) || age_days > max_age
 }
 
-#' Write an sf object and sidecar metadata to cache
+#' Write an object and sidecar metadata to cache
 #'
 #' @return Invisibly, `NULL`.
 #' @keywords internal

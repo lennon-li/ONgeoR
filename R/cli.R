@@ -208,6 +208,41 @@ render_reproducer_script <- function(from_ids, to_ids, output_dir,
   )
 }
 
+#' Render a postal-code reproducer script
+#'
+#' @param input_file Character scalar path to the user's input file.
+#' @param postal_col Character scalar naming the postal-code column in the
+#'   input file.
+#' @param output_dir Character scalar output directory.
+#'
+#' @return A character scalar containing valid R code.
+#'
+#' @examples
+#' render_postal_reproducer_script("records.csv", "postal_code", tempdir())
+#'
+#' @family app support interfaces
+#' @export
+render_postal_reproducer_script <- function(input_file, postal_col, output_dir) {
+  paste0(
+    "library(ONgeoR)\n\n",
+    "# Point this at your own input file.\n",
+    "input_file <- ", deparse_chr(input_file), "\n",
+    "postal_col <- ", deparse_chr(postal_col), "\n",
+    "output_dir <- ", deparse_chr(output_dir), "\n\n",
+    "records <- utils::read.csv(input_file, stringsAsFactors = FALSE, ",
+    "check.names = FALSE)\n",
+    "postal_links <- resolve_postal(records[[postal_col]], all_links = TRUE)\n",
+    "joined <- merge(\n",
+    "  records, postal_links,\n",
+    "  by.x = postal_col, by.y = \"postal_code\",\n",
+    "  all.x = TRUE, sort = FALSE\n",
+    ")\n\n",
+    "dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\n",
+    "utils::write.csv(joined, file.path(output_dir, \"postal_da.csv\"), ",
+    "row.names = FALSE)\n"
+  )
+}
+
 source_retrieve_call <- function(source_id) {
   switch(source_id,
     phu_boundaries = "retrieve_phu()",

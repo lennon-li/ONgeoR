@@ -51,6 +51,7 @@ reference:
     desc: "Resolve records by identifier or name."
     contents:
       - resolve
+      - resolve_postal
       - guess_name_col
 
   - title: "Map"
@@ -76,6 +77,7 @@ reference:
     desc: "Generate reproducible R scripts from a linking run."
     contents:
       - render_reproducer_script
+      - render_postal_reproducer_script
 
   - title: "Data"
     desc: "Built-in datasets bundled with the package."

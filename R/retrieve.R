@@ -386,6 +386,39 @@ retrieve_orwn_station <- function(refresh = FALSE, max_age = NULL) {
   )
 }
 
+#' Retrieve monitoring station points
+#'
+#' Retrieves Ontario water and weather monitoring station point locations from
+#' the LIO Open Data REST service (`LIO_Open08/30`).
+#'
+#' @param simplify Logical. If `TRUE` (the default), requests generalized
+#'   geometry from the service. Monitoring stations are point features, so
+#'   simplification has no visible effect but is kept for consistency with
+#'   the other LIO retrievers.
+#' @param refresh Logical. If `TRUE`, bypasses any cached copy and re-fetches
+#'   from the live API. Defaults to `FALSE`.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
+#'   older entries are re-fetched. Defaults to `NULL`.
+#'
+#' @return An `sf` object of monitoring station points, with `source_url`,
+#'   `source_name`, and `retrieved_at` attributes attached for provenance.
+#'
+#' @examples
+#' \dontrun{
+#' stations <- retrieve_monitoring_stations()
+#' }
+#'
+#' @export
+retrieve_monitoring_stations <- function(simplify = TRUE, refresh = FALSE,
+                                         max_age = NULL) {
+  fetch_lio_sf(
+    service_layer = "LIO_Open08/30",
+    source_name = "Monitoring Station Point",
+    simplify = simplify,
+    refresh = refresh, max_age = max_age
+  )
+}
+
 #' Retrieve HIVE Grid boundaries
 #'
 #' Returns the built-in HIVE Grid dataset, a custom hierarchical polygon
@@ -465,4 +498,44 @@ retrieve_phu_simple <- function() {
 #' @noRd
 phu_simple_data_path <- function() {
   system.file("extdata", "phu_simple.rds", package = "ONgeoR")
+}
+
+#' Retrieve bundled monitoring station points
+#'
+#' Returns the built-in monitoring station point layer shipped in
+#' `inst/extdata/monitoring_stations.rds`. This layer is intended for examples
+#' and tests that need a real point-in-polygon join with no network access.
+#' It is NOT a substitute for [retrieve_monitoring_stations()]: use
+#' [retrieve_monitoring_stations()] when you need up-to-date, authoritative
+#' monitoring station locations.
+#'
+#' The built-in file was downloaded from the Esri Hub export endpoint for LIO
+#' layer `LIO_Open08/30` and subset to six columns to fit the CRAN package
+#' size budget. The source data are published by the Ontario Ministry of
+#' Natural Resources and Forestry under the Open Government Licence - Ontario.
+#'
+#' @return An `sf` object of monitoring station points (`OGF_ID`,
+#'   `STATION_NAME`, `STATION_IDENT`, `NETWORK_NAME`, `DATA_COLLECTION_METHOD`,
+#'   `geometry` columns) in EPSG:4326.
+#'
+#' @examples
+#' stations <- retrieve_monitoring_stations_simple()
+#' nrow(stations)
+#'
+#' @export
+retrieve_monitoring_stations_simple <- function() {
+  path <- monitoring_stations_data_path()
+  if (!nzchar(path)) {
+    rlang::abort(
+      "monitoring_stations.rds is missing from the installed ONgeoR package; reinstall ONgeoR.",
+      class = "ongeor_monitoring_stations_missing"
+    )
+  }
+  read_bundled_sf(path)
+}
+
+#' @keywords internal
+#' @noRd
+monitoring_stations_data_path <- function() {
+  system.file("extdata", "monitoring_stations.rds", package = "ONgeoR")
 }

@@ -89,6 +89,16 @@ sources:
     license: "Open Government Licence - Ontario"
     source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open04/MapServer/15"
 
+  monitoring_stations:
+    name: "Monitoring Station Point"
+    service_layer: "LIO_Open08/30"
+    geography_type: "facility"
+    feature_count: 2407
+    update_frequency: "unknown"
+    key_fields: ["STATION_NAME", "STATION_IDENT", "NETWORK_NAME"]
+    license: "Open Government Licence - Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open08/MapServer/30"
+
   synthetic_air_quality:
     name: "Synthetic Air Quality Surface (PM2.5)"
     geography_type: "raster"
@@ -105,6 +115,15 @@ sources:
     key_fields: ["GRID_ID", "Level", "HIVE_ID"]
     license: "Author-maintained (custom)"
     source_url: "builtin://ongeor/hive"
+
+  monitoring_stations_simple:
+    name: "Monitoring Station Point (bundled snapshot)"
+    geography_type: "facility"
+    feature_count: 2407
+    update_frequency: "unknown"
+    key_fields: ["STATION_NAME", "STATION_IDENT", "NETWORK_NAME"]
+    license: "Open Government Licence - Ontario"
+    source_url: "builtin://ongeor/monitoring_stations"
 
   built_up_area:
     name: "Built Up Area"

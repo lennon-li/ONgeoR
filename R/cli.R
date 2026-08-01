@@ -36,6 +36,8 @@ retrieve_source <- function(source_id, refresh = FALSE, max_age = NULL) {
     hive = retrieve_hive(refresh = refresh),
     conservation_authority = retrieve_conservation_authority(refresh = refresh),
     orwn_station = retrieve_orwn_station(refresh = refresh),
+    monitoring_stations = retrieve_monitoring_stations(refresh = refresh),
+    monitoring_stations_simple = retrieve_monitoring_stations_simple(),
     {
       valid_ids <- list_sources()$source_id
       if (source_id %in% valid_ids) {
@@ -217,6 +219,8 @@ source_retrieve_call <- function(source_id) {
     moh_service_locations = "retrieve_moh_service_locations()",
     conservation_authority = "retrieve_conservation_authority()",
     orwn_station = "retrieve_orwn_station()",
+    monitoring_stations = "retrieve_monitoring_stations()",
+    monitoring_stations_simple = "retrieve_monitoring_stations_simple()",
     synthetic_air_quality = "retrieve_synthetic_raster()",
     hive = "retrieve_hive()",
     {

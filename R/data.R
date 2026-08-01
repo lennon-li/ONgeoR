@@ -32,3 +32,39 @@
 #' @name hive
 #' @keywords internal
 NULL
+
+#' Monitoring Station Point (bundled snapshot)
+#'
+#' @description
+#' A bundled snapshot of Ontario water and weather monitoring station point
+#' locations from LIO layer `LIO_Open08/30`, shipped as
+#' `inst/extdata/monitoring_stations.rds` and accessed via
+#' [retrieve_monitoring_stations_simple()]. For up-to-date retrieval from the
+#' live LIO service, use [retrieve_monitoring_stations()] instead.
+#'
+#' @details
+#' Columns:
+#' \describe{
+#'   \item{OGF_ID}{Ontario Geo Fabric identifier.}
+#'   \item{STATION_NAME}{Station name.}
+#'   \item{STATION_IDENT}{Station identifier.}
+#'   \item{NETWORK_NAME}{Name of the monitoring network the station belongs to.}
+#'   \item{DATA_COLLECTION_METHOD}{Data collection method.}
+#'   \item{geometry}{`POINT` geometry, EPSG:4326.}
+#' }
+#'
+#' The dataset contains 2407 features.
+#' See `data-raw/monitoring_stations.R` for the reproducible preparation
+#' pipeline (download, column selection) used to generate
+#' `inst/extdata/monitoring_stations.rds`.
+#'
+#' @section Provenance:
+#' Published by the Ontario Ministry of Natural Resources and Forestry.
+#'
+#' @section Licence:
+#' Open Government Licence - Ontario.
+#'
+#' @seealso [retrieve_monitoring_stations_simple()]
+#' @name monitoring_stations
+#' @keywords internal
+NULL

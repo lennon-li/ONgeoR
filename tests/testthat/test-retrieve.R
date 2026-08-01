@@ -46,6 +46,15 @@ synthetic_orwn_station_geojson <- paste0(
   "]}"
 )
 
+synthetic_monitoring_stations_geojson <- paste0(
+  '{"type":"FeatureCollection","features":[',
+  '{"type":"Feature","properties":{"OGF_ID":1,"STATION_NAME":"Test Station A","STATION_IDENT":"TS001","NETWORK_NAME":"Hydrometric","DATA_COLLECTION_METHOD":"Auto"},',
+  '"geometry":{"type":"Point","coordinates":[-79.38,43.64]}},',
+  '{"type":"Feature","properties":{"OGF_ID":2,"STATION_NAME":"Test Station B","STATION_IDENT":"TS002","NETWORK_NAME":"Weather","DATA_COLLECTION_METHOD":"Manual"},',
+  '"geometry":{"type":"Point","coordinates":[-78.86,43.90]}}',
+  "]}"
+)
+
 synthetic_point_geojson <- function(ids, truncated = FALSE) {
   features <- vapply(ids, function(id) {
     paste0(
@@ -782,4 +791,59 @@ test_that("fetch_lio_sf aborts on an empty truncated page", {
   )
   expect_equal(calls, 1)
   expect_match(conditionMessage(error), "empty truncated page", fixed = TRUE)
+})
+
+test_that("retrieve_monitoring_stations returns an sf object with provenance attributes", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  stations <- httr2::with_mocked_responses(
+    mock_geojson_response(synthetic_monitoring_stations_geojson),
+    retrieve_monitoring_stations()
+  )
+
+  expect_s3_class(stations, "sf")
+  expect_equal(nrow(stations), 2)
+  expect_true(all(c("STATION_NAME", "STATION_IDENT", "NETWORK_NAME") %in% colnames(stations)))
+  expect_false(is.null(attr(stations, "source_url")))
+  expect_false(is.null(attr(stations, "source_name")))
+  expect_false(is.null(attr(stations, "retrieved_at")))
+  expect_equal(attr(stations, "source_name"), "Monitoring Station Point")
+  expect_match(attr(stations, "source_url"), "LIO_Open08/MapServer/30")
+})
+
+test_that("retrieve_monitoring_stations_simple returns an sf object of POINT geometry", {
+  stations <- retrieve_monitoring_stations_simple()
+
+  expect_s3_class(stations, "sf")
+  expect_true(all(
+    c("OGF_ID", "STATION_NAME", "STATION_IDENT", "NETWORK_NAME",
+      "DATA_COLLECTION_METHOD", "geometry") %in% colnames(stations)
+  ))
+  expect_true(all(sf::st_geometry_type(stations) == "POINT"))
+})
+
+test_that("bundled monitoring stations survive subsetting", {
+  stations <- retrieve_monitoring_stations_simple()
+  subset <- stations[stations$DATA_COLLECTION_METHOD == "Auto", ]
+  expect_s3_class(sf::st_geometry(subset), "sfc")
+})
+
+# The test above documents the behaviour but cannot enforce it. sf is not in
+# this package's NAMESPACE imports, so it is not loaded on package load - but
+# every test file that sorts before this one (test-cache.R, test-link.R and
+# four others) calls sf::, which loads the namespace. By the time the check
+# above runs, sf's S3 methods are registered and `[` dispatches correctly even
+# if read_bundled_sf() were reduced back to a bare readRDS(). It passes either
+# way, which makes it worthless as a guard.
+#
+# Assert the guarantee at its source instead. This is white-box and will need
+# updating if read_bundled_sf() is rewritten - that is the point: the load must
+# be a deliberate, visible decision, because dropping it reintroduces a bug
+# that silently degrades every bundled layer's geometry column to a bare list
+# and surfaces far from the cause (fixed in 33ad227).
+test_that("read_bundled_sf loads the sf namespace before returning", {
+  body_text <- paste(deparse(body(read_bundled_sf)), collapse = " ")
+  expect_match(body_text, "loadNamespace", fixed = TRUE)
+  expect_match(body_text, "sf", fixed = TRUE)
 })

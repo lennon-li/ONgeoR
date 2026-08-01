@@ -22,6 +22,10 @@ Functions to retrieve Ontario spatial layers from authoritative sources.
   : Retrieve Ontario Railway Network (ORWN) station points
 - [`retrieve_waste_management()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_waste_management.md)
   : Retrieve waste management site boundaries
+- [`retrieve_monitoring_stations()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations.md)
+  : Retrieve monitoring station points
+- [`retrieve_monitoring_stations_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_simple.md)
+  : Retrieve bundled monitoring station points
 - [`retrieve_hive()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_hive.md)
   : Retrieve HIVE Grid boundaries
 - [`retrieve_synthetic_raster()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_synthetic_raster.md)

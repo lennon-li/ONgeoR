@@ -28,6 +28,8 @@ reference:
       - retrieve_conservation_authority
       - retrieve_orwn_station
       - retrieve_waste_management
+      - retrieve_monitoring_stations
+      - retrieve_monitoring_stations_simple
       - retrieve_hive
       - retrieve_synthetic_raster
       - retrieve_source

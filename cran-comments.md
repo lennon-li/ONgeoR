@@ -34,6 +34,12 @@ Expected; this is the package's first submission to CRAN.
 - Retrieval failures raise a classed `ongeor_retrieval_error` condition with an
   informative message, so the package fails gracefully when the service is
   unavailable.
+- Four strings in the vignettes point at `https://example.invalid/...`. These
+  are placeholder values assigned to a `source_url` attribute inside code
+  chunks, not links. `.invalid` is reserved by RFC 2606 precisely so that it
+  never resolves, which is why it was chosen; `urlchecker::url_check()` reports
+  them because it scans text without distinguishing a string literal from a
+  hyperlink.
 
 ## Downstream dependencies
 

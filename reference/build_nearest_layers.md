@@ -44,6 +44,7 @@ no matches; and `table`, the tibble returned by
 Other app support interfaces:
 [`extract_polygon_collection()`](https://lennon-li.github.io/ONgeoR/reference/extract_polygon_collection.md),
 [`guess_name_col()`](https://lennon-li.github.io/ONgeoR/reference/guess_name_col.md),
+[`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md),
 [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
 
 ## Examples

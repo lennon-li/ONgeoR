@@ -563,14 +563,15 @@ which is exactly the situation a user would misread as a broken app.
 These are data-governance or scope questions, not implementation tasks.
 
 - **Postal-code resolution** — design decided 2026-07-16 (no PCCF
-  required): `resolve_postal()` on free centroids with an optional
-  BYO-PCCF seam, output feeding the normal linking verbs. Centroid
-  source pending one decision: GeoNames (0.27 km median deviation) vs
-  the OPCC project’s NAR-derived open centroids (100% SLI coverage, ~0
-  km median; OPCC M2 correspondence table closed 2026-07-18). Awaiting
-  Lennon’s go. **Deliberately parked (2026-07-20, Lennon)** — excluded
-  from the v0.3 P1 cleanup pass; revisit when Lennon picks a centroid
-  source.
+  required):
+  [`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md)
+  on free centroids with an optional BYO-PCCF seam, output feeding the
+  normal linking verbs. Centroid source pending one decision: GeoNames
+  (0.27 km median deviation) vs the OPCC project’s NAR-derived open
+  centroids (100% SLI coverage, ~0 km median; OPCC M2 correspondence
+  table closed 2026-07-18). Awaiting Lennon’s go. **Deliberately parked
+  (2026-07-20, Lennon)** — excluded from the v0.3 P1 cleanup pass;
+  revisit when Lennon picks a centroid source.
 
 ## Task discipline
 

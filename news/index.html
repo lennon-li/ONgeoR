@@ -40,9 +40,9 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="ongeor-040">ONgeoR 0.4.0<a class="anchor" aria-label="anchor" href="#ongeor-040"></a></h2>
-<ul><li>The Shiny app moves to its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>. <code>run_app()</code> is no longer exported from ONgeoR; install ONgeoRapp and call <code>ONgeoRapp::run_app()</code>. Nothing else changed — the app only ever used exported functions, so no linking, retrieval, or crosswalk behaviour is affected.</li>
-<li>
-<code>Suggests</code> drops <code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>shinytest2</code>, <code>chromote</code>, <code>future</code>, <code>later</code>, and <code>promises</code>, which moved with the app. This also removes the standing “detritus in the temp directory” <code>R CMD check</code> NOTE, which came from the browser smoke test.</li>
+<ul><li><p>Add <code><a href="../reference/resolve_postal.html">resolve_postal()</a></code> for checksum-verified OPCC M5 postal-code to dissemination-area resolution, plus <code><a href="../reference/render_postal_reproducer_script.html">render_postal_reproducer_script()</a></code>.</p></li>
+<li><p>The Shiny app moves to its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>. <code>run_app()</code> is no longer exported from ONgeoR; install ONgeoRapp and call <code>ONgeoRapp::run_app()</code>. Nothing else changed — the app only ever used exported functions, so no linking, retrieval, or crosswalk behaviour is affected.</p></li>
+<li><p><code>Suggests</code> drops <code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>shinytest2</code>, <code>chromote</code>, <code>future</code>, <code>later</code>, and <code>promises</code>, which moved with the app. This also removes the standing “detritus in the temp directory” <code>R CMD check</code> NOTE, which came from the browser smoke test.</p></li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0.9000" id="ongeor-0309000">ONgeoR 0.3.0.9000<a class="anchor" aria-label="anchor" href="#ongeor-0309000"></a></h2>

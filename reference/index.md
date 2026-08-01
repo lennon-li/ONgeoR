@@ -62,6 +62,8 @@ Resolve records by identifier or name.
 
 - [`resolve()`](https://lennon-li.github.io/ONgeoR/reference/resolve.md)
   : Resolve records from a layer by an identifier or name
+- [`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md)
+  : Resolve Ontario postal codes to dissemination areas
 - [`guess_name_col()`](https://lennon-li.github.io/ONgeoR/reference/guess_name_col.md)
   : Guess a name column in an sf/data.frame layer
 
@@ -100,6 +102,8 @@ Generate reproducible R scripts from a linking run.
 
 - [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
   : Render a reproducible R script for a CLI run
+- [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md)
+  : Render a postal-code reproducer script
 
 ## Data
 

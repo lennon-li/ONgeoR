@@ -2,12 +2,19 @@
 
 ## ONgeoR 0.4.0
 
+- Add
+  [`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md)
+  for checksum-verified OPCC M5 postal-code to dissemination-area
+  resolution, plus
+  [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md).
+
 - The Shiny app moves to its own package,
   [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp). `run_app()` is no
   longer exported from ONgeoR; install ONgeoRapp and call
   `ONgeoRapp::run_app()`. Nothing else changed — the app only ever used
   exported functions, so no linking, retrieval, or crosswalk behaviour
   is affected.
+
 - `Suggests` drops `shiny`, `bslib`, `DT`, `shinytest2`, `chromote`,
   `future`, `later`, and `promises`, which moved with the app. This also
   removes the standing “detritus in the temp directory” `R CMD check`

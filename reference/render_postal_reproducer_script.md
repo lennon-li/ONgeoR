@@ -5,7 +5,12 @@ Render a postal-code reproducer script
 ## Usage
 
 ``` r
-render_postal_reproducer_script(input_file, postal_col, output_dir)
+render_postal_reproducer_script(
+  input_file,
+  postal_col,
+  output_dir,
+  all_links = TRUE
+)
 ```
 
 ## Arguments
@@ -21,6 +26,14 @@ render_postal_reproducer_script(input_file, postal_col, output_dir)
 - output_dir:
 
   Character scalar output directory.
+
+- all_links:
+
+  Logical scalar passed through to
+  [`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md).
+  The default `TRUE` writes every dissemination-area link, which can
+  give a record more than one output row; `FALSE` keeps one best link
+  per postal code so the row count of the input is preserved.
 
 ## Value
 
@@ -38,5 +51,5 @@ Other app support interfaces:
 
 ``` r
 render_postal_reproducer_script("records.csv", "postal_code", tempdir())
-#> [1] "library(ONgeoR)\n\n# Point this at your own input file.\ninput_file <- \"records.csv\"\npostal_col <- \"postal_code\"\noutput_dir <- \"/tmp/RtmpN82p4n\"\n\nrecords <- utils::read.csv(input_file, stringsAsFactors = FALSE, check.names = FALSE)\npostal_links <- resolve_postal(records[[postal_col]], all_links = TRUE)\njoined <- merge(\n  records, postal_links,\n  by.x = postal_col, by.y = \"postal_code\",\n  all.x = TRUE, sort = FALSE\n)\n\ndir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\nutils::write.csv(joined, file.path(output_dir, \"postal_da.csv\"), row.names = FALSE)\n"
+#> [1] "library(ONgeoR)\n\n# Point this at your own input file.\ninput_file <- \"records.csv\"\npostal_col <- \"postal_code\"\noutput_dir <- \"/tmp/Rtmp3ChnCU\"\n\nrecords <- utils::read.csv(input_file, stringsAsFactors = FALSE, check.names = FALSE)\n\n# resolve_postal() reports codes in the correspondence's own format, so\n# the join key has to be normalized on this side too. Joining on the raw\n# column silently drops every code that was not already typed as \"A1A 1A1\".\n# resolve_postal() returns a row per input, so it is asked for each\n# distinct code once. Passing the column as-is would put duplicate keys\n# on both sides of the merge and multiply the rows.\nrecords[[\".postal_key\"]] <- normalize_postal_code(records[[postal_col]])\npostal_links <- resolve_postal(unique(records[[\".postal_key\"]]), all_links = TRUE)\njoined <- merge(\n  records, postal_links,\n  by.x = \".postal_key\", by.y = \"postal_code\",\n  all.x = TRUE, sort = FALSE\n)\njoined[[\".postal_key\"]] <- NULL\n\ndir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\nutils::write.csv(joined, file.path(output_dir, \"postal_da.csv\"), row.names = FALSE)\n"
 ```

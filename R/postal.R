@@ -88,6 +88,22 @@ opcc_m5_correspondence <- function() {
   list(data = data, meta = meta)
 }
 
+#' Normalize postal codes to the correspondence's own format
+#'
+#' Uppercases, strips whitespace, and re-inserts a single space in the middle
+#' of a six-character code, producing the `"A1A 1A1"` form that
+#' [resolve_postal()] reports in its `postal_code` column. Use it to build a
+#' join key on your own records: joining on the column as typed silently drops
+#' every code that was not already in that exact form.
+#'
+#' @param x Character vector of postal codes.
+#'
+#' @return A character vector the same length as `x`.
+#'
+#' @examples
+#' normalize_postal_code(c("m5v3a8", "M5V 3A8", " m5v 3a8 "))
+#'
+#' @export
 normalize_postal_code <- function(x) {
   compact <- toupper(gsub("[[:space:]]", "", x))
   valid_length <- !is.na(compact) & nchar(compact) == 6L

@@ -4,7 +4,12 @@
 \alias{render_postal_reproducer_script}
 \title{Render a postal-code reproducer script}
 \usage{
-render_postal_reproducer_script(input_file, postal_col, output_dir)
+render_postal_reproducer_script(
+  input_file,
+  postal_col,
+  output_dir,
+  all_links = TRUE
+)
 }
 \arguments{
 \item{input_file}{Character scalar path to the user's input file.}
@@ -13,6 +18,11 @@ render_postal_reproducer_script(input_file, postal_col, output_dir)
 input file.}
 
 \item{output_dir}{Character scalar output directory.}
+
+\item{all_links}{Logical scalar passed through to \code{\link[=resolve_postal]{resolve_postal()}}. The
+default \code{TRUE} writes every dissemination-area link, which can give a
+record more than one output row; \code{FALSE} keeps one best link per postal
+code so the row count of the input is preserved.}
 }
 \value{
 A character scalar containing valid R code.

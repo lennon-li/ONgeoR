@@ -52,6 +52,7 @@ reference:
     contents:
       - resolve
       - resolve_postal
+      - normalize_postal_code
       - guess_name_col
 
   - title: "Map"

@@ -151,3 +151,37 @@ test_that("render_postal_reproducer_script returns a runnable template", {
   expect_match(script, "merge", fixed = TRUE)
   expect_true(all(charToRaw(script) < as.raw(128)))
 })
+
+test_that("normalize_postal_code produces the correspondence's own format", {
+  expect_equal(
+    normalize_postal_code(c("m5v3a8", "M5V 3A8", " m5v 3a8 ", "M5V3A8")),
+    rep("M5V 3A8", 4L)
+  )
+})
+
+test_that("the reproducer joins on a normalized key, not the raw column", {
+  script <- render_postal_reproducer_script("records.csv", "postal", tempdir())
+
+  expect_match(script, "normalize_postal_code(records[[postal_col]])", fixed = TRUE)
+  expect_match(script, "by.x = \".postal_key\"", fixed = TRUE)
+  expect_false(grepl("by.x = postal_col", script, fixed = TRUE))
+})
+
+test_that("render_postal_reproducer_script carries all_links through", {
+  expect_match(
+    render_postal_reproducer_script("records.csv", "postal", tempdir()),
+    "all_links = TRUE", fixed = TRUE
+  )
+  expect_match(
+    render_postal_reproducer_script(
+      "records.csv", "postal", tempdir(), all_links = FALSE
+    ),
+    "all_links = FALSE", fixed = TRUE
+  )
+  expect_error(
+    render_postal_reproducer_script(
+      "records.csv", "postal", tempdir(), all_links = NA
+    ),
+    "single non-missing logical"
+  )
+})

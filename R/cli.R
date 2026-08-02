@@ -214,6 +214,10 @@ render_reproducer_script <- function(from_ids, to_ids, output_dir,
 #' @param postal_col Character scalar naming the postal-code column in the
 #'   input file.
 #' @param output_dir Character scalar output directory.
+#' @param all_links Logical scalar passed through to [resolve_postal()]. The
+#'   default `TRUE` writes every dissemination-area link, which can give a
+#'   record more than one output row; `FALSE` keeps one best link per postal
+#'   code so the row count of the input is preserved.
 #'
 #' @return A character scalar containing valid R code.
 #'
@@ -222,7 +226,11 @@ render_reproducer_script <- function(from_ids, to_ids, output_dir,
 #'
 #' @family app support interfaces
 #' @export
-render_postal_reproducer_script <- function(input_file, postal_col, output_dir) {
+render_postal_reproducer_script <- function(input_file, postal_col, output_dir,
+                                            all_links = TRUE) {
+  if (!is.logical(all_links) || length(all_links) != 1L || is.na(all_links)) {
+    rlang::abort("`all_links` must be a single non-missing logical value.")
+  }
   paste0(
     "library(ONgeoR)\n\n",
     "# Point this at your own input file.\n",
@@ -230,13 +238,22 @@ render_postal_reproducer_script <- function(input_file, postal_col, output_dir) 
     "postal_col <- ", deparse_chr(postal_col), "\n",
     "output_dir <- ", deparse_chr(output_dir), "\n\n",
     "records <- utils::read.csv(input_file, stringsAsFactors = FALSE, ",
-    "check.names = FALSE)\n",
-    "postal_links <- resolve_postal(records[[postal_col]], all_links = TRUE)\n",
+    "check.names = FALSE)\n\n",
+    "# resolve_postal() reports codes in the correspondence's own format, so\n",
+    "# the join key has to be normalized on this side too. Joining on the raw\n",
+    "# column silently drops every code that was not already typed as \"A1A 1A1\".\n",
+    "# resolve_postal() returns a row per input, so it is asked for each\n",
+    "# distinct code once. Passing the column as-is would put duplicate keys\n",
+    "# on both sides of the merge and multiply the rows.\n",
+    "records[[\".postal_key\"]] <- normalize_postal_code(records[[postal_col]])\n",
+    "postal_links <- resolve_postal(unique(records[[\".postal_key\"]]), ",
+    "all_links = ", if (all_links) "TRUE" else "FALSE", ")\n",
     "joined <- merge(\n",
     "  records, postal_links,\n",
-    "  by.x = postal_col, by.y = \"postal_code\",\n",
+    "  by.x = \".postal_key\", by.y = \"postal_code\",\n",
     "  all.x = TRUE, sort = FALSE\n",
-    ")\n\n",
+    ")\n",
+    "joined[[\".postal_key\"]] <- NULL\n\n",
     "dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\n",
     "utils::write.csv(joined, file.path(output_dir, \"postal_da.csv\"), ",
     "row.names = FALSE)\n"

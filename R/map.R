@@ -70,15 +70,8 @@ map_layers <- function(..., colors = NULL) {
 #'   matches; and `table`, the tibble returned by [nearest()].
 #'
 #' @examples
-#' source <- sf::st_as_sf(
-#'   data.frame(id = "A", lon = -79, lat = 43),
-#'   coords = c("lon", "lat"), crs = 4326
-#' )
-#' target <- sf::st_as_sf(
-#'   data.frame(id = c("B", "C"), lon = c(-79.1, -79.2), lat = c(43, 43)),
-#'   coords = c("lon", "lat"), crs = 4326
-#' )
-#' build_nearest_layers(source, target)
+#' stations <- retrieve_monitoring_stations_simple()
+#' build_nearest_layers(stations[1:3, ], stations[4:10, ])
 #'
 #' @family app support interfaces
 #' @export
@@ -156,8 +149,8 @@ build_nearest_layers <- function(source, target, k = 1, max_dist_km = NULL) {
 #' @return A `leaflet` htmlwidget.
 #'
 #' @examples
-#' points <- data.frame(lon = -79.3832, lat = 43.6532)
-#' map_nearest(points, retrieve_hive()[1:50, ], k = 3)
+#' stations <- retrieve_monitoring_stations_simple()[1:5, ]
+#' map_nearest(stations, retrieve_hive()[1:50, ], k = 3)
 #'
 #' @export
 map_nearest <- function(source, target, k = 1, max_dist_km = NULL) {

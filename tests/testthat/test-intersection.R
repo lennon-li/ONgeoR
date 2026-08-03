@@ -45,6 +45,32 @@ fixture_overlapping_squares <- function() {
   )
 }
 
+test_that("build_intersection survives all HIVE Level 1/2 cells", {
+  # Regression gate for the HIVE TopologyException: eight bundled cells were
+  # invalid under planar GEOS despite passing st_is_valid() (which runs on
+  # s2), aborting the vectorized intersection on Level 1/2 input. Green
+  # Level-3-only examples are not evidence for this class - the full
+  # Level 1/2 set is exercised here, repaired grid permitting.
+  hive <- retrieve_hive()
+  l12 <- hive[hive$Level %in% c("Level 1", "Level 2"), ]
+  expect_equal(nrow(l12), 316L)
+
+  pairs <- build_intersection(l12, retrieve_phu_simple())
+  matched <- pairs[!is.na(pairs$source_id), ]
+  expect_gt(nrow(matched), 0)
+  expect_true(all(c("Level 1", "Level 2") %in% pairs$src_Level))
+  expect_false(any(is.na(matched$share_of_target)))
+  expect_false(any(is.na(matched$share_of_source)))
+  expect_true(all(matched$overlap_area_m2 > 0))
+
+  self <- build_intersection(l12, l12)
+  expect_true(all(l12$GRID_ID %in% self$target_id))
+  expect_true(all(l12$GRID_ID %in% self$source_id))
+
+  full <- build_intersection(hive, retrieve_phu_simple())
+  expect_equal(nrow(summarise_by_target(full)), nrow(retrieve_phu_simple()))
+})
+
 test_that("build_intersection emits the documented fixed columns in order", {
   layers <- fixture_overlapping_squares()
   result <- build_intersection(layers$source, layers$target)

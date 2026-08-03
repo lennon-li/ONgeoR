@@ -12,6 +12,20 @@ test_that("retrieve_hive returns the built-in HIVE Grid dataset", {
   expect_false(is.null(attr(hive, "retrieved_at")))
 })
 
+test_that("every bundled HIVE cell is valid under planar GEOS", {
+  # st_is_valid() on lnglat dispatches to s2, which judged the grid valid
+  # while eight Level 1/2 cells were invalid under planar GEOS ("Hole lies
+  # outside shell" / "Nested shells") and aborted build_intersection() with
+  # TopologyException once the layer was transformed to a planar CRS. The
+  # bundled grid must stay valid under planar GEOS, where intersection runs.
+  hive <- retrieve_hive()
+  geom <- sf::st_transform(sf::st_geometry(hive), 3347)
+  prev <- sf::sf_use_s2(FALSE)
+  on.exit(sf::sf_use_s2(prev), add = TRUE)
+  invalid <- hive$GRID_ID[!sf::st_is_valid(geom)]
+  expect_length(invalid, 0)
+})
+
 test_that("retrieve_source('hive') delegates to retrieve_hive", {
   via_source <- retrieve_source("hive")
   direct <- retrieve_hive()

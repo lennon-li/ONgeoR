@@ -38,8 +38,8 @@
 #'   including the raster sampling paths this function delegates to.
 #'
 #' @examples
-#' points <- data.frame(lon = -79.3832, lat = 43.6532)
-#' link(points, retrieve_phu_simple())
+#' stations <- retrieve_monitoring_stations_simple()[1:20, ]
+#' link(stations, retrieve_phu_simple())
 #'
 #' @export
 link <- function(source, target,
@@ -157,8 +157,8 @@ link <- function(source, target,
 #'   `ROADMAP.md`.
 #'
 #' @examples
-#' points <- data.frame(lon = -79.3832, lat = 43.6532)
-#' nearest(points, retrieve_hive()[1:50, ], k = 3)
+#' stations <- retrieve_monitoring_stations_simple()[1:5, ]
+#' nearest(stations, retrieve_hive()[1:50, ], k = 3)
 #'
 #' @export
 nearest <- function(source, target, k = 1, max_dist_km = NULL) {

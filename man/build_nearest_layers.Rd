@@ -29,15 +29,8 @@ matched targets, and constructs one connector line per match. This supports
 custom map renderers that need the same layers as \code{\link[=map_nearest]{map_nearest()}}.
 }
 \examples{
-source <- sf::st_as_sf(
-  data.frame(id = "A", lon = -79, lat = 43),
-  coords = c("lon", "lat"), crs = 4326
-)
-target <- sf::st_as_sf(
-  data.frame(id = c("B", "C"), lon = c(-79.1, -79.2), lat = c(43, 43)),
-  coords = c("lon", "lat"), crs = 4326
-)
-build_nearest_layers(source, target)
+stations <- retrieve_monitoring_stations_simple()
+build_nearest_layers(stations[1:3, ], stations[4:10, ])
 
 }
 \seealso{

@@ -194,15 +194,8 @@ build_intersection <- function(source, target, min_overlap = 0) {
 #'   `share_of_target`, `share_of_source` are `NA`.
 #'
 #' @examples
-#' source <- sf::st_as_sf(
-#'   data.frame(id = c("s1", "s2"), lon = c(-79.4, -79.5), lat = c(43.6, 43.7)),
-#'   coords = c("lon", "lat"), crs = 4326
-#' )
-#' target <- sf::st_as_sf(
-#'   data.frame(id = c("t1", "t2"), lon = c(-79.41, -79.6), lat = c(43.61, 43.8)),
-#'   coords = c("lon", "lat"), crs = 4326
-#' )
-#' build_nearest_pairs(source, target)
+#' stations <- retrieve_monitoring_stations_simple()
+#' build_nearest_pairs(stations[1:20, ], stations[21:25, ])
 #'
 #' @export
 build_nearest_pairs <- function(source, target) {

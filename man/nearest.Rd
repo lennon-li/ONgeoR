@@ -33,7 +33,7 @@ distance, optionally capped at \code{max_dist_km}. Use \code{k = Inf} with
 \code{max_dist_km} for a pure radius search.
 }
 \examples{
-points <- data.frame(lon = -79.3832, lat = 43.6532)
-nearest(points, retrieve_hive()[1:50, ], k = 3)
+stations <- retrieve_monitoring_stations_simple()[1:5, ]
+nearest(stations, retrieve_hive()[1:50, ], k = 3)
 
 }

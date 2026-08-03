@@ -93,7 +93,10 @@ sources:
     name: "Monitoring Station Point"
     service_layer: "LIO_Open08/30"
     geography_type: "facility"
-    feature_count: 2407
+    # Live count from the origin MapServer (returnCountOnly), verified 2026-08-03.
+    # The layer exceeds one page (maxRecordCount 2000), so retrieval must paginate.
+    feature_count: 2588
+    paginate: true
     update_frequency: "unknown"
     key_fields: ["STATION_NAME", "STATION_IDENT", "NETWORK_NAME"]
     license: "Open Government Licence - Ontario"
@@ -119,6 +122,9 @@ sources:
   monitoring_stations_simple:
     name: "Monitoring Station Point (bundled snapshot)"
     geography_type: "facility"
+    # Frozen GeoHub-export snapshot (all records dated 2023-06-23T10:55:20Z).
+    # The live origin layer has since grown to 2588 stations; the gap is
+    # explained in data-raw/monitoring_stations.R.
     feature_count: 2407
     update_frequency: "unknown"
     key_fields: ["STATION_NAME", "STATION_IDENT", "NETWORK_NAME"]
@@ -241,19 +247,6 @@ sources:
     # Simplified response contains GEOMETRYCOLLECTION geometries.
     simplify: false
     paginate: false
-
-  monitoring_station:
-    name: "Monitoring Station Point"
-    service_layer: "LIO_Open08/30"
-    geography_type: "facility"
-    feature_count: 2588
-    update_frequency: "unknown"
-    key_fields: ["OGF_ID", "STATION_NAME"]
-    license: "Open Government Licence - Ontario"
-    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open08/MapServer/30"
-    # Verified live: point geometries are valid without simplification changes.
-    simplify: true
-    paginate: true
 
   dam_inventory:
     name: "Ontario Dam Inventory"

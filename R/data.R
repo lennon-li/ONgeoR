@@ -53,7 +53,10 @@ NULL
 #'   \item{geometry}{`POINT` geometry, EPSG:4326.}
 #' }
 #'
-#' The dataset contains 2407 features.
+#' The dataset contains 2407 features. The live origin layer is larger
+#' (2588 stations as of 2026-08-03): the bundled file is a frozen
+#' 2023-06-23 GeoHub snapshot, and the gap is explained in
+#' `data-raw/monitoring_stations.R`.
 #' See `data-raw/monitoring_stations.R` for the reproducible preparation
 #' pipeline (download, column selection) used to generate
 #' `inst/extdata/monitoring_stations.rds`.

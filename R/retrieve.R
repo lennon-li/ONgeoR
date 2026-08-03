@@ -415,7 +415,11 @@ retrieve_monitoring_stations <- function(simplify = TRUE, refresh = FALSE,
     service_layer = "LIO_Open08/30",
     source_name = "Monitoring Station Point",
     simplify = simplify,
-    refresh = refresh, max_age = max_age
+    refresh = refresh,
+    # The live layer exceeds one page (maxRecordCount 2000, 2588 records as of
+    # 2026-08-03); fetching without pagination aborts on the truncated page.
+    paginate = TRUE,
+    max_age = max_age
   )
 }
 

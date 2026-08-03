@@ -47,13 +47,26 @@ at this scale. See the nearest-neighbour performance item in
 ## Examples
 
 ``` r
-points <- data.frame(lon = -79.3832, lat = 43.6532)
-nearest(points, retrieve_hive()[1:50, ], k = 3)
-#> # A tibble: 3 × 9
-#>   point_id  rank GRID_ID Level   HIVE_ID distance_km source_url target_url      
-#>      <int> <int> <chr>   <chr>     <int>       <dbl> <lgl>      <chr>           
-#> 1        1     1 G-6     Level 1       7        173. NA         builtin://ongeo…
-#> 2        1     2 BE-62   Level 2      56        183. NA         builtin://ongeo…
-#> 3        1     3 BD-62   Level 2      55        188. NA         builtin://ongeo…
-#> # ℹ 1 more variable: retrieved_at <dttm>
+stations <- retrieve_monitoring_stations_simple()[1:5, ]
+nearest(stations, retrieve_hive()[1:50, ], k = 3)
+#> # A tibble: 15 × 13
+#>      OGF_ID STATION_NAME STATION_IDENT NETWORK_NAME DATA_COLLECTION_METHOD  rank
+#>       <int> <chr>        <chr>         <chr>        <chr>                  <int>
+#>  1   2.95e8 GILMOUR      967695        NRF Snow Ne… Manual                     1
+#>  2   2.95e8 GILMOUR      967695        NRF Snow Ne… Manual                     2
+#>  3   2.95e8 GILMOUR      967695        NRF Snow Ne… Manual                     3
+#>  4   2.95e8 WELLS        967828        NRF Snow Ne… Manual                     1
+#>  5   2.95e8 WELLS        967828        NRF Snow Ne… Manual                     2
+#>  6   2.95e8 WELLS        967828        NRF Snow Ne… Manual                     3
+#>  7   2.95e8 CAPREOL PARK 138073        NRF Snow Su… Manual                     1
+#>  8   2.95e8 CAPREOL PARK 138073        NRF Snow Su… Manual                     2
+#>  9   2.95e8 CAPREOL PARK 138073        NRF Snow Su… Manual                     3
+#> 10   2.95e8 STEPHEN'S G… 137993        NRF Snow Su… Manual                     1
+#> 11   2.95e8 STEPHEN'S G… 137993        NRF Snow Su… Manual                     2
+#> 12   2.95e8 STEPHEN'S G… 137993        NRF Snow Su… Manual                     3
+#> 13   2.95e8 BEARPAW      121220        NRF Fire We… Auto                       1
+#> 14   2.95e8 BEARPAW      121220        NRF Fire We… Auto                       2
+#> 15   2.95e8 BEARPAW      121220        NRF Fire We… Auto                       3
+#> # ℹ 7 more variables: GRID_ID <chr>, Level <chr>, HIVE_ID <int>,
+#> #   distance_km <dbl>, source_url <lgl>, target_url <chr>, retrieved_at <dttm>
 ```

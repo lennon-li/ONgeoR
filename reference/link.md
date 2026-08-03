@@ -65,13 +65,33 @@ function delegates to.
 ## Examples
 
 ``` r
-points <- data.frame(lon = -79.3832, lat = 43.6532)
-link(points, retrieve_phu_simple())
-#> # A tibble: 1 × 11
-#>     OGF_ID PHU_ID PHU_NAME_ENG          PHU_NAME_FR       GEOMETRY_UPDATE_DATE…¹
-#>      <int>  <int> <chr>                 <chr>                              <dbl>
-#> 1 71877938   3895 Toronto Public Health Bureau de santé …                     NA
-#> # ℹ abbreviated name: ¹​GEOMETRY_UPDATE_DATETIME
-#> # ℹ 6 more variables: EFFECTIVE_DATETIME <dbl>, SYSTEM_DATETIME <dbl>,
-#> #   OBJECTID <int>, source_url <lgl>, target_url <chr>, retrieved_at <dttm>
+stations <- retrieve_monitoring_stations_simple()[1:20, ]
+link(stations, retrieve_phu_simple())
+#> # A tibble: 20 × 16
+#>     OGF_ID.x STATION_NAME      STATION_IDENT NETWORK_NAME DATA_COLLECTION_METHOD
+#>        <int> <chr>             <chr>         <chr>        <chr>                 
+#>  1 294927289 GILMOUR           967695        NRF Snow Ne… Manual                
+#>  2 294928880 WELLS             967828        NRF Snow Ne… Manual                
+#>  3 294926885 CAPREOL PARK      138073        NRF Snow Su… Manual                
+#>  4 294928636 STEPHEN'S GULCH   137993        NRF Snow Su… Manual                
+#>  5 294926700 BEARPAW           121220        NRF Fire We… Auto                  
+#>  6 294926579 ABITIBI RIVER AT… 136308        Federal Pro… Auto                  
+#>  7 294927832 MASSEY            967756        NRF Snow Ne… Manual                
+#>  8 294927360 Gull River at No… 149349        Federal Pro… Auto                  
+#>  9 294928861 Wawa Creek near … 140204        Federal Pro… Auto                  
+#> 10 294928124 OBA SNOW          148188        OPG Snow Su… Manual                
+#> 11 294928696 Teeswater River … 141956        Federal Pro… Auto                  
+#> 12 294928816 VICTORIA BEACH    127757        MSC Monitor… Auto                  
+#> 13 294928295 PROTON            137749        NRF Snow Su… Manual                
+#> 14 294928430 SCHNEIDER CREEK … 135171        Federal Pro… Auto                  
+#> 15 294926995 CORBETTON         137389        NRF Snow Su… Manual                
+#> 16 294927499 Kaministiquia Ri… 139983        Federal Pro… Auto                  
+#> 17 294928357 Rigaud River nea… 145837        Federal Pro… Auto                  
+#> 18 294927108 EARLTON A         133491        MSC Monitor… Auto                  
+#> 19 294926915 Centreville Cree… 1252503       Federal Pro… Auto                  
+#> 20 294927655 LAKE OF THE WOOD… 136496        Federal Pro… Auto                  
+#> # ℹ 11 more variables: OGF_ID.y <int>, PHU_ID <int>, PHU_NAME_ENG <chr>,
+#> #   PHU_NAME_FR <chr>, GEOMETRY_UPDATE_DATETIME <dbl>,
+#> #   EFFECTIVE_DATETIME <dbl>, SYSTEM_DATETIME <dbl>, OBJECTID <int>,
+#> #   source_url <lgl>, target_url <chr>, retrieved_at <dttm>
 ```

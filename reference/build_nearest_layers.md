@@ -50,47 +50,60 @@ Other app support interfaces:
 ## Examples
 
 ``` r
-source <- sf::st_as_sf(
-  data.frame(id = "A", lon = -79, lat = 43),
-  coords = c("lon", "lat"), crs = 4326
-)
-target <- sf::st_as_sf(
-  data.frame(id = c("B", "C"), lon = c(-79.1, -79.2), lat = c(43, 43)),
-  coords = c("lon", "lat"), crs = 4326
-)
-build_nearest_layers(source, target)
+stations <- retrieve_monitoring_stations_simple()
+build_nearest_layers(stations[1:3, ], stations[4:10, ])
 #> $source
-#> Simple feature collection with 1 feature and 1 field
+#> Simple feature collection with 3 features and 5 fields
 #> Geometry type: POINT
 #> Dimension:     XY
-#> Bounding box:  xmin: -79 ymin: 43 xmax: -79 ymax: 43
+#> Bounding box:  xmin: -83.388 ymin: 44.80829 xmax: -77.59257 ymax: 46.71642
 #> Geodetic CRS:  WGS 84
-#>   id       geometry
-#> 1  A POINT (-79 43)
+#>      OGF_ID STATION_NAME STATION_IDENT                          NETWORK_NAME
+#> 1 294927289      GILMOUR        967695 NRF Snow Network for Ontario Wildlife
+#> 2 294928880        WELLS        967828 NRF Snow Network for Ontario Wildlife
+#> 3 294926885 CAPREOL PARK        138073                      NRF Snow Surveys
+#>   DATA_COLLECTION_METHOD                   geometry
+#> 1                 Manual POINT (-77.59257 44.80829)
+#> 2                 Manual   POINT (-83.388 46.39601)
+#> 3                 Manual    POINT (-80.95 46.71642)
 #> 
 #> $matched_target
-#> Simple feature collection with 1 feature and 1 field
+#> Simple feature collection with 2 features and 5 fields
 #> Geometry type: POINT
 #> Dimension:     XY
-#> Bounding box:  xmin: -79.1 ymin: 43 xmax: -79.1 ymax: 43
+#> Bounding box:  xmin: -81.97189 ymin: 44.72976 xmax: -78.81889 ymax: 46.18375
 #> Geodetic CRS:  WGS 84
-#>   id         geometry
-#> 1  B POINT (-79.1 43)
+#>      OGF_ID          STATION_NAME STATION_IDENT
+#> 8 294927360 Gull River at Norland        149349
+#> 7 294927832                MASSEY        967756
+#>                              NETWORK_NAME DATA_COLLECTION_METHOD
+#> 8 Federal Provincial Cost Share Agreement                   Auto
+#> 7   NRF Snow Network for Ontario Wildlife                 Manual
+#>                     geometry
+#> 8 POINT (-78.81889 44.72976)
+#> 7 POINT (-81.97189 46.18375)
 #> 
 #> $connectors
-#> Simple feature collection with 1 feature and 1 field
+#> Simple feature collection with 3 features and 1 field
 #> Geometry type: LINESTRING
 #> Dimension:     XY
-#> Bounding box:  xmin: -79.1 ymin: 43 xmax: -79 ymax: 43
+#> Bounding box:  xmin: -83.388 ymin: 44.72976 xmax: -77.59257 ymax: 46.71642
 #> Geodetic CRS:  WGS 84
-#>   distance_km                      geometry
-#> 1    8.132294 LINESTRING (-79 43, -79.1 43)
+#>   distance_km                       geometry
+#> 1    97.20207 LINESTRING (-77.59257 44.80...
+#> 2   111.33845 LINESTRING (-83.388 46.3960...
+#> 3    98.16897 LINESTRING (-80.95 46.71642...
 #> 
 #> $table
-#> # A tibble: 1 × 9
-#>   id    .ongeor_source_row  rank id.1  .ongeor_target_row distance_km source_url
-#>   <chr>              <int> <int> <chr>              <int>       <dbl> <lgl>     
-#> 1 A                      1     1 B                      1        8.13 NA        
-#> # ℹ 2 more variables: target_url <lgl>, retrieved_at <lgl>
+#> # A tibble: 3 × 17
+#>      OGF_ID STATION_NAME STATION_IDENT NETWORK_NAME       DATA_COLLECTION_METHOD
+#>       <int> <chr>        <chr>         <chr>              <chr>                 
+#> 1 294927289 GILMOUR      967695        NRF Snow Network … Manual                
+#> 2 294928880 WELLS        967828        NRF Snow Network … Manual                
+#> 3 294926885 CAPREOL PARK 138073        NRF Snow Surveys   Manual                
+#> # ℹ 12 more variables: .ongeor_source_row <int>, rank <int>, OGF_ID.1 <int>,
+#> #   STATION_NAME.1 <chr>, STATION_IDENT.1 <chr>, NETWORK_NAME.1 <chr>,
+#> #   DATA_COLLECTION_METHOD.1 <chr>, .ongeor_target_row <int>,
+#> #   distance_km <dbl>, source_url <lgl>, target_url <lgl>, retrieved_at <lgl>
 #> 
 ```

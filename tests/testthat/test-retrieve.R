@@ -812,6 +812,49 @@ test_that("retrieve_monitoring_stations returns an sf object with provenance att
   expect_match(attr(stations, "source_url"), "LIO_Open08/MapServer/30")
 })
 
+test_that("retrieve_monitoring_stations paginates when the page is truncated", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  station_page <- function(features, truncated) {
+    paste0(
+      '{"type":"FeatureCollection","features":[',
+      paste(features, collapse = ","),
+      '],"exceededTransferLimit":', tolower(as.character(truncated)), "}"
+    )
+  }
+  station_feature <- function(id) {
+    paste0(
+      '{"type":"Feature","properties":{"OGF_ID":', id,
+      ',"STATION_NAME":"Station ', id, '","STATION_IDENT":"TS', id,
+      '","NETWORK_NAME":"Hydrometric","DATA_COLLECTION_METHOD":"Auto"},',
+      '"geometry":{"type":"Point","coordinates":[-80,44]}}'
+    )
+  }
+  pages <- list(
+    station_page(station_feature(1:2), truncated = TRUE),
+    station_page(station_feature(3), truncated = FALSE)
+  )
+  calls <- 0
+
+  stations <- httr2::with_mocked_responses(
+    function(req) {
+      calls <<- calls + 1
+      httr2::response(
+        status_code = 200,
+        body = charToRaw(pages[[calls]]),
+        headers = list("Content-Type" = "application/json")
+      )
+    },
+    retrieve_monitoring_stations(refresh = TRUE)
+  )
+
+  expect_equal(calls, 2)
+  expect_s3_class(stations, "sf")
+  expect_equal(nrow(stations), 3)
+  expect_equal(stations$OGF_ID, 1:3)
+})
+
 test_that("retrieve_monitoring_stations_simple returns an sf object of POINT geometry", {
   stations <- retrieve_monitoring_stations_simple()
 

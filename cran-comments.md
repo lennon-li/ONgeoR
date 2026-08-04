@@ -31,6 +31,10 @@ Expected; this is the package's first submission to CRAN.
   cannot run without the external service; `clear_cache()` deletes the user's
   cached layers and `list_cache()` creates the cache directory as a side
   effect, so neither should execute unattended. Every other example runs.
+- The `retrieve_synthetic_raster()` example is wrapped in `\donttest{}` solely
+  because the first terra call in a session bears the one-time GDAL startup
+  cost, which can exceed the 5 s example-timing threshold on slow machines;
+  the example is fully offline, deterministic, and otherwise runs cleanly.
 - Retrieval failures raise a classed `ongeor_retrieval_error` condition with an
   informative message, so the package fails gracefully when the service is
   unavailable.

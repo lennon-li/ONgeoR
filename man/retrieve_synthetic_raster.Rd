@@ -32,7 +32,9 @@ south) plus two fixed Gaussian hotspots near Toronto and Ottawa. There is
 no random component, so two calls return identical rasters.
 }
 \examples{
+\donttest{
+# first call bears the one-time terra/GDAL startup cost
 r <- retrieve_synthetic_raster()
-r
+}
 
 }

@@ -239,8 +239,10 @@ retrieve_waste_management <- function(simplify = FALSE, refresh = FALSE, max_age
 #'   an NA-safe fallback.
 #'
 #' @examples
+#' \donttest{
+#' # first call bears the one-time terra/GDAL startup cost
 #' r <- retrieve_synthetic_raster()
-#' r
+#' }
 #'
 #' @export
 retrieve_synthetic_raster <- function(refresh = FALSE) {

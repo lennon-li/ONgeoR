@@ -1,21 +1,26 @@
 # ONgeoR Roadmap
 
-Updated 2026-07-18. This file is the active project task list and should reflect
+Updated 2026-08-04. This file is the active project task list and should reflect
 shipped repository state. Completed implementation plans belong in project
 history, not in the pending queue.
 
 ## Current status
 
-ONgeoR has a functional package, CLI, and Shiny MVP. The retrieve → link →
-crosswalk → map workflow is implemented and live-verified.
+ONgeoR 0.4.0 is feature-complete for the retrieve → link → crosswalk → map
+workflow, with the Shiny app split out to its own package
+([ONgeoRapp](https://github.com/lennon-li/ONgeoRapp)) so that ONgeoR can go to
+CRAN. Pre-submission checks are verified (R CMD check --as-cran clean);
+submission itself is pending.
 
 ### Shipped
 
-- **Retrieval** — nine registered Ontario GeoHub sources (plus the bundled
-  HIVE grid and a synthetic raster) with provenance,
+- **Retrieval** — 29 registered sources, including the bundled HIVE grid,
+  a bundled 2,407-station monitoring subset, and a synthetic raster, with
+  provenance,
   bounded pagination with truncation detection, retry/backoff, actionable
   errors, progress messages, cache max_age, and
-  source-specific simplification defaults.
+  source-specific simplification defaults. Live monitoring-station retrieval
+  paginates automatically across pages of 2,000 features.
 - **Caching** — on-disk cache at `~/.cache/R/ONgeoR`; `refresh = TRUE` and CLI
   `--refresh` bypass cached data.
 - **Core API** — `link()`, `nearest()`, `resolve()`, and `build_crosswalk()`;
@@ -25,13 +30,22 @@ crosswalk → map workflow is implemented and live-verified.
   `reproduce.R` script.
 - **Documentation** — getting-started, crosswalk, and data-source contribution
   vignettes.
-- **Shiny MVP** — source linking, nearest-facility search, interactive maps,
-  data tables, map styling, basemap selection, and downloads through
-  `run_app()`.
+- **Postal resolution** — `resolve_postal()` maps Ontario postal codes to
+  dissemination areas from the OPCC M5 correspondence (checksum-verified,
+  cached after first download); `normalize_postal_code()` and
+  `render_postal_reproducer_script(all_links = )` included.
+- **Shiny app** — split to its own package
+  [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp): source linking,
+  nearest-facility search, postal-to-DA joining, interactive maps,
+  data tables, map styling, basemap selection, and downloads.
 - **Repository hygiene** — obsolete phase-one scripts and rendered inventory
   output removed.
 
 ## Current milestone — v0.3 consolidation
+
+**Status 2026-08-04:** complete and superseded — v0.4.0 has shipped (app
+split, postal resolution, monitoring stations, HIVE validity repair). The
+remaining open item is the CRAN submission itself; see `cran-comments.md`.
 
 **Goal:** make the shipped MVP internally consistent, package-driven rather
 than app-driven, repeatably tested, and protected by CI before adding more data

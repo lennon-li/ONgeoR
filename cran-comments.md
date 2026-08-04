@@ -2,7 +2,7 @@
 
 ## Test environments
 
-- local Ubuntu 24.04, R 4.5.x — `R CMD check --as-cran --run-donttest`
+- local Ubuntu 24.04, R 4.6.1 — `R CMD check --as-cran --run-donttest`
 - GitHub Actions: ubuntu-latest, macos-latest, windows-latest (R release)
 
 ## R CMD check results

@@ -40,14 +40,14 @@
 
 <div id="ongeor-roadmap" class="section level1">
 
-<p>Updated 2026-07-18. This file is the active project task list and should reflect shipped repository state. Completed implementation plans belong in project history, not in the pending queue.</p>
+<p>Updated 2026-08-04. This file is the active project task list and should reflect shipped repository state. Completed implementation plans belong in project history, not in the pending queue.</p>
 <div class="section level2">
 <h2 id="current-status">Current status<a class="anchor" aria-label="anchor" href="#current-status"></a></h2>
-<p>ONgeoR has a functional package, CLI, and Shiny MVP. The retrieve → link → crosswalk → map workflow is implemented and live-verified.</p>
+<p>ONgeoR 0.4.0 is feature-complete for the retrieve → link → crosswalk → map workflow, with the Shiny app split out to its own package (<a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>) so that ONgeoR can go to CRAN. Pre-submission checks are verified (R CMD check –as-cran clean); submission itself is pending.</p>
 <div class="section level3">
 <h3 id="shipped">Shipped<a class="anchor" aria-label="anchor" href="#shipped"></a></h3>
 <ul><li>
-<strong>Retrieval</strong> — nine registered Ontario GeoHub sources (plus the bundled HIVE grid and a synthetic raster) with provenance, bounded pagination with truncation detection, retry/backoff, actionable errors, progress messages, cache max_age, and source-specific simplification defaults.</li>
+<strong>Retrieval</strong> — 29 registered sources, including the bundled HIVE grid, a bundled 2,407-station monitoring subset, and a synthetic raster, with provenance, bounded pagination with truncation detection, retry/backoff, actionable errors, progress messages, cache max_age, and source-specific simplification defaults. Live monitoring-station retrieval paginates automatically across pages of 2,000 features.</li>
 <li>
 <strong>Caching</strong> — on-disk cache at <code>~/.cache/R/ONgeoR</code>; <code>refresh = TRUE</code> and CLI <code>--refresh</code> bypass cached data.</li>
 <li>
@@ -59,13 +59,16 @@
 <li>
 <strong>Documentation</strong> — getting-started, crosswalk, and data-source contribution vignettes.</li>
 <li>
-<strong>Shiny MVP</strong> — source linking, nearest-facility search, interactive maps, data tables, map styling, basemap selection, and downloads through <code>run_app()</code>.</li>
+<strong>Postal resolution</strong> — <code><a href="reference/resolve_postal.html">resolve_postal()</a></code> maps Ontario postal codes to dissemination areas from the OPCC M5 correspondence (checksum-verified, cached after first download); <code><a href="reference/normalize_postal_code.html">normalize_postal_code()</a></code> and <code>render_postal_reproducer_script(all_links = )</code> included.</li>
+<li>
+<strong>Shiny app</strong> — split to its own package <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>: source linking, nearest-facility search, postal-to-DA joining, interactive maps, data tables, map styling, basemap selection, and downloads.</li>
 <li>
 <strong>Repository hygiene</strong> — obsolete phase-one scripts and rendered inventory output removed.</li>
 </ul></div>
 </div>
 <div class="section level2">
 <h2 id="current-milestone--v03-consolidation">Current milestone — v0.3 consolidation<a class="anchor" aria-label="anchor" href="#current-milestone--v03-consolidation"></a></h2>
+<p><strong>Status 2026-08-04:</strong> complete and superseded — v0.4.0 has shipped (app split, postal resolution, monitoring stations, HIVE validity repair). The remaining open item is the CRAN submission itself; see <code>cran-comments.md</code>.</p>
 <p><strong>Goal:</strong> make the shipped MVP internally consistent, package-driven rather than app-driven, repeatably tested, and protected by CI before adding more data sources or raster support.</p>
 <p><strong>Status 2026-07-18:</strong> <a href="https://github.com/lennon-li/ONgeoR/issues/1" class="external-link">issue #1</a> is complete (commits <code>9dda143</code>, <code>bed1602</code>); evidence is recorded per item below. Residual validation gaps are listed as new unchecked items — close them opportunistically, they do not block v0.4.</p>
 <div class="section level3">

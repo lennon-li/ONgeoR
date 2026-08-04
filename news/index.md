@@ -7,6 +7,36 @@
   for checksum-verified OPCC M5 postal-code to dissemination-area
   resolution, plus
   [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md).
+  [`normalize_postal_code()`](https://lennon-li.github.io/ONgeoR/reference/normalize_postal_code.md)
+  is exported; joins use a normalized, de-duplicated postal-code key,
+  and
+  [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md)
+  gains `all_links`.
+
+- Add
+  [`retrieve_monitoring_stations()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations.md)
+  for Ontario water and weather monitoring stations (LIO_Open08/30),
+  with live retrieval automatically paginated across pages of 2,000
+  features, and a bundled offline subset
+  [`retrieve_monitoring_stations_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_simple.md)
+  (2,407 stations, a frozen 2023-06-23 GeoHub snapshot). The bundled
+  layer is the first bundled point layer, so point-in-polygon examples
+  now run offline.
+
+- Fix the bundled HIVE grid: eight cells were invalid under planar GEOS
+  while passing `st_is_valid()` on geographic coordinates (s2), so
+  [`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+  on HIVE Level 1/2 grids aborted with a TopologyException. The repaired
+  cells now validate under GEOS and s2; all other cells are unchanged.
+
+- Point-in-polygon examples for
+  [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md),
+  [`nearest()`](https://lennon-li.github.io/ONgeoR/reference/nearest.md),
+  [`map_nearest()`](https://lennon-li.github.io/ONgeoR/reference/map_nearest.md),
+  [`build_nearest_layers()`](https://lennon-li.github.io/ONgeoR/reference/build_nearest_layers.md),
+  and
+  [`build_nearest_pairs()`](https://lennon-li.github.io/ONgeoR/reference/build_nearest_pairs.md)
+  now use the bundled station layer and execute during `R CMD check`.
 
 - The Shiny app moves to its own package,
   [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp). `run_app()` is no

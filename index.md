@@ -18,23 +18,28 @@ external sources.
 ## Why
 
 Public health analysts, epidemiologists, and health-system planners in
-Ontario frequently need to: - Map facilities (hospitals, long-term care
-homes, schools) to Public Health Units - Link locations to Ontario
-Health Regions - Build crosswalks between different geographic
-boundaries - Document data sources and their provenance
+Ontario frequently need to:
+
+- Map facilities (hospitals, long-term care homes, schools) to Public
+  Health Units
+- Link locations to Ontario Health Regions
+- Build crosswalks between different geographic boundaries
+- Document data sources and their provenance
 
 ONgeoR provides a standardized, reproducible framework for these tasks
 without bundling large geospatial datasets that become stale or require
 constant maintenance.
 
-## What ONgeoR Does (v0.3)
+## What ONgeoR Does (v0.4)
 
 - Provides a source registry with metadata for Tier 1 Ontario GeoHub
   (LIO) datasets
 - Retrieves PHU boundaries, Ontario Health Regions, municipal
   boundaries, MOH service locations, airports, waste management sites,
-  conservation authorities, and ORWN railway stations at runtime, plus a
-  bundled HIVE grid and a synthetic raster surface
+  conservation authorities, ORWN railway stations, and Ontario water and
+  weather monitoring stations at runtime, plus a bundled HIVE grid, a
+  bundled offline subset of 2,407 monitoring stations, and a synthetic
+  raster surface
 - Links geometries by type with
   [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
   (point-in-polygon, polygon-to-polygon, and raster sampling) and
@@ -42,6 +47,8 @@ constant maintenance.
   (k-nearest and radius search), resolves records by identifier or name
   with
   [`resolve()`](https://lennon-li.github.io/ONgeoR/reference/resolve.md),
+  resolves Ontario postal codes to dissemination areas with
+  [`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md),
   and provides
   [`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)
   as a single no-choice entry point that picks the linking operation
@@ -55,7 +62,8 @@ constant maintenance.
   [`map_layers()`](https://lennon-li.github.io/ONgeoR/reference/map_layers.md)
   and nearest-match maps with
   [`map_nearest()`](https://lennon-li.github.io/ONgeoR/reference/map_nearest.md)
-- Ships a Shiny app launched with `run_app()`
+- A point-and-click Shiny app is provided by the companion package
+  [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp)
 
 See [ROADMAP.md](https://lennon-li.github.io/ONgeoR/ROADMAP.md) for
 planned additional sources and performance work.
@@ -77,7 +85,7 @@ planned additional sources and performance work.
 3.  **Reproducible workflows** – crosswalks include full provenance
     (source, date, retrieval timestamp)
 4.  **Lightweight dependencies** – minimal package footprint (sf, httr2,
-    yaml, tibble, rlang)
+    yaml, tibble, rlang, leaflet, terra, htmlwidgets)
 5.  **Community-extensible** – users can suggest new data sources via
     GitHub issues
 
@@ -86,8 +94,8 @@ planned additional sources and performance work.
 ``` r
 
 # Install from GitHub
-# install.packages("remotes")
-remotes::install_github("lennon-li/ONgeoR")
+# install.packages("pak")
+pak::pkg_install("github::lennon-li/ONgeoR")
 ```
 
 ## Quick Start
@@ -121,6 +129,13 @@ facilities <- nearest(points, retrieve_moh_service_locations(), k = 3)
 
 # Resolve an airport by its identifier
 airport <- resolve(retrieve_airport(), "CYYZ")
+
+# Ontario water and weather monitoring stations (bundled, works offline)
+stations <- retrieve_monitoring_stations_simple()
+
+# Resolve postal codes to dissemination areas (first call downloads the
+# correspondence table and caches it)
+postal <- resolve_postal(c("M5S 2C6", "K1A 0N9"))
 
 # Build a crosswalk table between two polygon layers
 municipal <- retrieve_municipal("upper")
@@ -159,6 +174,12 @@ The point-and-click app lives in its own package,
 layer and a Target layer, click **Preview on map**, then **Join** to
 produce a downloadable crosswalk table — no R code required.
 
+![The ONgeoRapp Shiny app showing PHU boundaries and MOH service
+locations previewed on the map](reference/figures/app-shiny.png)
+
+ONgeoRapp: PHU boundaries and MOH service locations previewed before
+joining.
+
 ``` r
 
 pak::pkg_install("github::lennon-li/ONgeoRapp")
@@ -180,24 +201,33 @@ package.
 
 ## Data Sources
 
-ONgeoR retrieves data from authoritative Ontario sources including: -
-**Ontario GeoHub** (geohub.lio.gov.on.ca) – provincial boundaries,
-facilities, infrastructure - **Ministry of Health** – health facility
-locations (via the GeoHub LIO services)
+ONgeoR retrieves data from authoritative Ontario sources including:
+
+- **Ontario GeoHub** (geohub.lio.gov.on.ca) – provincial boundaries,
+  facilities, infrastructure
+- **Ministry of Health** – health facility locations (via the GeoHub LIO
+  services)
 
 Statistics Canada census geographies are planned for a future release
 (see the roadmap).
 
 All sources are documented in the package’s source registry with
-metadata including: - Source owner and jurisdiction - License terms -
-Update frequency - Direct download URLs
+metadata including:
+
+- Source owner and jurisdiction
+- License terms
+- Update frequency
+- Direct download URLs
 
 ## Contributing New Data Sources
 
 Users can suggest new Ontario data sources by opening a GitHub issue
-using the “Data source request” template. Include: - Source name and
-URL - Description of what the source contains - Known license or terms
-of use - Any concerns about quality or completeness
+using the “Data source request” template. Include:
+
+- Source name and URL
+- Description of what the source contains
+- Known license or terms of use
+- Any concerns about quality or completeness
 
 ## Roadmap
 

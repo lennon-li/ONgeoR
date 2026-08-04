@@ -129,12 +129,22 @@ therefore are not executed while this vignette builds.</p>
 <code class="sourceCode R"><span><span class="va">phu</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_phu.html">retrieve_phu</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">hospitals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_moh_service_locations.html">retrieve_moh_service_locations</a></span><span class="op">(</span>service_type <span class="op">=</span> <span class="st">"Hospital"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Ontario water and weather monitoring stations; live retrieval paginates</span></span>
+<span><span class="co"># automatically across pages of 2,000 features.</span></span>
+<span><span class="va">stations</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_monitoring_stations.html">retrieve_monitoring_stations</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># Deliberately bypass the cache and retrieve a new copy.</span></span>
 <span><span class="va">phu_fresh</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_phu.html">retrieve_phu</a></span><span class="op">(</span>refresh <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">phu</span>, <span class="st">"source_url"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">phu</span>, <span class="st">"source_name"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">phu</span>, <span class="st">"retrieved_at"</span><span class="op">)</span></span></code></pre></div>
+<p>A bundled offline subset of the monitoring-station network ships with
+the package, so point layers are available without any retrieval:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">stations_simple</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_monitoring_stations_simple.html">retrieve_monitoring_stations_simple</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">stations_simple</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 2407</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="link-locations-to-boundaries">Link locations to boundaries<a class="anchor" aria-label="anchor" href="#link-locations-to-boundaries"></a>
@@ -142,7 +152,7 @@ therefore are not executed while this vignette builds.</p>
 <p>Here are two synthetic health-unit polygons, two analyst locations,
 and three facilities. The column names resemble the registered LIO
 schemas so that the same code structure transfers to live data.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">square</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">xmin</span>, <span class="va">ymin</span>, <span class="va">xmax</span>, <span class="va">ymax</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st.html" class="external-link">st_polygon</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">xmin</span>, <span class="va">ymin</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">xmax</span>, <span class="va">ymin</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">xmax</span>, <span class="va">ymax</span><span class="op">)</span>,</span>
@@ -177,7 +187,7 @@ schemas so that the same code structure transfers to live data.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> Clinic request 1 A      West Demo PHU https://example.invalid/phu</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Clinic request 2 B      East Demo PHU https://example.invalid/phu</span></span></code></pre></div>
 <p>For live Ontario boundaries, the corresponding operation is:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">phu</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_phu.html">retrieve_phu</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">linked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/link.html">link</a></span><span class="op">(</span><span class="va">locations</span>, <span class="va">phu</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -187,7 +197,7 @@ schemas so that the same code structure transfers to live data.</p>
 <p><code><a href="../reference/nearest.html">nearest()</a></code> performs a spatial proximity search.
 <code><a href="../reference/resolve.html">resolve()</a></code> instead looks up attributes by an identifier or
 name; it is not a spatial operation.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">facilities_demo</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">st_as_sf</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    MOH_SERVICE_PROVIDER_IDENT <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"F001"</span>, <span class="st">"F002"</span>, <span class="st">"F003"</span><span class="op">)</span>,</span>
@@ -224,11 +234,20 @@ name; it is not a spatial operation.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> hospital F003                      East Hospit… https://e… 2026-01-01 <span style="color: #949494;">00:00:00</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ abbreviated name: ¹​MOH_SERVICE_PROVIDER_IDENT</span></span></span></code></pre></div>
 <p>The live versions use the retrieved facility layer:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hospitals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/retrieve_moh_service_locations.html">retrieve_moh_service_locations</a></span><span class="op">(</span>service_type <span class="op">=</span> <span class="st">"Hospital"</span><span class="op">)</span></span>
 <span><span class="va">nearby</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/nearest.html">nearest</a></span><span class="op">(</span><span class="va">locations</span>, <span class="va">hospitals</span>, k <span class="op">=</span> <span class="fl">3</span>, max_dist_km <span class="op">=</span> <span class="fl">25</span><span class="op">)</span></span>
 <span><span class="va">facility</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve.html">resolve</a></span><span class="op">(</span><span class="va">hospitals</span>, <span class="st">"12345"</span><span class="op">)</span></span>
 <span><span class="va">named_facilities</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve.html">resolve</a></span><span class="op">(</span><span class="va">hospitals</span>, <span class="st">"general"</span>, by <span class="op">=</span> <span class="st">"name"</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/resolve_postal.html">resolve_postal()</a></code> resolves Ontario postal codes to
+dissemination areas from the OPCC M5 correspondence. The first call
+downloads the table and caches it; later calls are offline. Input codes
+are normalized before matching, and postal codes are routes rather than
+areas, so an assignment near a boundary can attach to more than one
+dissemination area.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/resolve_postal.html">resolve_postal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M5S 2C6"</span>, <span class="st">"K1A 0N9"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/resolve_postal.html">resolve_postal</a></span><span class="op">(</span><span class="st">"m5s2c6"</span>, all_links <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/build_link.html">build_link()</a></code> is the no-choice entry point: it inspects
 the geometry types of the two layers and dispatches to the appropriate
 operation (nearest matching for point-point, intersection for
@@ -243,7 +262,7 @@ you do not need to override the default behaviour.</p>
 <code>retrieved_at</code>. Inspect them before exporting, particularly
 after a cache refresh. Interactive maps are useful for checking
 surprising assignments and nearest matches.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/map_layers.html">map_layers</a></span><span class="op">(</span>PHUs <span class="op">=</span> <span class="va">phu</span>, Hospitals <span class="op">=</span> <span class="va">hospitals</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/map_nearest.html">map_nearest</a></span><span class="op">(</span><span class="va">locations</span>, <span class="va">hospitals</span>, k <span class="op">=</span> <span class="fl">3</span>, max_dist_km <span class="op">=</span> <span class="fl">25</span><span class="op">)</span></span></code></pre></div>
 <p>These maps are review aids, not substitutes for checking source

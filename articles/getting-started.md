@@ -65,12 +65,26 @@ therefore are not executed while this vignette builds.
 phu <- retrieve_phu()
 hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
 
+# Ontario water and weather monitoring stations; live retrieval paginates
+# automatically across pages of 2,000 features.
+stations <- retrieve_monitoring_stations()
+
 # Deliberately bypass the cache and retrieve a new copy.
 phu_fresh <- retrieve_phu(refresh = TRUE)
 
 attr(phu, "source_url")
 attr(phu, "source_name")
 attr(phu, "retrieved_at")
+```
+
+A bundled offline subset of the monitoring-station network ships with
+the package, so point layers are available without any retrieval:
+
+``` r
+
+stations_simple <- retrieve_monitoring_stations_simple()
+nrow(stations_simple)
+#> [1] 2407
 ```
 
 ## Link locations to boundaries
@@ -179,6 +193,19 @@ hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
 nearby <- nearest(locations, hospitals, k = 3, max_dist_km = 25)
 facility <- resolve(hospitals, "12345")
 named_facilities <- resolve(hospitals, "general", by = "name")
+```
+
+[`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md)
+resolves Ontario postal codes to dissemination areas from the OPCC M5
+correspondence. The first call downloads the table and caches it; later
+calls are offline. Input codes are normalized before matching, and
+postal codes are routes rather than areas, so an assignment near a
+boundary can attach to more than one dissemination area.
+
+``` r
+
+resolve_postal(c("M5S 2C6", "K1A 0N9"))
+resolve_postal("m5s2c6", all_links = TRUE)
 ```
 
 [`build_link()`](https://lennon-li.github.io/ONgeoR/reference/build_link.md)

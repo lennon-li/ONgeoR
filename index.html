@@ -64,20 +64,26 @@
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
-<p>Public health analysts, epidemiologists, and health-system planners in Ontario frequently need to: - Map facilities (hospitals, long-term care homes, schools) to Public Health Units - Link locations to Ontario Health Regions - Build crosswalks between different geographic boundaries - Document data sources and their provenance</p>
+<p>Public health analysts, epidemiologists, and health-system planners in Ontario frequently need to:</p>
+<ul>
+<li>Map facilities (hospitals, long-term care homes, schools) to Public Health Units</li>
+<li>Link locations to Ontario Health Regions</li>
+<li>Build crosswalks between different geographic boundaries</li>
+<li>Document data sources and their provenance</li>
+</ul>
 <p>ONgeoR provides a standardized, reproducible framework for these tasks without bundling large geospatial datasets that become stale or require constant maintenance.</p>
 </div>
 <div class="section level2">
-<h2 id="what-ongeor-does-v03">What ONgeoR Does (v0.3)<a class="anchor" aria-label="anchor" href="#what-ongeor-does-v03"></a>
+<h2 id="what-ongeor-does-v04">What ONgeoR Does (v0.4)<a class="anchor" aria-label="anchor" href="#what-ongeor-does-v04"></a>
 </h2>
 <ul>
 <li>Provides a source registry with metadata for Tier 1 Ontario GeoHub (LIO) datasets</li>
-<li>Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, waste management sites, conservation authorities, and ORWN railway stations at runtime, plus a bundled HIVE grid and a synthetic raster surface</li>
-<li>Links geometries by type with <code><a href="reference/link.html">link()</a></code> (point-in-polygon, polygon-to-polygon, and raster sampling) and <code><a href="reference/nearest.html">nearest()</a></code> (k-nearest and radius search), resolves records by identifier or name with <code><a href="reference/resolve.html">resolve()</a></code>, and provides <code><a href="reference/build_link.html">build_link()</a></code> as a single no-choice entry point that picks the linking operation from the geometry pair</li>
+<li>Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, waste management sites, conservation authorities, ORWN railway stations, and Ontario water and weather monitoring stations at runtime, plus a bundled HIVE grid, a bundled offline subset of 2,407 monitoring stations, and a synthetic raster surface</li>
+<li>Links geometries by type with <code><a href="reference/link.html">link()</a></code> (point-in-polygon, polygon-to-polygon, and raster sampling) and <code><a href="reference/nearest.html">nearest()</a></code> (k-nearest and radius search), resolves records by identifier or name with <code><a href="reference/resolve.html">resolve()</a></code>, resolves Ontario postal codes to dissemination areas with <code><a href="reference/resolve_postal.html">resolve_postal()</a></code>, and provides <code><a href="reference/build_link.html">build_link()</a></code> as a single no-choice entry point that picks the linking operation from the geometry pair</li>
 <li>Generates auditable crosswalk tables with full provenance metadata via <code><a href="reference/build_crosswalk.html">build_crosswalk()</a></code>, including weighted apportionment; <code><a href="reference/build_intersection.html">build_intersection()</a></code> returns every overlapping polygon pair with area shares in one pass</li>
 <li>Draws interactive leaflet maps with <code><a href="reference/map_layers.html">map_layers()</a></code> and nearest-match maps with <code><a href="reference/map_nearest.html">map_nearest()</a></code>
 </li>
-<li>Ships a Shiny app launched with <code>run_app()</code>
+<li>A point-and-click Shiny app is provided by the companion package <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>
 </li>
 </ul>
 <p>See <a href="ROADMAP.html">ROADMAP.md</a> for planned additional sources and performance work.</p>
@@ -103,7 +109,7 @@
 <li>
 <strong>Reproducible workflows</strong> – crosswalks include full provenance (source, date, retrieval timestamp)</li>
 <li>
-<strong>Lightweight dependencies</strong> – minimal package footprint (sf, httr2, yaml, tibble, rlang)</li>
+<strong>Lightweight dependencies</strong> – minimal package footprint (sf, httr2, yaml, tibble, rlang, leaflet, terra, htmlwidgets)</li>
 <li>
 <strong>Community-extensible</strong> – users can suggest new data sources via GitHub issues</li>
 </ol>
@@ -113,8 +119,8 @@
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Install from GitHub</span></span>
-<span><span class="co"># install.packages("remotes")</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lennon-li/ONgeoR"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"github::lennon-li/ONgeoR"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
@@ -148,6 +154,13 @@
 <span><span class="co"># Resolve an airport by its identifier</span></span>
 <span><span class="va">airport</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resolve.html">resolve</a></span><span class="op">(</span><span class="fu"><a href="reference/retrieve_airport.html">retrieve_airport</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"CYYZ"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Ontario water and weather monitoring stations (bundled, works offline)</span></span>
+<span><span class="va">stations</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/retrieve_monitoring_stations_simple.html">retrieve_monitoring_stations_simple</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Resolve postal codes to dissemination areas (first call downloads the</span></span>
+<span><span class="co"># correspondence table and caches it)</span></span>
+<span><span class="va">postal</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resolve_postal.html">resolve_postal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M5S 2C6"</span>, <span class="st">"K1A 0N9"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># Build a crosswalk table between two polygon layers</span></span>
 <span><span class="va">municipal</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/retrieve_municipal.html">retrieve_municipal</a></span><span class="op">(</span><span class="st">"upper"</span><span class="op">)</span></span>
 <span><span class="va">crosswalk</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/build_crosswalk.html">build_crosswalk</a></span><span class="op">(</span><span class="va">municipal</span>, <span class="va">phu</span>, method <span class="op">=</span> <span class="st">"intersects"</span><span class="op">)</span></span>
@@ -167,7 +180,7 @@
 <col width="6%">
 <col width="6%">
 <col width="16%">
-<col width="59%">
+<col width="58%">
 <col width="11%">
 </colgroup>
 <thead><tr>
@@ -248,6 +261,11 @@
 <h2 id="shiny-app">Shiny app<a class="anchor" aria-label="anchor" href="#shiny-app"></a>
 </h2>
 <p>The point-and-click app lives in its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link"><strong>ONgeoRapp</strong></a>. Select a Source layer and a Target layer, click <strong>Preview on map</strong>, then <strong>Join</strong> to produce a downloadable crosswalk table — no R code required.</p>
+<div class="figure">
+<img src="reference/figures/app-shiny.png" alt="The ONgeoRapp Shiny app showing PHU boundaries and MOH service locations previewed on the map" width="100%"><p class="caption">
+ONgeoRapp: PHU boundaries and MOH service locations previewed before joining.
+</p>
+</div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"github::lennon-li/ONgeoRapp"</span><span class="op">)</span></span>
 <span><span class="fu">ONgeoRapp</span><span class="fu">::</span><span class="fu">run_app</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -266,14 +284,32 @@
 <div class="section level2">
 <h2 id="data-sources">Data Sources<a class="anchor" aria-label="anchor" href="#data-sources"></a>
 </h2>
-<p>ONgeoR retrieves data from authoritative Ontario sources including: - <strong>Ontario GeoHub</strong> (geohub.lio.gov.on.ca) – provincial boundaries, facilities, infrastructure - <strong>Ministry of Health</strong> – health facility locations (via the GeoHub LIO services)</p>
+<p>ONgeoR retrieves data from authoritative Ontario sources including:</p>
+<ul>
+<li>
+<strong>Ontario GeoHub</strong> (geohub.lio.gov.on.ca) – provincial boundaries, facilities, infrastructure</li>
+<li>
+<strong>Ministry of Health</strong> – health facility locations (via the GeoHub LIO services)</li>
+</ul>
 <p>Statistics Canada census geographies are planned for a future release (see the roadmap).</p>
-<p>All sources are documented in the package’s source registry with metadata including: - Source owner and jurisdiction - License terms - Update frequency - Direct download URLs</p>
+<p>All sources are documented in the package’s source registry with metadata including:</p>
+<ul>
+<li>Source owner and jurisdiction</li>
+<li>License terms</li>
+<li>Update frequency</li>
+<li>Direct download URLs</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="contributing-new-data-sources">Contributing New Data Sources<a class="anchor" aria-label="anchor" href="#contributing-new-data-sources"></a>
 </h2>
-<p>Users can suggest new Ontario data sources by opening a GitHub issue using the “Data source request” template. Include: - Source name and URL - Description of what the source contains - Known license or terms of use - Any concerns about quality or completeness</p>
+<p>Users can suggest new Ontario data sources by opening a GitHub issue using the “Data source request” template. Include:</p>
+<ul>
+<li>Source name and URL</li>
+<li>Description of what the source contains</li>
+<li>Known license or terms of use</li>
+<li>Any concerns about quality or completeness</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>

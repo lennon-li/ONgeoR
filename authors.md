@@ -4,18 +4,20 @@
 
 - **Lennon Li**. Author, maintainer.
 
+- **Steven Johnson**. Author.
+
 ## Citation
 
 Source:
 [`DESCRIPTION`](https://github.com/lennon-li/ONgeoR/blob/main/DESCRIPTION)
 
-Li L (2026). *ONgeoR: Resolve Ontario Locations to Public Health
-Geography*. R package version 0.4.0,
+Li L, Johnson S (2026). *ONgeoR: Resolve Ontario Locations to Public
+Health Geography*. R package version 0.4.0,
 <https://github.com/lennon-li/ONgeoR>.
 
     @Manual{,
       title = {ONgeoR: Resolve Ontario Locations to Public Health Geography},
-      author = {Lennon Li},
+      author = {Lennon Li and Steven Johnson},
       year = {2026},
       note = {R package version 0.4.0},
       url = {https://github.com/lennon-li/ONgeoR},

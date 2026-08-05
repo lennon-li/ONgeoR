@@ -64,6 +64,8 @@ Resolve records by identifier or name.
   : Resolve records from a layer by an identifier or name
 - [`resolve_postal()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal.md)
   : Resolve Ontario postal codes to dissemination areas
+- [`resolve_postal_points()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal_points.md)
+  : Resolve Ontario postal codes to point coordinates
 - [`normalize_postal_code()`](https://lennon-li.github.io/ONgeoR/reference/normalize_postal_code.md)
   : Normalize postal codes to the correspondence's own format
 - [`guess_name_col()`](https://lennon-li.github.io/ONgeoR/reference/guess_name_col.md)

@@ -1,5 +1,10 @@
 # ONgeoR 0.4.0
 
+- Add `resolve_postal_points()` for checksum-verified OPCC M1 postal-code to
+  latitude/longitude resolution (282,409 address-derived `nar_centroid`
+  matches, 17,373 coarser `geonames` matches, 14 codes with no coordinates),
+  with optional `as_sf = TRUE` output as an EPSG:4326 POINT layer.
+
 - Add `resolve_postal()` for checksum-verified OPCC M5 postal-code to
   dissemination-area resolution, plus `render_postal_reproducer_script()`.
   `normalize_postal_code()` is exported; joins use a normalized, de-duplicated

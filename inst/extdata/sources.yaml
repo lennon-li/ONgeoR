@@ -1,13 +1,23 @@
 sources:
   phu_boundaries:
-    name: "MOH Public Health Unit Boundary"
+    name: "MOH Public Health Unit Boundary (post-2025, 29 PHUs)"
     service_layer: "LIO_Open09/44"
+    geography_type: "boundary"
+    feature_count: 29
+    update_frequency: "unknown"
+    key_fields: ["PHU_ID", "PHU_NAME_ENG", "PHU_NAME_FR"]
+    license: "Open Government Licence - Ontario"
+    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/44"
+
+  # LIO no longer serves this pre-2025 PHU vintage.
+  phu_boundaries_pre2025:
+    name: "MOH Public Health Unit Boundary (pre-2025, 34 PHUs)"
     geography_type: "boundary"
     feature_count: 34
     update_frequency: "unknown"
     key_fields: ["PHU_ID", "PHU_NAME_ENG", "PHU_NAME_FR"]
     license: "Open Government Licence - Ontario"
-    source_url: "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open09/MapServer/44"
+    source_url: "builtin://ongeor/phu_pre2025"
 
   ontario_health_regions:
     name: "Ontario Health Region"

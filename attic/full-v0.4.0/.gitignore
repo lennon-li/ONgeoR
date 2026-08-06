@@ -1,0 +1,38 @@
+# ONgeoR .gitignore
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+inst/doc
+
+# Package build
+*.tar.gz
+*.Rcheck/
+*.o
+*.so
+*.dll
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Deliberately-untracked source/derived assets (see .Rbuildignore)
+/ONgeoR.png
+docs/superpowers/specs/*.html
+# pkgdown build output (deployed to gh-pages by CI; not source)
+docs/site/
+
+# HIVE source data (contains licensed PCCF + full-resolution shapefile) - never commit
+/data/
+README.html

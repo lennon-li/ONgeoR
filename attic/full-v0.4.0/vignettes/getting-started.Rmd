@@ -1,0 +1,173 @@
+---
+title: "Getting started with ONgeoR"
+author: "ONgeoR contributors"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with ONgeoR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+ONgeoR helps a public-health analyst connect locations and boundaries to
+Ontario health geography while retaining source provenance. This vignette uses
+small synthetic layers so that it builds without a network connection. The
+equivalent live calls are shown separately and are not run.
+
+## Discover and retrieve sources
+
+The package registry describes the available authoritative layers.
+
+```{r registry}
+library(ONgeoR)
+
+head(list_sources())
+get_source("phu_boundaries")
+```
+
+Retrieval functions download an `sf` layer, attach `source_url`, `source_name`,
+and `retrieved_at` attributes, and save it in the ONgeoR cache. A normal call
+reuses the cached result. Use `refresh = TRUE` when you deliberately want a new
+copy from the source. Record the provenance attributes alongside exported
+analysis results because the upstream layer can change.
+
+The following calls require network access or an existing cache and therefore
+are not executed while this vignette builds.
+
+```{r live-retrieve, eval=FALSE}
+phu <- retrieve_phu()
+hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
+
+# Ontario water and weather monitoring stations; live retrieval paginates
+# automatically across pages of 2,000 features.
+stations <- retrieve_monitoring_stations()
+
+# Deliberately bypass the cache and retrieve a new copy.
+phu_fresh <- retrieve_phu(refresh = TRUE)
+
+attr(phu, "source_url")
+attr(phu, "source_name")
+attr(phu, "retrieved_at")
+```
+
+A bundled offline subset of the monitoring-station network ships with the
+package, so point layers are available without any retrieval:
+
+```{r bundled-stations}
+stations_simple <- retrieve_monitoring_stations_simple()
+nrow(stations_simple)
+```
+
+## Link locations to boundaries
+
+Here are two synthetic health-unit polygons, two analyst locations, and three
+facilities. The column names resemble the registered LIO schemas so that the
+same code structure transfers to live data.
+
+```{r synthetic-data}
+square <- function(xmin, ymin, xmax, ymax) {
+  sf::st_polygon(list(rbind(
+    c(xmin, ymin), c(xmax, ymin), c(xmax, ymax),
+    c(xmin, ymax), c(xmin, ymin)
+  )))
+}
+
+phu_demo <- sf::st_sf(
+  PHU_ID = c("A", "B"),
+  PHU_NAME_ENG = c("West Demo PHU", "East Demo PHU"),
+  geometry = sf::st_sfc(
+    square(-80.0, 43.0, -79.5, 43.5),
+    square(-79.5, 43.0, -79.0, 43.5),
+    crs = 4326
+  )
+)
+attr(phu_demo, "source_name") <- "Synthetic PHU boundaries"
+attr(phu_demo, "source_url") <- "https://example.invalid/phu"
+attr(phu_demo, "retrieved_at") <- as.POSIXct("2026-01-01", tz = "UTC")
+
+locations <- data.frame(
+  location = c("Clinic request 1", "Clinic request 2"),
+  lon = c(-79.75, -79.25),
+  lat = c(43.25, 43.25)
+)
+
+linked <- link(locations, phu_demo)
+linked[, c("location", "PHU_ID", "PHU_NAME_ENG", "target_url")]
+```
+
+For live Ontario boundaries, the corresponding operation is:
+
+```{r live-link, eval=FALSE}
+phu <- retrieve_phu()
+linked <- link(locations, phu)
+```
+
+## Find or resolve facilities
+
+`nearest()` performs a spatial proximity search. `resolve()` instead looks up
+attributes by an identifier or name; it is not a spatial operation.
+
+```{r nearest-resolve}
+facilities_demo <- sf::st_as_sf(
+  data.frame(
+    MOH_SERVICE_PROVIDER_IDENT = c("F001", "F002", "F003"),
+    ENGLISH_NAME = c("West Hospital", "Central Clinic", "East Hospital"),
+    lon = c(-79.78, -79.52, -79.22),
+    lat = c(43.24, 43.27, 43.24)
+  ),
+  coords = c("lon", "lat"), crs = 4326
+)
+attr(facilities_demo, "source_name") <- "Synthetic facilities"
+attr(facilities_demo, "source_url") <- "https://example.invalid/facilities"
+attr(facilities_demo, "retrieved_at") <- as.POSIXct("2026-01-01", tz = "UTC")
+
+nearby <- nearest(locations, facilities_demo, k = 2)
+nearby[, c("location", "rank", "ENGLISH_NAME", "distance_km")]
+
+resolve(facilities_demo, "F002")
+resolve(facilities_demo, "hospital", by = "name")
+```
+
+The live versions use the retrieved facility layer:
+
+```{r live-nearest-resolve, eval=FALSE}
+hospitals <- retrieve_moh_service_locations(service_type = "Hospital")
+nearby <- nearest(locations, hospitals, k = 3, max_dist_km = 25)
+facility <- resolve(hospitals, "12345")
+named_facilities <- resolve(hospitals, "general", by = "name")
+```
+
+`resolve_postal()` resolves Ontario postal codes to dissemination areas from
+the OPCC M5 correspondence. The first call downloads the table and caches it;
+later calls are offline. Input codes are normalized before matching, and
+postal codes are routes rather than areas, so an assignment near a boundary
+can attach to more than one dissemination area.
+
+```{r live-postal, eval=FALSE}
+resolve_postal(c("M5S 2C6", "K1A 0N9"))
+resolve_postal("m5s2c6", all_links = TRUE)
+```
+
+`build_link()` is the no-choice entry point: it inspects the geometry types of
+the two layers and dispatches to the appropriate operation (nearest matching
+for point-point, intersection for polygon-polygon, containment or sampling for
+mixed types). Use it when you do not need to override the default behaviour.
+
+## Audit and map the result
+
+Returned tables carry provenance columns such as `source_url`, `target_url`,
+and `retrieved_at`. Inspect them before exporting, particularly after a cache
+refresh. Interactive maps are useful for checking surprising assignments and
+nearest matches.
+
+```{r live-map, eval=FALSE}
+map_layers(PHUs = phu, Hospitals = hospitals)
+map_nearest(locations, hospitals, k = 3, max_dist_km = 25)
+```
+
+These maps are review aids, not substitutes for checking source metadata,
+geometry precision, unmatched records, and the provenance columns in the
+analysis output.

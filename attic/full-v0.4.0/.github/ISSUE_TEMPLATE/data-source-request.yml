@@ -1,0 +1,60 @@
+name: "Data source request"
+description: "Suggest a new Ontario GeoHub or LIO data source for ONgeoR"
+labels: ["data-source"]
+body:
+  - type: input
+    id: source_name
+    attributes:
+      label: Source name
+      description: "The human-readable name of the data source (e.g. 'Ontario Drinking Water Systems')."
+      placeholder: "e.g. Ontario Drinking Water Systems"
+    validations:
+      required: true
+
+  - type: input
+    id: source_url
+    attributes:
+      label: Source URL
+      description: "Direct link to the GeoHub or LIO service page or REST endpoint."
+      placeholder: "https://geohub.lio.gov.on.ca/..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: geography_type
+    attributes:
+      label: Geography type
+      description: "Select the geometry type of this layer."
+      options:
+        - boundary
+        - facility
+        - point
+        - other
+    validations:
+      required: true
+
+  - type: input
+    id: license
+    attributes:
+      label: License
+      description: "Data license or terms of use (e.g. 'Ontario Open Data Licence')."
+      placeholder: "e.g. Ontario Open Data Licence"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: "Briefly describe what this layer contains and why it would be useful in ONgeoR."
+      placeholder: "This layer contains..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: Additional notes
+      description: "Any other information, caveats, or related sources."
+    validations:
+      required: false

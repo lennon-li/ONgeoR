@@ -1,0 +1,153 @@
+---
+title: "Adding a data source"
+author: "ONgeoR contributors"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Adding a data source}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Adding a source currently means changing the package. There is no exported
+`add_source_template()` or `validate_source_registry()` workflow. The existing
+retrieval helper supports Ontario LIO ArcGIS REST layers that return GeoJSON;
+do not describe another provider or file format as supported until retrieval,
+validation, and tests for it exist.
+
+## Vet the source first
+
+Before editing code, verify and record:
+
+- the authoritative owner and publishing jurisdiction;
+- the licence and whether redistribution or runtime retrieval is permitted;
+- a stable ArcGIS REST MapServer layer URL and its `service_layer` path;
+- geometry type, schema, key identifier and name fields;
+- observed feature count and whether it exceeds one response page;
+- whether generalized geometry is valid for this particular layer.
+
+Feature counts and schemas can change. Treat the registry values as reviewed
+metadata, not runtime guarantees.
+
+## Add the registry entry
+
+Add an entry under `sources:` in `inst/extdata/sources.yaml`. Existing entries
+use exactly these fields:
+
+```yaml
+sources:
+  example_source_id:
+    name: "Human-readable authoritative layer name"
+    service_layer: "LIO_OpenXX/0"
+    geography_type: "boundary"
+    feature_count: 123
+    update_frequency: "unknown"
+    key_fields: ["DOMAIN_ID", "ENGLISH_NAME"]
+    license: "Open Government Licence - Ontario"
+    source_url: "https://.../MapServer/0"
+```
+
+Use a stable snake-case source id. Confirm that `key_fields` exist in live
+output and that the licence text and URL match the publisher. The package's
+current YAML file contains a Unicode dash in existing licence values, but new
+text can use an ASCII hyphen without changing meaning.
+
+## Add a retrieval wrapper
+
+Add a documented, exported wrapper in `R/retrieve.R`. It should state the
+specific layer, parameters, return value, provenance, and any limitations
+confirmed by live testing. The current LIO pattern is:
+
+```{r wrapper, eval=FALSE}
+#' Retrieve example boundaries
+#'
+#' @param simplify Logical. Whether to request generalized geometry.
+#' @param refresh Logical. Whether to bypass the cache.
+#' @return An `sf` object with provenance attributes.
+#' @export
+retrieve_example <- function(simplify = FALSE, refresh = FALSE) {
+  fetch_lio_sf(
+    service_layer = "LIO_OpenXX/0",
+    source_name = "Human-readable authoritative layer name",
+    simplify = simplify,
+    refresh = refresh
+  )
+}
+```
+
+Choose `simplify` from observed geometry quality, not feature count alone. Check
+it by area, not by row count or geometry type: the service answers a too-coarse
+`maxAllowableOffset` with polygons that are still typed `MULTIPOLYGON` and still
+29 rows, but whose small members have collapsed to zero area. Compare each
+feature's area against an unsimplified or finely simplified request before
+trusting a layer's simplified form.
+
+Set `paginate = TRUE` only after confirming offset-based pagination works for
+the layer. The cache key includes source name, layer, filter, simplification,
+page size, pagination mode, and a geometry-schema version, so changing any of
+those -- or bumping the schema when retrieved geometry changes shape for the
+same request -- produces a distinct cache entry. `refresh = TRUE` bypasses and
+replaces the matching cached entry.
+
+If a wrapper accepts a filter, validate or constrain it before interpolating a
+LIO `where` expression. Keep source-specific policy in the wrapper and common
+HTTP, conversion, provenance, and cache behavior in `fetch_lio_sf()`.
+
+Paginated retrieval requests 2,000 features per page and stops after 20 pages,
+so the safety ceiling is 40,000 features. Retrieved row counts are checked
+against the registry and warn when they differ by more than 20%. The optional
+`update_frequency` registry field records source-maintenance metadata; it is
+currently informational only.
+
+## Wire the CLI dispatch
+
+The registry does not automatically make a source retrievable by the CLI.
+Update both switches in `R/cli.R`:
+
+1. `retrieve_by_source_id()` maps the source id to the wrapper and passes
+   `refresh`.
+2. `source_retrieve_call()` emits the wrapper call used in generated
+   `reproduce.R` scripts.
+
+For example:
+
+```{r dispatch, eval=FALSE}
+# In retrieve_by_source_id()
+example_source_id = retrieve_example(refresh = refresh),
+
+# In source_retrieve_call()
+example_source_id = "retrieve_example()",
+```
+
+These functions are internal, but both paths need tests because one executes
+retrieval and the other generates user-facing reproducibility code.
+
+## Test without depending on the service
+
+Use mocked HTTP responses or synthetic `sf` data for routine tests. Cover:
+
+- wrapper arguments passed to `fetch_lio_sf()`;
+- returned geometry and `source_url`, `source_name`, `retrieved_at` attributes;
+- cache reuse and `refresh = TRUE` behavior;
+- pagination termination, page combination, and the existing hard page cap
+  when pagination is enabled;
+- simplified and unsimplified query construction where supported;
+- both CLI dispatch functions and unknown-id errors;
+- identifier and name detection when the source will be used by `resolve()` or
+  `build_crosswalk()`.
+
+Live validation is still needed before accepting the source, but it should be
+an explicit manual check rather than a network dependency in the test suite or
+vignettes. Record observed feature count, schema, geometry type, paging, and
+simplification results in the change description.
+
+## Document and check
+
+Run roxygen to update `NAMESPACE` and the generated `.Rd` file, then run the
+focused tests, the full test suite, and `devtools::check()` with vignettes.
+Review the generated reproducer call, confirm no live API request occurred
+during package checking, run `git diff --check`, and inspect the diff for
+credentials or downloaded data before proposing a commit.

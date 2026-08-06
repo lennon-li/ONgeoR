@@ -1,0 +1,87 @@
+url: https://lennon-li.github.io/ONgeoR/
+destination: docs/site
+template:
+  bootstrap: 5
+
+figures:
+  dev: grDevices::png
+  dpi: 96
+
+articles:
+  - title: "Guides"
+    navbar: ~
+    contents:
+      - getting-started
+      - building-crosswalks
+      - adding-data-sources
+
+reference:
+  - title: "Retrieve data"
+    desc: "Functions to retrieve Ontario spatial layers from authoritative sources."
+    contents:
+      - retrieve_phu
+      - retrieve_phu_simple
+      - retrieve_health_region
+      - retrieve_municipal
+      - retrieve_moh_service_locations
+      - retrieve_airport
+      - retrieve_conservation_authority
+      - retrieve_orwn_station
+      - retrieve_waste_management
+      - retrieve_monitoring_stations
+      - retrieve_monitoring_stations_simple
+      - retrieve_hive
+      - retrieve_synthetic_raster
+      - retrieve_source
+
+  - title: "Link and crosswalk"
+    desc: "Core spatial linking and crosswalk-building functions."
+    contents:
+      - link
+      - nearest
+      - build_link
+      - build_crosswalk
+      - build_intersection
+      - build_nearest_layers
+      - build_nearest_pairs
+      - summarise_by_target
+      - extract_polygon_collection
+
+  - title: "Resolve and identify"
+    desc: "Resolve records by identifier or name."
+    contents:
+      - resolve
+      - resolve_postal
+      - resolve_postal_points
+      - normalize_postal_code
+      - guess_name_col
+
+  - title: "Map"
+    desc: "Draw interactive Leaflet maps."
+    contents:
+      - map_layers
+      - map_crosswalk
+      - map_nearest
+
+  - title: "Source registry"
+    desc: "Browse and query the built-in source metadata registry."
+    contents:
+      - list_sources
+      - get_source
+
+  - title: "Cache"
+    desc: "Inspect and clear the on-disk retrieval cache."
+    contents:
+      - list_cache
+      - clear_cache
+
+  - title: "Reproducibility"
+    desc: "Generate reproducible R scripts from a linking run."
+    contents:
+      - render_reproducer_script
+      - render_postal_reproducer_script
+
+  - title: "Data"
+    desc: "Built-in datasets bundled with the package."
+    contents:
+      - hive

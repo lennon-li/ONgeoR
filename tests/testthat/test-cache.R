@@ -153,9 +153,14 @@ test_that("clear_cache removes only entries matching a source id", {
 
   phu <- make_cache_layer("MOH Public Health Unit Boundary")
   health_region <- make_cache_layer("Ontario Health Region")
+  # Deliberately written with the PRE-rename source_name and the real service
+  # URL, i.e. exactly the shape of an entry cached before phu_boundaries was
+  # renamed to record the post-2025 vintage. clear_cache() must still find it;
+  # matching on name alone would strand it forever, since cache entries never
+  # expire. Regression gate for that 2026-08-06 bug.
   cache_write("phu__abc12345", phu, list(
     source_name = "MOH Public Health Unit Boundary",
-    source_url = "https://example.com/phu",
+    source_url = get_source("phu_boundaries")$source_url,
     where = "1=1",
     simplify = FALSE,
     retrieved_at = "2026-07-08 00:00:00 UTC"

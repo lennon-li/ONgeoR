@@ -1,5 +1,8 @@
 # ONgeoR 0.4.0
 
+- Add `retrieve_phu_pre2025()` for the retained 34-boundary, 250 m simplified
+  PHU snapshot that LIO no longer serves.
+
 - Export `layer_id_col()`, which resolves a retrieved layer's id column from
   the source registry's declared key fields. This is the supported way to join
   `build_crosswalk()` / `build_intersection()` output back onto the layer

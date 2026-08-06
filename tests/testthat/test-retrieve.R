@@ -866,6 +866,26 @@ test_that("retrieve_monitoring_stations_simple returns an sf object of POINT geo
   expect_true(all(sf::st_geometry_type(stations) == "POINT"))
 })
 
+test_that("retrieve_phu_pre2025 returns the bundled pre-2025 PHU snapshot", {
+  phu <- retrieve_phu_pre2025()
+
+  expect_s3_class(phu, "sf")
+  expect_equal(nrow(phu), 34L)
+  expect_true(all(sf::st_geometry_type(phu) == "MULTIPOLYGON"))
+  expect_equal(sf::st_crs(phu)$Name, "WGS 84")
+})
+
+test_that("bundled PHU snapshots retain their respective feature counts", {
+  expect_equal(nrow(retrieve_phu_simple()), 29L)
+})
+
+test_that("retrieve_source dispatches the pre-2025 PHU snapshot", {
+  expect_equal(
+    retrieve_source("phu_boundaries_pre2025"),
+    retrieve_phu_pre2025()
+  )
+})
+
 test_that("bundled monitoring stations survive subsetting", {
   stations <- retrieve_monitoring_stations_simple()
   subset <- stations[stations$DATA_COLLECTION_METHOD == "Auto", ]

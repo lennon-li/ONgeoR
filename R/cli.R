@@ -26,6 +26,7 @@ NULL
 retrieve_source <- function(source_id, refresh = FALSE, max_age = NULL) {
   switch(source_id,
     phu_boundaries = retrieve_phu(refresh = refresh),
+    phu_boundaries_pre2025 = retrieve_phu_pre2025(),
     ontario_health_regions = retrieve_health_region(refresh = refresh),
     municipal_upper = retrieve_municipal("upper", refresh = refresh),
     municipal_lower = retrieve_municipal("lower", refresh = refresh),
@@ -263,6 +264,7 @@ render_postal_reproducer_script <- function(input_file, postal_col, output_dir,
 source_retrieve_call <- function(source_id) {
   switch(source_id,
     phu_boundaries = "retrieve_phu()",
+    phu_boundaries_pre2025 = "retrieve_phu_pre2025()",
     ontario_health_regions = "retrieve_health_region()",
     municipal_upper = "retrieve_municipal(\"upper\")",
     municipal_lower = "retrieve_municipal(\"lower\")",

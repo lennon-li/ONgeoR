@@ -132,9 +132,25 @@ clear_cache <- function(source_id = NULL) {
       full.names = TRUE
     )
   } else {
-    target_name <- get_source(source_id)$name
+    entry <- get_source(source_id)
+    target_name <- entry$name
+    target_url <- entry$source_url
+
+    # Match on source_url first, and only fall back to source_name.
+    #
+    # A sidecar records the source name as it stood when the entry was
+    # written, so matching on name alone orphans every cached entry for a
+    # source that has since been renamed -- they become unreachable by
+    # clear_cache() and, because cache entries never expire (max_age defaults
+    # to NULL), they are served indefinitely. That happened on 2026-08-06 when
+    # phu_boundaries was renamed to record the post-2025 vintage, stranding
+    # cached pre-2025 responses. The service URL is the stable identity.
     sidecars <- sidecars[vapply(sidecars, function(sidecar) {
       meta <- yaml::read_yaml(sidecar)
+      if (!is.null(target_url) && !is.null(meta$source_url) &&
+          identical(meta$source_url, target_url)) {
+        return(TRUE)
+      }
       identical(meta$source_name, target_name)
     }, logical(1))]
     keys <- sub("\\.yaml$", "", basename(sidecars))

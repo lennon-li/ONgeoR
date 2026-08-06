@@ -87,6 +87,17 @@ phu_3161_simplified <- sf::st_simplify(
   preserveTopology = TRUE
 )
 
+# Repair in the PLANAR CRS, before transforming back.
+#
+# st_is_valid() runs on s2 for geographic coordinates and reports these
+# geometries as valid, but build_intersection() works in a planar CRS where
+# GEOS applies stricter ring rules. Combining and simplifying parts above
+# produces rings that pass s2 and fail GEOS -- observed 2026-08-06 as
+# "TopologyException: Ring edge missing" from build_intersection(). This is
+# the same class of defect data-raw/hive_make_valid.R exists to fix.
+# Repairing here, in 3161, is what makes the planar assertion below meaningful.
+phu_3161_simplified <- sf::st_make_valid(phu_3161_simplified)
+
 # Return to the original CRS used by retrieve_phu().
 phu_simple <- sf::st_transform(phu_3161_simplified, source_crs)
 
@@ -101,11 +112,19 @@ attr(phu_simple, "source_url") <- attr(phu, "source_url")
 attr(phu_simple, "retrieved_at") <- attr(phu, "retrieved_at")
 
 # Verify the simplified layer is fit for use before writing it out.
+#
+# The planar check is the important one. st_is_valid() on a geographic CRS
+# runs under s2 and passed the broken 2026-08-06 build; only re-checking in
+# 3161, where GEOS rules apply, catches the ring defects that later abort
+# build_intersection(). Assert both, and assert the layer actually survives a
+# planar intersection rather than merely claiming validity.
 stopifnot(
   nrow(phu_simple) == 29,
   all(!sf::st_is_empty(phu_simple)),
   all(as.character(sf::st_geometry_type(phu_simple)) == "MULTIPOLYGON"),
-  sf::st_crs(phu_simple) == source_crs
+  sf::st_crs(phu_simple) == source_crs,
+  all(sf::st_is_valid(phu_simple)),
+  all(sf::st_is_valid(sf::st_transform(phu_simple, 3161)))
 )
 
 saveRDS(phu_simple, "inst/extdata/phu_simple.rds", compress = "xz")

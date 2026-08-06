@@ -348,3 +348,198 @@ sources:
     # Simplified response contains GEOMETRYCOLLECTION geometries.
     simplify: false
     paginate: true
+
+  census_pr_2021:
+    name: "StatCan 2021 Census Province / Territory"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/0"
+    geography_type: "boundary"
+    feature_count: 1
+    update_frequency: "static"
+    key_fields: ["PRUID", "DGUID", "PRNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/0"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_car_2021:
+    name: "StatCan 2021 Census Census Agricultural Region"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/1"
+    geography_type: "boundary"
+    feature_count: 5
+    update_frequency: "static"
+    key_fields: ["CARUID", "DGUID", "CARENAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/1"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_er_2021:
+    name: "StatCan 2021 Census Economic Region"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/2"
+    geography_type: "boundary"
+    feature_count: 11
+    update_frequency: "static"
+    key_fields: ["ERUID", "DGUID", "ERNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/2"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_fed_2021:
+    name: "StatCan 2021 Census Federal Electoral District"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/3"
+    geography_type: "boundary"
+    feature_count: 121
+    update_frequency: "static"
+    key_fields: ["FEDUID", "DGUID", "FEDNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/3"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_cd_2021:
+    name: "StatCan 2021 Census Census Division"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/4"
+    geography_type: "boundary"
+    feature_count: 49
+    update_frequency: "static"
+    key_fields: ["CDUID", "DGUID", "CDNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/4"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_ccs_2021:
+    name: "StatCan 2021 Census Census Consolidated Subdivision"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/5"
+    geography_type: "boundary"
+    feature_count: 273
+    update_frequency: "static"
+    key_fields: ["CCSUID", "DGUID", "CCSNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/5"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_cma_2021:
+    name: "StatCan 2021 Census Census Metropolitan Area"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/6"
+    geography_type: "boundary"
+    feature_count: 43
+    update_frequency: "static"
+    key_fields: ["CMAUID", "CMAPUID", "DGUID"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/6"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_pc_2021:
+    name: "StatCan 2021 Census Population Centre"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/7"
+    geography_type: "boundary"
+    feature_count: 298
+    update_frequency: "static"
+    key_fields: ["PCUID", "PCPUID", "DGUID"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/7"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_dpl_2021:
+    name: "StatCan 2021 Census Designated Place"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/8"
+    geography_type: "boundary"
+    feature_count: 135
+    update_frequency: "static"
+    key_fields: ["DPLUID", "DGUID", "DPLNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/8"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_csd_2021:
+    name: "StatCan 2021 Census Census Subdivision"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/9"
+    geography_type: "boundary"
+    feature_count: 577
+    update_frequency: "static"
+    key_fields: ["CSDUID", "DGUID", "CSDNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/9"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_ada_2021:
+    name: "StatCan 2021 Census Aggregate Dissemination Area"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/10"
+    geography_type: "boundary"
+    feature_count: 1679
+    update_frequency: "static"
+    key_fields: ["ADAUID", "DGUID", "LANDAREA"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/10"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_ct_2021:
+    name: "StatCan 2021 Census Census Tract"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/11"
+    geography_type: "boundary"
+    feature_count: 2533
+    update_frequency: "static"
+    key_fields: ["CTUID", "DGUID", "CTNAME"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/11"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_da_2021:
+    name: "StatCan 2021 Census Dissemination Area"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/12"
+    geography_type: "boundary"
+    feature_count: 20465
+    update_frequency: "static"
+    key_fields: ["DAUID", "DGUID", "LANDAREA"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/12"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_db_2021:
+    name: "StatCan 2021 Census Dissemination Block"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/13"
+    geography_type: "boundary"
+    feature_count: 137843
+    update_frequency: "static"
+    key_fields: ["DBUID", "DGUID", "DBRPLAMX"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/13"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true
+
+  census_fsa_2021:
+    name: "StatCan 2021 Census Forward Sortation Area"
+    service_layer: "2021/Cartographic_boundary_files/MapServer/14"
+    geography_type: "boundary"
+    feature_count: 520
+    update_frequency: "static"
+    key_fields: ["CFSAUID", "DGUID", "PRUID"]
+    license: "Open Government Licence - Canada"
+    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/14"
+    default_query: "PRUID='35'"
+    simplify: false
+    paginate: true

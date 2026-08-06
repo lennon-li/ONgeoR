@@ -77,17 +77,28 @@ lio_simplify_guidance <- function(simplify) {
 #'   `maxAllowableOffset`.
 #' @param result_record_count Integer. Maximum number of records to request.
 #' @param result_offset Integer. Record offset for paginated requests.
+#' @param endpoint Character or `NULL`. Full ArcGIS layer URL. When supplied,
+#'   it is queried directly instead of rebuilding a LIO service URL.
+#' @param out_sr Integer. Output spatial reference WKID.
+#' @param geometry Character or `NULL`. ArcGIS spatial-filter geometry.
+#' @param geometry_type Character or `NULL`. ArcGIS geometry type.
+#' @param in_sr Integer or `NULL`. Spatial reference of `geometry`.
+#' @param spatial_rel Character or `NULL`. ArcGIS spatial relationship.
 #'
 #' @return A character scalar: the full query URL.
 #' @keywords internal
 #' @noRd
 lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
-                          result_record_count = 2000, result_offset = 0) {
+                          result_record_count = 2000, result_offset = 0,
+                          endpoint = NULL, out_sr = 4326,
+                          geometry = NULL, geometry_type = NULL,
+                          in_sr = NULL, spatial_rel = NULL) {
   params <- list(
     where = where,
     outFields = "*",
     f = "geojson",
-    resultRecordCount = result_record_count
+    resultRecordCount = result_record_count,
+    outSR = out_sr
   )
   if (result_offset > 0) {
     params$resultOffset <- result_offset
@@ -109,11 +120,21 @@ lio_query_url <- function(service_layer, where = "1=1", simplify = TRUE,
     params$maxAllowableOffset <- lio_simplify_offset_deg
   }
 
-  parts <- strsplit(service_layer, "/", fixed = TRUE)[[1]]
-  service <- parts[1]
-  layer <- parts[2]
+  if (!is.null(geometry)) {
+    params$geometry <- geometry
+    params$geometryType <- geometry_type
+    params$inSR <- in_sr
+    params$spatialRel <- spatial_rel
+  }
 
-  paste0(lio_base_url, "/", service, "/MapServer/", layer, "/query") |>
+  query_endpoint <- if (is.null(endpoint)) {
+    parts <- strsplit(service_layer, "/", fixed = TRUE)[[1]]
+    paste0(lio_base_url, "/", parts[1], "/MapServer/", parts[2])
+  } else {
+    sub("/+$", "", endpoint)
+  }
+
+  paste0(query_endpoint, "/query") |>
     httr2::url_parse() |>
     httr2::url_modify_query(!!!params) |>
     httr2::url_build()
@@ -225,6 +246,14 @@ lio_make_valid <- function(x) {
 #'   ArcGIS `exceededTransferLimit` response flag.
 #' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days;
 #'   older entries are re-fetched. Defaults to `NULL`.
+#' @param endpoint Character or `NULL`. Full ArcGIS layer URL to query.
+#' @param out_sr Integer. Output spatial reference WKID. Defaults to 4326.
+#' @param geometry Character or `NULL`. ArcGIS spatial-filter geometry.
+#' @param geometry_type Character or `NULL`. ArcGIS geometry type.
+#' @param in_sr Integer or `NULL`. Spatial reference of `geometry`.
+#' @param spatial_rel Character or `NULL`. ArcGIS spatial relationship.
+#' @param validate_feature_count Logical. Whether to compare the result with
+#'   the registry-wide feature count.
 #'
 #' @return An `sf` object with `source_url`, `source_name`, `retrieved_at`,
 #'   and `simplify` attributes attached. `simplify` records the
@@ -237,7 +266,10 @@ lio_make_valid <- function(x) {
 #' @noRd
 fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
                          simplify = TRUE, result_record_count = 2000,
-                         refresh = FALSE, paginate = FALSE, max_age = NULL) {
+                         refresh = FALSE, paginate = FALSE, max_age = NULL,
+                         endpoint = NULL, out_sr = 4326, geometry = NULL,
+                         geometry_type = NULL, in_sr = NULL,
+                         spatial_rel = NULL, validate_feature_count = TRUE) {
   key <- cache_key(
     source_name = source_name,
     service_layer = service_layer,
@@ -291,7 +323,13 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
       where = where,
       simplify = simplify,
       result_record_count = result_record_count,
-      result_offset = result_offset
+      result_offset = result_offset,
+      endpoint = endpoint,
+      out_sr = out_sr,
+      geometry = geometry,
+      geometry_type = geometry_type,
+      in_sr = in_sr,
+      spatial_rel = spatial_rel
     )
 
     sf_obj <- tryCatch(
@@ -339,7 +377,13 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
     service_layer = service_layer,
     where = where,
     simplify = simplify,
-    result_record_count = result_record_count
+    result_record_count = result_record_count,
+    endpoint = endpoint,
+    out_sr = out_sr,
+    geometry = geometry,
+    geometry_type = geometry_type,
+    in_sr = in_sr,
+    spatial_rel = spatial_rel
   )
 
   if (paginate) {
@@ -447,7 +491,9 @@ fetch_lio_sf <- function(service_layer, source_name, where = "1=1",
   } else {
     registry[[matching_entries[[1]]]]
   }
-  validate_lio_feature_count(nrow(sf_obj), registry_entry)
+  if (validate_feature_count) {
+    validate_lio_feature_count(nrow(sf_obj), registry_entry)
+  }
 
   cache_write(
     key,

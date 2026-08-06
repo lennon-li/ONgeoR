@@ -19,6 +19,82 @@ read_bundled_sf <- function(path) {
   readRDS(path)
 }
 
+census_ontario_pruid <- "35"
+
+census_bbox_geometry <- function(bbox) {
+  values <- as.numeric(bbox)
+  if (length(values) != 4 || any(!is.finite(values)) ||
+      values[1] >= values[3] || values[2] >= values[4]) {
+    rlang::abort(
+      "`bbox` must be an sf bbox or numeric xmin, ymin, xmax, ymax in EPSG:4326."
+    )
+  }
+  paste(values, collapse = ",")
+}
+
+#' Retrieve an Ontario 2021 census boundary layer
+#'
+#' Retrieves one of the registered StatCan 2021 census cartographic boundary
+#' layers. Requests always apply the Ontario `PRUID = '35'` filter on the
+#' server, so Canada-wide features are never downloaded.
+#'
+#' @param source_id Character scalar naming a registered `census_*` source.
+#' @param bbox An `sf` bbox or numeric `xmin, ymin, xmax, ymax` vector in
+#'   EPSG:4326. When supplied, requests only features intersecting the envelope.
+#' @param simplify Logical. Whether to request generalized geometry.
+#' @param refresh Logical. Whether to bypass the local cache.
+#' @param max_age Numeric or `NULL`. Maximum acceptable cache age in days.
+#'
+#' @return An `sf` object in EPSG:4326 with retrieval provenance attributes.
+#'
+#' @examples
+#' \dontrun{
+#' census_divisions <- retrieve_census("census_cd_2021")
+#' }
+#'
+#' @export
+retrieve_census <- function(source_id, bbox = NULL, simplify = TRUE,
+                            refresh = FALSE, max_age = NULL) {
+  if (!is.character(source_id) || length(source_id) != 1 ||
+      is.na(source_id) || !startsWith(source_id, "census_")) {
+    rlang::abort("`source_id` must name a registered census_* source.")
+  }
+  source <- get_source(source_id)
+  if (!identical(source$provider, "statcan_census")) {
+    rlang::abort("`source_id` must name a registered census_* source.")
+  }
+  if (identical(source_id, "census_da_2021") && is.null(bbox)) {
+    rlang::warn(
+      "Retrieving all Ontario dissemination areas (20,465 features) may be slow; supply `bbox` when possible."
+    )
+  }
+
+  geometry <- if (is.null(bbox)) NULL else census_bbox_geometry(bbox)
+  cache_source_name <- if (is.null(geometry)) {
+    source$name
+  } else {
+    paste0(source$name, " [bbox=", geometry, "]")
+  }
+  result <- fetch_lio_sf(
+    service_layer = source$service_layer,
+    source_name = cache_source_name,
+    where = sprintf("PRUID='%s'", census_ontario_pruid),
+    simplify = simplify,
+    refresh = refresh,
+    paginate = TRUE,
+    max_age = max_age,
+    endpoint = source$source_url,
+    out_sr = 4326,
+    geometry = geometry,
+    geometry_type = if (is.null(geometry)) NULL else "esriGeometryEnvelope",
+    in_sr = if (is.null(geometry)) NULL else 4326,
+    spatial_rel = if (is.null(geometry)) NULL else "esriSpatialRelIntersects",
+    validate_feature_count = is.null(bbox)
+  )
+  attr(result, "source_name") <- source$name
+  result
+}
+
 #' Retrieve Public Health Unit boundaries
 #'
 #' Retrieves Ontario Public Health Unit (PHU) boundaries from the LIO

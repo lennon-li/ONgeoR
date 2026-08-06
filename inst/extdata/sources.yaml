@@ -358,6 +358,7 @@ sources:
     key_fields: ["PRUID", "DGUID", "PRNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/0"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -371,6 +372,7 @@ sources:
     key_fields: ["CARUID", "DGUID", "CARENAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/1"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -384,6 +386,7 @@ sources:
     key_fields: ["ERUID", "DGUID", "ERNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/2"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -397,6 +400,7 @@ sources:
     key_fields: ["FEDUID", "DGUID", "FEDNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/3"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -410,6 +414,7 @@ sources:
     key_fields: ["CDUID", "DGUID", "CDNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/4"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -423,6 +428,7 @@ sources:
     key_fields: ["CCSUID", "DGUID", "CCSNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/5"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -436,6 +442,7 @@ sources:
     key_fields: ["CMAUID", "CMAPUID", "DGUID"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/6"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -449,6 +456,7 @@ sources:
     key_fields: ["PCUID", "PCPUID", "DGUID"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/7"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -462,6 +470,7 @@ sources:
     key_fields: ["DPLUID", "DGUID", "DPLNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/8"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -475,6 +484,7 @@ sources:
     key_fields: ["CSDUID", "DGUID", "CSDNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/9"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -488,6 +498,7 @@ sources:
     key_fields: ["ADAUID", "DGUID", "LANDAREA"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/10"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -501,6 +512,7 @@ sources:
     key_fields: ["CTUID", "DGUID", "CTNAME"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/11"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -514,19 +526,7 @@ sources:
     key_fields: ["DAUID", "DGUID", "LANDAREA"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/12"
-    default_query: "PRUID='35'"
-    simplify: false
-    paginate: true
-
-  census_db_2021:
-    name: "StatCan 2021 Census Dissemination Block"
-    service_layer: "2021/Cartographic_boundary_files/MapServer/13"
-    geography_type: "boundary"
-    feature_count: 137843
-    update_frequency: "static"
-    key_fields: ["DBUID", "DGUID", "DBRPLAMX"]
-    license: "Open Government Licence - Canada"
-    source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/13"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
@@ -540,6 +540,7 @@ sources:
     key_fields: ["CFSAUID", "DGUID", "PRUID"]
     license: "Open Government Licence - Canada"
     source_url: "https://geo.statcan.gc.ca/geo_wa/rest/services/2021/Cartographic_boundary_files/MapServer/14"
+    provider: "statcan_census"
     default_query: "PRUID='35'"
     simplify: false
     paginate: true

@@ -1,5 +1,11 @@
 # ONgeoR 0.4.0
 
+- Add `retrieve_census()` for the 14 registered 2021 StatCan census boundary
+  layers. Census queries now use the StatCan endpoint directly, filter to
+  Ontario (`PRUID = '35'`) on the server, return EPSG:4326 geometry, and accept
+  an optional EPSG:4326 bounding box. Remove the impractically large
+  dissemination-block registry entry.
+
 - Add `retrieve_phu_pre2025()` for the retained 34-boundary, 250 m simplified
   PHU snapshot that LIO no longer serves.
 

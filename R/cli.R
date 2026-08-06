@@ -24,6 +24,13 @@ NULL
 #'
 #' @export
 retrieve_source <- function(source_id, refresh = FALSE, max_age = NULL) {
+  if (startsWith(source_id, "census_")) {
+    return(retrieve_census(
+      source_id,
+      refresh = refresh,
+      max_age = max_age
+    ))
+  }
   switch(source_id,
     phu_boundaries = retrieve_phu(refresh = refresh),
     phu_boundaries_pre2025 = retrieve_phu_pre2025(),
@@ -262,6 +269,9 @@ render_postal_reproducer_script <- function(input_file, postal_col, output_dir,
 }
 
 source_retrieve_call <- function(source_id) {
+  if (startsWith(source_id, "census_")) {
+    return(sprintf('retrieve_census("%s")', source_id))
+  }
   switch(source_id,
     phu_boundaries = "retrieve_phu()",
     phu_boundaries_pre2025 = "retrieve_phu_pre2025()",

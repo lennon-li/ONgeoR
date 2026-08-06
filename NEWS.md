@@ -1,5 +1,11 @@
 # ONgeoR 0.4.0
 
+- Export `layer_id_col()`, which resolves a retrieved layer's id column from
+  the source registry's declared key fields. This is the supported way to join
+  `build_crosswalk()` / `build_intersection()` output back onto the layer
+  geometry it came from; downstream callers previously had to reach for the
+  internal.
+
 - Add `resolve_postal_points()` for checksum-verified OPCC M1 postal-code to
   latitude/longitude resolution (282,409 address-derived `nar_centroid`
   matches, 17,373 coarser `geonames` matches, 14 codes with no coordinates),

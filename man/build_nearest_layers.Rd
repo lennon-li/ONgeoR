@@ -37,6 +37,7 @@ build_nearest_layers(stations[1:3, ], stations[4:10, ])
 Other app support interfaces:
 \code{\link[=extract_polygon_collection]{extract_polygon_collection()}},
 \code{\link[=guess_name_col]{guess_name_col()}},
+\code{\link[=layer_id_col]{layer_id_col()}},
 \code{\link[=render_postal_reproducer_script]{render_postal_reproducer_script()}},
 \code{\link[=render_reproducer_script]{render_reproducer_script()}}
 }

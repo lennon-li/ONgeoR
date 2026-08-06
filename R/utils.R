@@ -546,6 +546,26 @@ registry_entry_for <- function(layer) {
   if (!any(matches)) NULL else registry[[which(matches)[1]]]
 }
 
+#' Resolve the id column of a retrieved layer
+#'
+#' Returns the column that identifies each feature of `layer`. When the layer
+#' carries retrieval provenance, the answer comes from the source registry's
+#' declared key fields, so it matches the `from_id_col` / `to_id_col` values
+#' recorded in [build_crosswalk()] and [build_intersection()] output. Layers
+#' without provenance fall back to a name-pattern guess.
+#'
+#' This is the supported way for a downstream caller to join a crosswalk or
+#' linked table back onto the layer geometry it came from.
+#'
+#' @param layer An `sf` object or `data.frame`.
+#'
+#' @return Character scalar: the id column name.
+#'
+#' @examples
+#' layer_id_col(data.frame(PHU_ID = 2253, PHU_NAME_ENG = "Example"))
+#'
+#' @family app support interfaces
+#' @export
 layer_id_col <- function(layer) {
   entry <- registry_entry_for(layer)
   key_fields <- entry$key_fields %||% character()

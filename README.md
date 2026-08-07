@@ -3,18 +3,60 @@
 
 [![R-CMD-check](https://github.com/lennon-li/ONgeoR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/lennon-li/ONgeoR/actions/workflows/R-CMD-check.yaml)
 
-ONgeoR is a lightweight R package for resolving Ontario locations,
-facilities, and infrastructure to public-health and health-system
-geography.
+**Put your Ontario points on the right map, and be able to prove it
+later.**
 
-It helps users retrieve external source data, link locations to Public
-Health Units and Ontario Health Regions, build auditable crosswalk
-files, and create simple maps.
+ONgeoR takes a list of locations -- clinics, schools, long-term care
+homes, incidents, postal codes -- and resolves them to the geography
+your work actually reports on: Public Health Units, Ontario Health
+Regions, municipalities, census areas. It fetches the boundaries live
+from authoritative services, does the spatial join, and hands back a
+table that carries its own provenance.
 
-ONgeoR does not aim to be a permanent storehouse of Ontario geospatial
-data. Instead, it provides reproducible workflows and source metadata so
-users can retrieve, validate, link, and document data from authoritative
-external sources.
+Drive it from R, or from a [point-and-click Shiny app](#shiny-app) that
+needs no code at all -- and that hands you the R script reproducing
+exactly what you just clicked.
+
+### What you get
+
+**Boundaries that are current, not whatever was bundled two years ago.**
+Layers are retrieved at run time from the Ontario GeoHub (LIO) and
+Statistics Canada, then cached locally so repeat work is fast and
+offline-tolerant. Every retrieval records the source URL, the timestamp,
+and the licence. Ontario amalgamated its Public Health Units in 2025, 34
+down to 29 -- anyone still holding a bundled shapefile is quietly wrong
+today. ONgeoR retrieves the current 29 and keeps the pre-2025 vintage
+available and clearly labelled for anyone who needs continuity.
+
+**Census geography without downloading Canada.** The 2021 StatCan
+cartographic boundaries -- census divisions, subdivisions, tracts,
+aggregate dissemination areas, population centres, federal electoral
+districts -- are filtered to Ontario *server-side*, so national data
+never crosses the wire. Census subdivisions are 5,161 nationally and 577
+here. Pass a bounding box and it narrows further on the fly: aggregate
+dissemination areas drop from 1,679 province-wide to about 100 for a
+city-sized window.
+
+**Postal codes without a PCCF licence.** `resolve_postal()` maps Ontario
+postal codes to dissemination areas and `resolve_postal_points()` to
+coordinates, both built on the open, checksum-verified OPCC
+correspondence tables. Nothing to procure, and the checksum means you
+know you got the table you thought you got.
+
+**A join that picks itself.** You should not have to remember whether a
+pairing calls for point-in-polygon, areal apportionment, or raster
+sampling. `build_link()` reads the geometry pair and chooses. `link()`
+and `nearest()` are there when you want to be explicit, and
+`build_crosswalk()` emits weighted apportionment with provenance
+attached.
+
+**Interactive maps, not just static plots.** `map_layers()` and
+`map_nearest()` produce Leaflet widgets you can pan, zoom, and hand to
+someone who does not use R.
+
+**Artifacts you can defend.** Every crosswalk carries source, retrieval
+date, and method. A year from now you can show a reviewer exactly which
+boundary file, which method, and which day produced the number.
 
 ## Why
 
@@ -51,6 +93,9 @@ constant maintenance.
   `build_crosswalk()`, including weighted apportionment;
   `build_intersection()` returns every overlapping polygon pair with
   area shares in one pass
+- Retrieves 2021 Statistics Canada census cartographic boundaries with
+  `retrieve_census()`, filtered to Ontario server-side, with optional
+  bounding-box narrowing for the finer geographies
 - Draws interactive leaflet maps with `map_layers()` and nearest-match
   maps with `map_nearest()`
 - A point-and-click Shiny app is provided by the companion package
@@ -158,9 +203,22 @@ from the same matrix that drives the Shiny app.
 ## Shiny app
 
 The point-and-click app lives in its own package,
-[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). Select a Source
-layer and a Target layer, click **Preview on map**, then **Join** to
-produce a downloadable crosswalk table — no R code required.
+[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). Pick the points
+you have, pick the boundaries you want them joined to, click **Preview
+on map**, then **Join**. No R code required.
+
+What comes out is the part worth caring about:
+
+| Download   | What it is                                                                                                                                                                              |
+|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Shape**  | The joined geometry, carrying every target attribute plus everything joined to it -- GeoPackage and shapefile, with a field-name map because shapefiles truncate names at 10 characters |
+| **Table**  | The results table and the full pair-level crosswalk                                                                                                                                     |
+| **Map**    | The interactive Leaflet map, standalone -- open it in any browser, hand it to anyone                                                                                                    |
+| **Script** | A runnable `reproduce.R` that regenerates the whole thing from source                                                                                                                   |
+
+That last one is the point. The app is not a black box you have to
+trust: it tells you what it did, in code you can read, re-run, and put
+in an appendix.
 
 <div class="figure">
 
@@ -195,9 +253,9 @@ ONgeoR retrieves data from authoritative Ontario sources including:
   facilities, infrastructure
 - **Ministry of Health** -- health facility locations (via the GeoHub
   LIO services)
-
-Statistics Canada census geographies are planned for a future release
-(see the roadmap).
+- **Statistics Canada** (geo.statcan.gc.ca) -- 2021 census cartographic
+  boundaries, filtered to Ontario server-side
+- **OPCC** -- open, checksum-verified postal code correspondence tables
 
 All sources are documented in the package's source registry with
 metadata including:

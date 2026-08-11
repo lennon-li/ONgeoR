@@ -68,5 +68,5 @@ nearest(stations, retrieve_hive()[1:50, ], k = 3)
 #> 14   2.95e8 BEARPAW      121220        NRF Fire We… Auto                       2
 #> 15   2.95e8 BEARPAW      121220        NRF Fire We… Auto                       3
 #> # ℹ 7 more variables: GRID_ID <chr>, Level <chr>, HIVE_ID <int>,
-#> #   distance_km <dbl>, source_url <lgl>, target_url <chr>, retrieved_at <dttm>
+#> #   distance_km <dbl>, source_url <chr>, target_url <chr>, retrieved_at <dttm>
 ```

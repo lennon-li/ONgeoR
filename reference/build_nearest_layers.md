@@ -105,6 +105,6 @@ build_nearest_layers(stations[1:3, ], stations[4:10, ])
 #> # ℹ 12 more variables: .ongeor_source_row <int>, rank <int>, OGF_ID.1 <int>,
 #> #   STATION_NAME.1 <chr>, STATION_IDENT.1 <chr>, NETWORK_NAME.1 <chr>,
 #> #   DATA_COLLECTION_METHOD.1 <chr>, .ongeor_target_row <int>,
-#> #   distance_km <dbl>, source_url <lgl>, target_url <lgl>, retrieved_at <lgl>
+#> #   distance_km <dbl>, source_url <chr>, target_url <chr>, retrieved_at <dttm>
 #> 
 ```

@@ -19,7 +19,9 @@ retrieve_monitoring_stations_simple()
 
 An `sf` object of monitoring station points (`OGF_ID`, `STATION_NAME`,
 `STATION_IDENT`, `NETWORK_NAME`, `DATA_COLLECTION_METHOD`, `geometry`
-columns) in EPSG:4326.
+columns) in EPSG:4326, with `source_url`, `source_name`, and
+`retrieved_at` attributes attached for provenance. `retrieved_at` is the
+snapshot instant of the bundled data, not the time of the call.
 
 ## Details
 

@@ -93,5 +93,5 @@ link(stations, retrieve_phu_simple())
 #> # ℹ 11 more variables: OGF_ID.y <int>, PHU_ID <int>, PHU_NAME_ENG <chr>,
 #> #   PHU_NAME_FR <chr>, GEOMETRY_UPDATE_DATETIME <dbl>,
 #> #   EFFECTIVE_DATETIME <dbl>, SYSTEM_DATETIME <dbl>, OBJECTID <int>,
-#> #   source_url <lgl>, target_url <chr>, retrieved_at <dttm>
+#> #   source_url <chr>, target_url <chr>, retrieved_at <dttm>
 ```

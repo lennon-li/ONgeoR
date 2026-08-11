@@ -8,10 +8,14 @@ Functions to retrieve Ontario spatial layers from authoritative sources.
   : Retrieve Public Health Unit boundaries
 - [`retrieve_phu_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_phu_simple.md)
   : Retrieve simplified Public Health Unit boundaries
+- [`retrieve_phu_pre2025()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_phu_pre2025.md)
+  : Retrieve the pre-2025 simplified Public Health Unit boundaries
 - [`retrieve_health_region()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_health_region.md)
   : Retrieve Ontario Health Region boundaries
 - [`retrieve_municipal()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_municipal.md)
   : Retrieve municipal boundaries
+- [`retrieve_census()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_census.md)
+  : Retrieve an Ontario 2021 census boundary layer
 - [`retrieve_moh_service_locations()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_moh_service_locations.md)
   : Retrieve MOH service locations
 - [`retrieve_airport()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_airport.md)
@@ -70,6 +74,8 @@ Resolve records by identifier or name.
   : Normalize postal codes to the correspondence's own format
 - [`guess_name_col()`](https://lennon-li.github.io/ONgeoR/reference/guess_name_col.md)
   : Guess a name column in an sf/data.frame layer
+- [`layer_id_col()`](https://lennon-li.github.io/ONgeoR/reference/layer_id_col.md)
+  : Resolve the id column of a retrieved layer
 
 ## Map
 

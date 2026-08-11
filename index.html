@@ -58,9 +58,19 @@
 <div class="page-header"><h1 id="ongeor">ONgeoR<a class="anchor" aria-label="anchor" href="#ongeor"></a>
 </h1></div>
 <p><a href="https://github.com/lennon-li/ONgeoR/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/lennon-li/ONgeoR/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></p>
-<p>ONgeoR is a lightweight R package for resolving Ontario locations, facilities, and infrastructure to public-health and health-system geography.</p>
-<p>It helps users retrieve external source data, link locations to Public Health Units and Ontario Health Regions, build auditable crosswalk files, and create simple maps.</p>
-<p>ONgeoR does not aim to be a permanent storehouse of Ontario geospatial data. Instead, it provides reproducible workflows and source metadata so users can retrieve, validate, link, and document data from authoritative external sources.</p>
+<p><strong>Put your Ontario points on the right map, and be able to prove it later.</strong></p>
+<p>ONgeoR takes a list of locations – clinics, schools, long-term care homes, incidents, postal codes – and resolves them to the geography your work actually reports on: Public Health Units, Ontario Health Regions, municipalities, census areas. It fetches the boundaries live from authoritative services, does the spatial join, and hands back a table that carries its own provenance.</p>
+<p>Drive it from R, or from a <a href="#shiny-app">point-and-click Shiny app</a> that needs no code at all – and that hands you the R script reproducing exactly what you just clicked.</p>
+<div class="section level3">
+<h3 id="what-you-get">What you get<a class="anchor" aria-label="anchor" href="#what-you-get"></a>
+</h3>
+<p><strong>Boundaries that are current, not whatever was bundled two years ago.</strong> Layers are retrieved at run time from the Ontario GeoHub (LIO) and Statistics Canada, then cached locally so repeat work is fast and offline-tolerant. Every retrieval records the source URL, the timestamp, and the licence. Ontario amalgamated its Public Health Units in 2025, 34 down to 29 – anyone still holding a bundled shapefile is quietly wrong today. ONgeoR retrieves the current 29 and keeps the pre-2025 vintage available and clearly labelled for anyone who needs continuity.</p>
+<p><strong>Census geography without downloading Canada.</strong> The 2021 StatCan cartographic boundaries – census divisions, subdivisions, tracts, aggregate dissemination areas, population centres, federal electoral districts – are filtered to Ontario <em>server-side</em>, so national data never crosses the wire. Census subdivisions are 5,161 nationally and 577 here. Pass a bounding box and it narrows further on the fly: aggregate dissemination areas drop from 1,679 province-wide to about 100 for a city-sized window.</p>
+<p><strong>Postal codes without a PCCF licence.</strong> <code><a href="reference/resolve_postal.html">resolve_postal()</a></code> maps Ontario postal codes to dissemination areas and <code><a href="reference/resolve_postal_points.html">resolve_postal_points()</a></code> to coordinates, both built on the open, checksum-verified OPCC correspondence tables. Nothing to procure, and the checksum means you know you got the table you thought you got.</p>
+<p><strong>A join that picks itself.</strong> You should not have to remember whether a pairing calls for point-in-polygon, areal apportionment, or raster sampling. <code><a href="reference/build_link.html">build_link()</a></code> reads the geometry pair and chooses. <code><a href="reference/link.html">link()</a></code> and <code><a href="reference/nearest.html">nearest()</a></code> are there when you want to be explicit, and <code><a href="reference/build_crosswalk.html">build_crosswalk()</a></code> emits weighted apportionment with provenance attached.</p>
+<p><strong>Interactive maps, not just static plots.</strong> <code><a href="reference/map_layers.html">map_layers()</a></code> and <code><a href="reference/map_nearest.html">map_nearest()</a></code> produce Leaflet widgets you can pan, zoom, and hand to someone who does not use R.</p>
+<p><strong>Artifacts you can defend.</strong> Every crosswalk carries source, retrieval date, and method. A year from now you can show a reviewer exactly which boundary file, which method, and which day produced the number.</p>
+</div>
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
@@ -81,6 +91,7 @@
 <li>Retrieves PHU boundaries, Ontario Health Regions, municipal boundaries, MOH service locations, airports, waste management sites, conservation authorities, ORWN railway stations, and Ontario water and weather monitoring stations at runtime, plus a bundled HIVE grid, a bundled offline subset of 2,407 monitoring stations, and a synthetic raster surface</li>
 <li>Links geometries by type with <code><a href="reference/link.html">link()</a></code> (point-in-polygon, polygon-to-polygon, and raster sampling) and <code><a href="reference/nearest.html">nearest()</a></code> (k-nearest and radius search), resolves records by identifier or name with <code><a href="reference/resolve.html">resolve()</a></code>, resolves Ontario postal codes to dissemination areas with <code><a href="reference/resolve_postal.html">resolve_postal()</a></code>, and provides <code><a href="reference/build_link.html">build_link()</a></code> as a single no-choice entry point that picks the linking operation from the geometry pair</li>
 <li>Generates auditable crosswalk tables with full provenance metadata via <code><a href="reference/build_crosswalk.html">build_crosswalk()</a></code>, including weighted apportionment; <code><a href="reference/build_intersection.html">build_intersection()</a></code> returns every overlapping polygon pair with area shares in one pass</li>
+<li>Retrieves 2021 Statistics Canada census cartographic boundaries with <code><a href="reference/retrieve_census.html">retrieve_census()</a></code>, filtered to Ontario server-side, with optional bounding-box narrowing for the finer geographies</li>
 <li>Draws interactive leaflet maps with <code><a href="reference/map_layers.html">map_layers()</a></code> and nearest-match maps with <code><a href="reference/map_nearest.html">map_nearest()</a></code>
 </li>
 <li>A point-and-click Shiny app is provided by the companion package <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>
@@ -260,7 +271,37 @@
 <div class="section level2">
 <h2 id="shiny-app">Shiny app<a class="anchor" aria-label="anchor" href="#shiny-app"></a>
 </h2>
-<p>The point-and-click app lives in its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link"><strong>ONgeoRapp</strong></a>. Select a Source layer and a Target layer, click <strong>Preview on map</strong>, then <strong>Join</strong> to produce a downloadable crosswalk table — no R code required.</p>
+<p>The point-and-click app lives in its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link"><strong>ONgeoRapp</strong></a>. Pick the points you have, pick the boundaries you want them joined to, click <strong>Preview on map</strong>, then <strong>Join</strong>. No R code required.</p>
+<p>What comes out is the part worth caring about:</p>
+<table class="table">
+<colgroup>
+<col width="6%">
+<col width="93%">
+</colgroup>
+<thead><tr>
+<th>Download</th>
+<th>What it is</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>Shape</strong></td>
+<td>The joined geometry, carrying every target attribute plus everything joined to it – GeoPackage and shapefile, with a field-name map because shapefiles truncate names at 10 characters</td>
+</tr>
+<tr>
+<td><strong>Table</strong></td>
+<td>The results table and the full pair-level crosswalk</td>
+</tr>
+<tr>
+<td><strong>Map</strong></td>
+<td>The interactive Leaflet map, standalone – open it in any browser, hand it to anyone</td>
+</tr>
+<tr>
+<td><strong>Script</strong></td>
+<td>A runnable <code>reproduce.R</code> that regenerates the whole thing from source</td>
+</tr>
+</tbody>
+</table>
+<p>That last one is the point. The app is not a black box you have to trust: it tells you what it did, in code you can read, re-run, and put in an appendix.</p>
 <div class="figure">
 <img src="reference/figures/app-shiny.png" alt="The ONgeoRapp Shiny app showing PHU boundaries and MOH service locations previewed on the map" width="100%"><p class="caption">
 ONgeoRapp: PHU boundaries and MOH service locations previewed before joining.
@@ -290,8 +331,11 @@ ONgeoRapp: PHU boundaries and MOH service locations previewed before joining.
 <strong>Ontario GeoHub</strong> (geohub.lio.gov.on.ca) – provincial boundaries, facilities, infrastructure</li>
 <li>
 <strong>Ministry of Health</strong> – health facility locations (via the GeoHub LIO services)</li>
+<li>
+<strong>Statistics Canada</strong> (geo.statcan.gc.ca) – 2021 census cartographic boundaries, filtered to Ontario server-side</li>
+<li>
+<strong>OPCC</strong> – open, checksum-verified postal code correspondence tables</li>
 </ul>
-<p>Statistics Canada census geographies are planned for a future release (see the roadmap).</p>
 <p>All sources are documented in the package’s source registry with metadata including:</p>
 <ul>
 <li>Source owner and jurisdiction</li>

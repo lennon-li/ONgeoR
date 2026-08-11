@@ -25,6 +25,7 @@ non-geometry column.
 Other app support interfaces:
 [`build_nearest_layers()`](https://lennon-li.github.io/ONgeoR/reference/build_nearest_layers.md),
 [`extract_polygon_collection()`](https://lennon-li.github.io/ONgeoR/reference/extract_polygon_collection.md),
+[`layer_id_col()`](https://lennon-li.github.io/ONgeoR/reference/layer_id_col.md),
 [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md),
 [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
 

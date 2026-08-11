@@ -22,6 +22,7 @@
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/guess_name_col.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/hive.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/index.html</loc></url>
+<url><loc>https://lennon-li.github.io/ONgeoR/reference/layer_id_col.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/link.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/list_cache.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/list_sources.html</loc></url>
@@ -37,6 +38,7 @@
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/resolve_postal.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/resolve_postal_points.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_airport.html</loc></url>
+<url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_census.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_conservation_authority.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_health_region.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_hive.html</loc></url>
@@ -46,6 +48,7 @@
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_municipal.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_orwn_station.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_phu.html</loc></url>
+<url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_phu_pre2025.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_phu_simple.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_source.html</loc></url>
 <url><loc>https://lennon-li.github.io/ONgeoR/reference/retrieve_synthetic_raster.html</loc></url>

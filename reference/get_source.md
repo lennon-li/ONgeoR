@@ -27,7 +27,7 @@ A named list of metadata for the requested source: `name`,
 ``` r
 get_source("phu_boundaries")
 #> $name
-#> [1] "MOH Public Health Unit Boundary"
+#> [1] "MOH Public Health Unit Boundary (post-2025, 29 PHUs)"
 #> 
 #> $service_layer
 #> [1] "LIO_Open09/44"
@@ -36,7 +36,7 @@ get_source("phu_boundaries")
 #> [1] "boundary"
 #> 
 #> $feature_count
-#> [1] 34
+#> [1] 29
 #> 
 #> $update_frequency
 #> [1] "unknown"

@@ -3,6 +3,29 @@
 ## ONgeoR 0.4.0
 
 - Add
+  [`retrieve_census()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_census.md)
+  for the 14 registered 2021 StatCan census boundary layers. Census
+  queries now use the StatCan endpoint directly, filter to Ontario
+  (`PRUID = '35'`) on the server, return EPSG:4326 geometry, and accept
+  an optional EPSG:4326 bounding box. Remove the impractically large
+  dissemination-block registry entry.
+
+- Add
+  [`retrieve_phu_pre2025()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_phu_pre2025.md)
+  for the retained 34-boundary, 250 m simplified PHU snapshot that LIO
+  no longer serves.
+
+- Export
+  [`layer_id_col()`](https://lennon-li.github.io/ONgeoR/reference/layer_id_col.md),
+  which resolves a retrieved layer’s id column from the source
+  registry’s declared key fields. This is the supported way to join
+  [`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md)
+  /
+  [`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
+  output back onto the layer geometry it came from; downstream callers
+  previously had to reach for the internal.
+
+- Add
   [`resolve_postal_points()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal_points.md)
   for checksum-verified OPCC M1 postal-code to latitude/longitude
   resolution (282,409 address-derived `nar_centroid` matches, 17,373

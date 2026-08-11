@@ -18,15 +18,15 @@ head(list_sources())
 #> # A tibble: 6 × 4
 #>   source_id              name                       geography_type feature_count
 #>   <chr>                  <chr>                      <chr>                  <int>
-#> 1 phu_boundaries         MOH Public Health Unit Bo… boundary                  34
-#> 2 ontario_health_regions Ontario Health Region      boundary                   6
-#> 3 municipal_upper        Municipal Bnd Upper And D… boundary                  98
-#> 4 municipal_lower        Municipal Bnd Lower And S… boundary                 685
-#> 5 airport_official       Airport Official           boundary                 403
-#> 6 waste_management_site  Waste Management Site      boundary                 813
+#> 1 phu_boundaries         MOH Public Health Unit Bo… boundary                  29
+#> 2 phu_boundaries_pre2025 MOH Public Health Unit Bo… boundary                  34
+#> 3 ontario_health_regions Ontario Health Region      boundary                   6
+#> 4 municipal_upper        Municipal Bnd Upper And D… boundary                  98
+#> 5 municipal_lower        Municipal Bnd Lower And S… boundary                 685
+#> 6 airport_official       Airport Official           boundary                 403
 get_source("phu_boundaries")
 #> $name
-#> [1] "MOH Public Health Unit Boundary"
+#> [1] "MOH Public Health Unit Boundary (post-2025, 29 PHUs)"
 #> 
 #> $service_layer
 #> [1] "LIO_Open09/44"
@@ -35,7 +35,7 @@ get_source("phu_boundaries")
 #> [1] "boundary"
 #> 
 #> $feature_count
-#> [1] 34
+#> [1] 29
 #> 
 #> $update_frequency
 #> [1] "unknown"

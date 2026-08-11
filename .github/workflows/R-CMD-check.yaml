@@ -17,7 +17,7 @@ jobs:
           - {os: macos-latest, r: release}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: r-lib/actions/setup-pandoc@v2
       - uses: r-lib/actions/setup-r@v2
         with:
@@ -28,3 +28,35 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
       - uses: r-lib/actions/check-r-package@v2
+
+  # CRAN builds the PDF reference manual, with an index. check-r-package@v2
+  # defaults to --no-manual, so until 2026-08-10 nothing in CI had ever built
+  # it - an Rd error that only surfaces through LaTeX would have reached a CRAN
+  # reviewer first. This job closes that gap on ubuntu alone: Rd2pdf needs the
+  # Rd sources and a LaTeX toolchain, not the package's dependencies, so it is
+  # far cheaper than putting TinyTeX on all three matrix legs.
+  pdf-manual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-tinytex@v2
+
+      # makeindex is what was missing locally, and its absence is nasty to
+      # diagnose: the index step fails, then LaTeX carries on and buries the
+      # cause under hundreds of "\textfont 0 is undefined" lines.
+      - name: Ensure makeindex and the recommended fonts are present
+        run: tlmgr install makeindex collection-fontsrecommended
+
+      - name: Build the PDF manual
+        run: R CMD Rd2pdf --no-preview --force -o ONgeoR-manual.pdf .
+
+      - name: Upload the manual
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ONgeoR-manual
+          path: ONgeoR-manual.pdf
+          if-no-files-found: warn

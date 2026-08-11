@@ -225,9 +225,11 @@ that drives the Shiny app.
 ## Shiny app
 
 The point-and-click app lives in its own package,
-[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). Pick the points
-you have, pick the boundaries you want them joined to, click **Preview
-on map**, then **Join**. No R code required.
+[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). It is running
+live at <https://biostats-ongeor.share.connect.posit.cloud/> – no
+install, no R required. Pick the points you have, pick the boundaries
+you want them joined to, click **Preview on map**, then **Join**. No R
+code required.
 
 What comes out is the part worth caring about:
 
@@ -266,6 +268,7 @@ package.
 - [Adding data
   sources](https://lennon-li.github.io/ONgeoR/vignettes/adding-data-sources.Rmd)
 - [Launching and using the app](https://github.com/lennon-li/ONgeoRapp)
+- [The live app](https://biostats-ongeor.share.connect.posit.cloud/)
 
 ## Data Sources
 

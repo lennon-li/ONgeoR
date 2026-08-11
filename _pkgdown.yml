@@ -7,6 +7,19 @@ figures:
   dev: grDevices::png
   dpi: 96
 
+# The app is a separate package (ONgeoRapp) and deliberately does not ship in
+# this tarball, so the only way a reader of these docs finds it is a link.
+# `structure.right` is restated in full because overriding it drops pkgdown's
+# defaults, which are [search, github].
+navbar:
+  structure:
+    right: [app, search, github]
+  components:
+    app:
+      text: Shiny app
+      href: https://biostats-ongeor.share.connect.posit.cloud/
+      aria-label: Open the ONgeoRapp Shiny app
+
 articles:
   - title: "Guides"
     navbar: ~

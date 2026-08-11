@@ -32,6 +32,15 @@
   2023-06-23 GeoHub snapshot). The bundled layer is the first bundled point
   layer, so point-in-polygon examples now run offline.
 
+- Fix missing provenance on `retrieve_monitoring_stations_simple()`. It was the
+  only bundled retriever returning no `source_name` / `source_url` /
+  `retrieved_at` attributes, because its `.rds` was written by a plain
+  `saveRDS()` while the others carry the attributes in the file. Every
+  crosswalk built against the layer therefore reported `to_source`,
+  `source_url_to` and `retrieved_at` as `NA`. The attributes are now attached
+  at read time from the source registry, with `retrieved_at` set to the
+  snapshot instant (2023-06-23T10:55:20Z) rather than the time of the call.
+
 - Fix the bundled HIVE grid: eight cells were invalid under planar GEOS while
   passing `st_is_valid()` on geographic coordinates (s2), so
   `build_intersection()` on HIVE Level 1/2 grids aborted with a

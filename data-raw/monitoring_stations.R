@@ -35,6 +35,13 @@
 # NETWORK_NAME, DATA_COLLECTION_METHOD, geometry) to hold the file well
 # inside the CRAN size budget.
 #
+# Provenance: this script writes a plain saveRDS(), so the .rds carries no
+# source_name / source_url / retrieved_at attributes (hive.rds and the
+# phu_simple*.rds files do). retrieve_monitoring_stations_simple() attaches
+# them at read time from sources.yaml plus the 2023-06-23T10:55:20Z snapshot
+# instant, so do NOT add them here - two sources of truth for the same three
+# attributes is how they drifted out of a crosswalk in the first place.
+#
 # Run from the package root: source("data-raw/monitoring_stations.R")
 
 url <- paste0(

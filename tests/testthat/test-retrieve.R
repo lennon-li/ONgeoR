@@ -866,6 +866,47 @@ test_that("retrieve_monitoring_stations_simple returns an sf object of POINT geo
   expect_true(all(sf::st_geometry_type(stations) == "POINT"))
 })
 
+# Regression: the bundled .rds carries no provenance attributes of its own, so
+# without the ones attached at read time every crosswalk built against this
+# layer reported to_source / source_url_to / retrieved_at as NA - while the
+# other three bundled retrievers reported them correctly.
+test_that("retrieve_monitoring_stations_simple attaches provenance", {
+  stations <- retrieve_monitoring_stations_simple()
+
+  expect_equal(
+    attr(stations, "source_name"),
+    "Monitoring Station Point (bundled snapshot)"
+  )
+  expect_equal(
+    attr(stations, "source_url"),
+    "builtin://ongeor/monitoring_stations"
+  )
+  # The snapshot instant, NOT the time of the call: a frozen 2023 export must
+  # not be reported as freshly retrieved.
+  expect_equal(
+    attr(stations, "retrieved_at"),
+    as.POSIXct("2023-06-23 10:55:20", tz = "UTC")
+  )
+  expect_true(attr(stations, "retrieved_at") < Sys.time())
+})
+
+test_that("all bundled retrievers agree on carrying provenance", {
+  layers <- list(
+    hive = retrieve_hive(),
+    phu_simple = retrieve_phu_simple(),
+    phu_pre2025 = retrieve_phu_pre2025(),
+    monitoring = retrieve_monitoring_stations_simple()
+  )
+  for (nm in names(layers)) {
+    for (a in c("source_name", "source_url", "retrieved_at")) {
+      expect_false(
+        is.null(attr(layers[[nm]], a)),
+        info = paste(nm, "is missing", a)
+      )
+    }
+  }
+})
+
 test_that("retrieve_phu_pre2025 returns the bundled pre-2025 PHU snapshot", {
   phu <- retrieve_phu_pre2025()
 

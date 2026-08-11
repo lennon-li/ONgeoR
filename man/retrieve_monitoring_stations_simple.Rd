@@ -9,7 +9,9 @@ retrieve_monitoring_stations_simple()
 \value{
 An \code{sf} object of monitoring station points (\code{OGF_ID},
 \code{STATION_NAME}, \code{STATION_IDENT}, \code{NETWORK_NAME}, \code{DATA_COLLECTION_METHOD},
-\code{geometry} columns) in EPSG:4326.
+\code{geometry} columns) in EPSG:4326, with \code{source_url}, \code{source_name}, and
+\code{retrieved_at} attributes attached for provenance. \code{retrieved_at} is the
+snapshot instant of the bundled data, not the time of the call.
 }
 \description{
 Returns the built-in monitoring station point layer shipped in

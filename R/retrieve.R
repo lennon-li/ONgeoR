@@ -637,7 +637,9 @@ phu_pre2025_data_path <- function() {
 #'
 #' @return An `sf` object of monitoring station points (`OGF_ID`,
 #'   `STATION_NAME`, `STATION_IDENT`, `NETWORK_NAME`, `DATA_COLLECTION_METHOD`,
-#'   `geometry` columns) in EPSG:4326.
+#'   `geometry` columns) in EPSG:4326, with `source_url`, `source_name`, and
+#'   `retrieved_at` attributes attached for provenance. `retrieved_at` is the
+#'   snapshot instant of the bundled data, not the time of the call.
 #'
 #' @examples
 #' stations <- retrieve_monitoring_stations_simple()
@@ -652,7 +654,31 @@ retrieve_monitoring_stations_simple <- function() {
       class = "ongeor_monitoring_stations_missing"
     )
   }
-  read_bundled_sf(path)
+  result <- read_bundled_sf(path)
+
+  # Unlike hive.rds and the phu_simple*.rds files, this snapshot was written by
+  # a plain saveRDS() of the Hub export, so it carries no provenance attributes
+  # of its own. Attaching them here rather than regenerating the binary keeps
+  # the shipped .rds byte-identical. Without this, every crosswalk built
+  # against this layer reported to_source / source_url_to / retrieved_at as NA.
+  source <- get_source("monitoring_stations_simple")
+  attr(result, "source_name") <- source$name
+  attr(result, "source_url") <- source$source_url
+  attr(result, "retrieved_at") <- monitoring_stations_snapshot_time()
+  result
+}
+
+#' Snapshot instant of the bundled monitoring station layer
+#'
+#' A property of the data, not of the call: every record in the frozen GeoHub
+#' export carries `SYSTEM_DATETIME` 2023-06-23T10:55:20Z (see
+#' `data-raw/monitoring_stations.R`). Stamping `Sys.time()` here would
+#' misreport a 2023 snapshot as freshly retrieved.
+#'
+#' @keywords internal
+#' @noRd
+monitoring_stations_snapshot_time <- function() {
+  as.POSIXct("2023-06-23 10:55:20", tz = "UTC")
 }
 
 #' @keywords internal

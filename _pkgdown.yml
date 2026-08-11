@@ -21,8 +21,10 @@ reference:
     contents:
       - retrieve_phu
       - retrieve_phu_simple
+      - retrieve_phu_pre2025
       - retrieve_health_region
       - retrieve_municipal
+      - retrieve_census
       - retrieve_moh_service_locations
       - retrieve_airport
       - retrieve_conservation_authority
@@ -55,6 +57,7 @@ reference:
       - resolve_postal_points
       - normalize_postal_code
       - guess_name_col
+      - layer_id_col
 
   - title: "Map"
     desc: "Draw interactive Leaflet maps."

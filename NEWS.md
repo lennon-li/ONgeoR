@@ -1,5 +1,18 @@
 # ONgeoR 0.4.0
 
+- Add `retrieve_onmarg()`, `add_onmarg()`, and `onmarg_geographies()` for the
+  2021 Ontario Marginalization Index (ON-Marg). `add_onmarg()` attaches the
+  four dimension scores, and the quintiles where they are published, to an
+  administrative boundary layer by that layer's own key column; eight of the
+  ten published geographies map onto a registered ONgeoR source, including
+  Public Health Units on the pre-2025 34-unit geography. The workbook is
+  fetched from Public Health Ontario at runtime, verified against a pinned
+  SHA-256, and held in memory for the session only: its licence permits
+  non-commercial use with attribution and forbids modifying the content, so
+  ONgeoR neither bundles it, writes it to the retrieval cache, nor alters its
+  values. `readxl` is a new optional (`Suggests`) dependency, needed only by
+  these functions.
+
 - Add `retrieve_census()` for the 14 registered 2021 StatCan census boundary
   layers. Census queries now use the StatCan endpoint directly, filter to
   Ontario (`PRUID = '35'`) on the server, return EPSG:4326 geometry, and accept

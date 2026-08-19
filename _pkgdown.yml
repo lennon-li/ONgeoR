@@ -85,6 +85,13 @@ reference:
       - list_sources
       - get_source
 
+  - title: "Marginalization index"
+    desc: "Attach 2021 ON-Marg measures to administrative boundaries."
+    contents:
+      - retrieve_onmarg
+      - add_onmarg
+      - onmarg_geographies
+
   - title: "Cache"
     desc: "Inspect and clear the on-disk retrieval cache."
     contents:

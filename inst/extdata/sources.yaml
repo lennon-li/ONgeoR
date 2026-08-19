@@ -544,3 +544,14 @@ sources:
     default_query: "PRUID='35'"
     simplify: false
     paginate: true
+
+  postal_points:
+    name: "Ontario postal code points (OPCC M1 centroids)"
+    geography_type: "facility"
+    # 299,796 postal codes are in the release; the 14 whose point_source is
+    # "none" have no coordinates and are dropped, so the layer carries 299,782.
+    feature_count: 299782
+    update_frequency: "static"
+    key_fields: ["postal_code"]
+    license: "Open Government Licence - Canada (NAR); CC BY 4.0 (GeoNames)"
+    source_url: "https://raw.githubusercontent.com/lennon-li/OPCC/b334a920a92b0b73d6b91a03e5dd3d68c9c709fa/releases/m1/2026-06-26-nar-geonames-centroids/opcc_m1_centroids.csv.gz"

@@ -21,7 +21,16 @@ read_bundled_sf <- function(path) {
 
 census_ontario_pruid <- "35"
 
-census_bbox_geometry <- function(bbox) {
+#' Validate an EPSG:4326 bounding box
+#'
+#' Shared by every retrieval entry point that takes a `bbox`, so a caller sees
+#' one convention and one error message no matter which layer is being
+#' windowed.
+#'
+#' @return A numeric vector `c(xmin, ymin, xmax, ymax)`.
+#' @keywords internal
+#' @noRd
+bbox_envelope_values <- function(bbox) {
   values <- as.numeric(bbox)
   if (length(values) != 4 || any(!is.finite(values)) ||
       values[1] >= values[3] || values[2] >= values[4]) {
@@ -29,7 +38,11 @@ census_bbox_geometry <- function(bbox) {
       "`bbox` must be an sf bbox or numeric xmin, ymin, xmax, ymax in EPSG:4326."
     )
   }
-  paste(values, collapse = ",")
+  values
+}
+
+census_bbox_geometry <- function(bbox) {
+  paste(bbox_envelope_values(bbox), collapse = ",")
 }
 
 #' Retrieve an Ontario 2021 census boundary layer

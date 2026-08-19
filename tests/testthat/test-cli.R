@@ -291,6 +291,25 @@ test_that("every registered source id dispatches through retrieve_source", {
       attr(layer, "source_name") <- source_name
       layer
     },
+    # postal_points is served from the OPCC M1 release rather than a LIO
+    # service, so mocking fetch_lio_sf alone would leave this sweep making a
+    # real download.
+    opcc_m1_centroids = function() {
+      list(
+        data = tibble::tibble(
+          postal_code = "M5V 3A8",
+          latitude = 43.6426,
+          longitude = -79.3871,
+          point_source = "nar_centroid",
+          point_method = "nar_reppoint"
+        ),
+        meta = list(
+          source_name = "OPCC M1 postal centroids",
+          source_url = "https://example.test/opcc-m1",
+          retrieved_at = "2026-08-01 00:00:00 UTC"
+        )
+      )
+    },
     .package = "ONgeoR"
   )
 

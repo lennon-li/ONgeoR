@@ -422,3 +422,87 @@ resolve_postal_points <- function(x, as_sf = FALSE) {
 
   result
 }
+
+#' Retrieve Ontario postal code points as a layer
+#'
+#' Returns every Ontario postal-code centroid in the OPCC M1 release as an `sf`
+#' POINT layer, so postal codes can be used as a crosswalk or map layer without
+#' supplying a list of codes. The release is downloaded, checksum-verified, and
+#' cached by the same machinery [resolve_postal_points()] uses.
+#'
+#' @param bbox Optional `sf` bbox or numeric `xmin, ymin, xmax, ymax` vector in
+#'   EPSG:4326. When supplied, only points inside the envelope are returned.
+#'   The full province is 299,782 points, which is more than most maps or
+#'   spatial joins can carry, so window the layer whenever the use case allows.
+#' @param refresh Logical. If `TRUE`, discards the cached release and
+#'   re-downloads it. Defaults to `FALSE`.
+#'
+#' @return An `sf` POINT layer in EPSG:4326 with `postal_code`, `point_source`,
+#'   and `point_method` columns, and `source_name`, `source_url`, and
+#'   `retrieved_at` attributes attached for provenance. Postal codes without
+#'   coordinates (the 14 codes whose `point_source` is `"none"`) are dropped
+#'   silently, so the layer has one row per postal code that can be placed.
+#'
+#' @examples
+#' \dontrun{
+#' # Whole province: 299,782 points.
+#' postal_points <- retrieve_postal_points()
+#'
+#' # A downtown Toronto window, which is what an interactive map should ask
+#' # for.
+#' toronto <- retrieve_postal_points(
+#'   bbox = c(xmin = -79.42, ymin = 43.63, xmax = -79.36, ymax = 43.68)
+#' )
+#' nrow(toronto)
+#' }
+#'
+#' @seealso [resolve_postal_points()] to look up a known list of postal codes.
+#'
+#' @export
+retrieve_postal_points <- function(bbox = NULL, refresh = FALSE) {
+  if (!is.logical(refresh) || length(refresh) != 1L || is.na(refresh)) {
+    rlang::abort("`refresh` must be a single non-missing logical value.")
+  }
+  envelope <- if (is.null(bbox)) NULL else bbox_envelope_values(bbox)
+
+  if (refresh) {
+    cache_dir <- ongeor_cache_dir()
+    unlink(file.path(
+      cache_dir, paste0(opcc_m1_cache_key, c(".rds", ".yaml"))
+    ))
+  }
+
+  centroids <- opcc_m1_centroids()
+  data <- centroids$data
+  meta <- centroids$meta
+
+  # Whole-province pull: the handful of codes with no coordinates are dropped
+  # without a warning. resolve_postal_points() warns because the caller named
+  # those codes and expects a row back; here nobody asked for them by name.
+  is_none <- !is.na(data$point_source) & data$point_source == "none"
+  keep <- !is.na(data$latitude) & !is.na(data$longitude) & !is_none
+
+  if (!is.null(envelope)) {
+    keep <- keep &
+      data$longitude >= envelope[1] & data$longitude <= envelope[3] &
+      data$latitude >= envelope[2] & data$latitude <= envelope[4]
+  }
+
+  data <- data[keep, c(
+    "postal_code", "longitude", "latitude", "point_source", "point_method"
+  ), drop = FALSE]
+
+  result <- if (nrow(data) == 0L) {
+    sf::st_sf(
+      data[, c("postal_code", "point_source", "point_method"), drop = FALSE],
+      geometry = sf::st_sfc(crs = 4326)
+    )
+  } else {
+    sf::st_as_sf(data, coords = c("longitude", "latitude"), crs = 4326)
+  }
+
+  attr(result, "source_name") <- get_source("postal_points")$name
+  attr(result, "source_url") <- meta$source_url %||% opcc_m1_url
+  attr(result, "retrieved_at") <- meta$retrieved_at %||% NA_character_
+  result
+}

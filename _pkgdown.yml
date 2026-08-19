@@ -68,6 +68,7 @@ reference:
       - resolve
       - resolve_postal
       - resolve_postal_points
+      - retrieve_postal_points
       - normalize_postal_code
       - guess_name_col
       - layer_id_col

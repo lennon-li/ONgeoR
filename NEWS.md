@@ -28,6 +28,13 @@
   geometry it came from; downstream callers previously had to reach for the
   internal.
 
+- Add `retrieve_postal_points()`, which returns the whole OPCC M1 centroid
+  release as an EPSG:4326 POINT layer (299,782 postal codes with coordinates)
+  rather than resolving a supplied list of codes. It takes the same optional
+  EPSG:4326 `bbox` as `retrieve_census()`, which is the practical way to use
+  it: the province-wide layer is too large to draw or join in one piece. The
+  layer is registered as source id `postal_points`.
+
 - Add `resolve_postal_points()` for checksum-verified OPCC M1 postal-code to
   latitude/longitude resolution (282,409 address-derived `nar_centroid`
   matches, 17,373 coarser `geonames` matches, 14 codes with no coordinates),

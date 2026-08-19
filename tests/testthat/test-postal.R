@@ -369,3 +369,151 @@ test_that("resolve_postal_points parses a verified download and caches it", {
   expect_equal(calls, 1L)
   expect_true("OPCC M1 postal centroids" %in% list_cache()$source_name)
 })
+
+postal_points_layer_stub <- function() {
+  list(
+    data = tibble::tibble(
+      postal_code = c("M5V 3A8", "M5V 3A9", "K1A 0B1", "P0T 1A0"),
+      latitude = c(43.6426, 43.6440, 45.4215, NA_real_),
+      longitude = c(-79.3871, -79.3900, -75.6972, NA_real_),
+      point_source = c("nar_centroid", "geonames", "nar_centroid", "none"),
+      point_method = c(
+        "nar_reppoint", "geonames_direct_wgs84", "nar_reppoint", "none"
+      )
+    ),
+    meta = opcc_m1_cache_meta("2026-08-01 00:00:00 UTC")
+  )
+}
+
+mock_postal_points_layer <- function(env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    opcc_m1_centroids = postal_points_layer_stub,
+    .package = "ONgeoR",
+    .env = env
+  )
+}
+
+test_that("retrieve_postal_points returns a POINT layer in EPSG:4326", {
+  mock_postal_points_layer()
+
+  result <- retrieve_postal_points()
+
+  expect_s3_class(result, "sf")
+  expect_true(sf::st_crs(result) == sf::st_crs(4326))
+  expect_true(all(sf::st_geometry_type(result) == "POINT"))
+  expect_named(
+    result,
+    c("postal_code", "point_source", "point_method", "geometry")
+  )
+})
+
+test_that("retrieve_postal_points drops codes without coordinates silently", {
+  mock_postal_points_layer()
+
+  expect_no_warning(result <- retrieve_postal_points())
+
+  expect_equal(nrow(result), 3L)
+  expect_false("P0T 1A0" %in% result$postal_code)
+  expect_false("none" %in% result$point_source)
+})
+
+test_that("retrieve_postal_points filters to a bbox", {
+  mock_postal_points_layer()
+
+  toronto <- retrieve_postal_points(
+    bbox = c(xmin = -79.5, ymin = 43.6, xmax = -79.3, ymax = 43.7)
+  )
+
+  expect_equal(nrow(toronto), 2L)
+  expect_equal(toronto$postal_code, c("M5V 3A8", "M5V 3A9"))
+  expect_false("K1A 0B1" %in% toronto$postal_code)
+
+  empty <- retrieve_postal_points(
+    bbox = c(xmin = -60, ymin = 40, xmax = -59, ymax = 41)
+  )
+
+  expect_s3_class(empty, "sf")
+  expect_equal(nrow(empty), 0L)
+  expect_true(sf::st_crs(empty) == sf::st_crs(4326))
+})
+
+test_that("retrieve_postal_points rejects a bbox the way retrieve_census does", {
+  mock_postal_points_layer()
+  message <- paste0(
+    "`bbox` must be an sf bbox or numeric xmin, ymin, xmax, ymax in ",
+    "EPSG:4326."
+  )
+
+  expect_error(
+    retrieve_postal_points(bbox = c(-79.5, 43.6, -79.3)),
+    message,
+    fixed = TRUE
+  )
+  expect_error(
+    retrieve_postal_points(bbox = c(-79.3, 43.6, -79.5, 43.7)),
+    message,
+    fixed = TRUE
+  )
+  expect_error(
+    retrieve_census("census_cd_2021", bbox = c(-79.5, 43.6, -79.3)),
+    message,
+    fixed = TRUE
+  )
+  expect_error(
+    retrieve_postal_points(refresh = NA),
+    "single non-missing logical"
+  )
+})
+
+test_that("retrieve_postal_points attaches provenance attributes", {
+  mock_postal_points_layer()
+
+  result <- retrieve_postal_points()
+
+  expect_equal(
+    attr(result, "source_name"),
+    "Ontario postal code points (OPCC M1 centroids)"
+  )
+  expect_equal(attr(result, "source_url"), opcc_m1_url)
+  expect_equal(attr(result, "retrieved_at"), "2026-08-01 00:00:00 UTC")
+})
+
+test_that("retrieve_postal_points refresh discards the cached release", {
+  cache_dir <- use_postal_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+  seed_postal_points_cache()
+  cached <- file.path(cache_dir, paste0(opcc_m1_cache_key, ".rds"))
+  expect_true(file.exists(cached))
+  mock_postal_points_layer()
+
+  retrieve_postal_points(refresh = TRUE)
+
+  expect_false(file.exists(cached))
+})
+
+test_that("retrieve_source dispatches postal_points to the new layer", {
+  mock_postal_points_layer()
+
+  result <- retrieve_source("postal_points")
+
+  expect_s3_class(result, "sf")
+  expect_equal(nrow(result), 3L)
+  expect_equal(
+    source_retrieve_call("postal_points"),
+    "retrieve_postal_points()"
+  )
+})
+
+test_that("the registry advertises postal_points as a facility layer", {
+  entry <- get_source("postal_points")
+
+  expect_equal(entry$geography_type, "facility")
+  expect_equal(entry$key_fields, "postal_code")
+  expect_equal(entry$source_url, opcc_m1_url)
+  expect_equal(entry$feature_count, 299782L)
+
+  sources <- list_sources()
+  row <- sources[sources$source_id == "postal_points", ]
+  expect_equal(nrow(row), 1L)
+  expect_equal(unname(row$geography_type), "facility")
+})

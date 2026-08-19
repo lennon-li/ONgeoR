@@ -97,6 +97,17 @@ Browse and query the built-in source metadata registry.
 - [`get_source()`](https://lennon-li.github.io/ONgeoR/reference/get_source.md)
   : Get metadata for one data source
 
+## Marginalization index
+
+Attach 2021 ON-Marg measures to administrative boundaries.
+
+- [`retrieve_onmarg()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_onmarg.md)
+  : Retrieve Ontario Marginalization Index (ON-Marg) values
+- [`add_onmarg()`](https://lennon-li.github.io/ONgeoR/reference/add_onmarg.md)
+  : Attach ON-Marg columns to an administrative boundary layer
+- [`onmarg_geographies()`](https://lennon-li.github.io/ONgeoR/reference/onmarg_geographies.md)
+  : ON-Marg geographies and the boundary layers they attach to
+
 ## Cache
 
 Inspect and clear the on-disk retrieval cache.

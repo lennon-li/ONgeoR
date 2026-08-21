@@ -1,6 +1,6 @@
 # ONgeoR Roadmap
 
-Updated 2026-08-04. This file is the active project task list and should reflect
+Updated 2026-08-21. This file is the active project task list and should reflect
 shipped repository state. Completed implementation plans belong in project
 history, not in the pending queue.
 
@@ -12,9 +12,13 @@ workflow, with the Shiny app split out to its own package
 CRAN. Pre-submission checks are verified (R CMD check --as-cran clean);
 submission itself is pending.
 
+**Scope note.** This file tracks ONgeoR only. Work that belongs to the Shiny
+app now lives in ONgeoRapp's own queue; items still listed here that are
+app-owned are marked as such and should be moved, not worked, from this repo.
+
 ### Shipped
 
-- **Retrieval** — 29 registered sources, including the bundled HIVE grid,
+- **Retrieval** — 45 registered sources, including the bundled HIVE grid,
   a bundled 2,407-station monitoring subset, and a synthetic raster, with
   provenance,
   bounded pagination with truncation detection, retry/backoff, actionable
@@ -34,6 +38,24 @@ submission itself is pending.
   dissemination areas from the OPCC M5 correspondence (checksum-verified,
   cached after first download); `normalize_postal_code()` and
   `render_postal_reproducer_script(all_links = )` included.
+  `resolve_postal_points()` returns coordinates for a named list of codes, and
+  `retrieve_postal_points(bbox = )` offers the whole OPCC M1 release (299,782
+  placeable codes) as an ordinary retrievable layer, registered as source id
+  `postal_points` (`bcc868e`).
+- **Statistics Canada 2021 census geography** — fourteen retrievable
+  boundary sources (`census_pr_2021` through `census_fsa_2021`), including
+  census subdivisions, dissemination areas, and forward sortation areas, with
+  a shared bbox convention for windowing large layers.
+- **ON-Marg marginalization** — `retrieve_onmarg()`, `add_onmarg()`, and
+  `onmarg_geographies()` attach the 2021 PHO measures to a boundary layer
+  (`b33311d`). The workbook's licence forbids modification, so it is fetched
+  at runtime against a pinned SHA-256 and held in session memory only: never
+  bundled, never written to the disk cache. Join keys come from the registry's
+  `key_fields`, never from `guess_id_col()`. Eight of ten sheets map to a
+  retrievable boundary layer; LHIN and LHIN sub-region have none.
+- **Raster linking** — `link()` samples a `SpatRaster` through the existing
+  geometry-dispatch seam, `map_layers()` draws it, and `terra` is a declared
+  import. Raster-to-raster linking is refused explicitly.
 - **Shiny app** — split to its own package
   [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp): source linking,
   nearest-facility search, postal-to-DA joining, interactive maps,
@@ -91,11 +113,27 @@ prose had drifted apart. Fixed in this pass:
   worker packets for the mechanical fixes plus direct edits for multi-file
   changes; full trial log in the agent memory repo.
 
-Residual (non-blocking, fold into existing residual item): raster runs still
-have no reproducer story; `nearest()` does not validate `k`;
-`clear_cache(source_id)` fails on a corrupt sidecar; registry YAML re-read on
-every call (memoization); app "Use my own file" controls are inert
-placeholders — hide or implement.
+Residual (non-blocking). Status as of the 2026-08-21 audit:
+
+- [x] `nearest()` does not validate `k`. Fixed: `validate_k()` rejects a `k`
+  that is not a single positive whole number or `Inf`, with condition class
+  `ongeor_invalid_k`. `k = 0` was the damaging case — it returned an empty
+  tibble with no condition, so "no matches found" and "you asked for zero
+  matches" were indistinguishable.
+- [x] `clear_cache(source_id)` fails on a corrupt sidecar. Fixed:
+  `clear_cache()` and `list_cache()` now read sidecars through
+  `cache_read_sidecar()`, which returns `NULL` instead of aborting, and warn
+  with class `ongeor_unreadable_sidecar`. A targeted clear leaves an
+  unattributable entry in place and names the way out; `list_cache()` reports
+  it with `NA` metadata rather than hiding it.
+- [ ] Registry YAML re-read on every `load_source_registry()` call
+  (memoization). Measured 2026-08-21 at 2.8 ms per parse across four call
+  sites; `registry_entry_for()` pays it once per layer. Real but small, and a
+  memo has to be keyed so that a `data-raw` edit to `sources.yaml` cannot be
+  served stale.
+- [ ] Raster runs still have no reproducer story.
+- [ ] **ONgeoRapp-owned:** app "Use my own file" controls are inert
+  placeholders — hide or implement. Move to that repo's queue.
 
 ### P0 — Reconcile project state
 
@@ -220,7 +258,11 @@ not a second implementation of package algorithms.
   and drawing it as an always-on map furniture layer, so the widget exists at
   app load with no preview and no retrieval. The gate and the preview/modal
   scaffolding it required are deleted.
-- [ ] **OPEN: browser-suite startup timeouts, cause UNKNOWN.** `AppDriver`
+- [ ] **OPEN, ONgeoRapp-owned since the app split: browser-suite startup
+  timeouts, cause UNKNOWN.** The app and its browser suite no longer live in
+  this repo; this entry is kept intact because it carries a retraction that
+  must travel with the item, and should be moved to ONgeoRapp's queue rather
+  than worked from here. `AppDriver`
   intermittently reports "app failed to start up within N seconds". The app
   starts normally and never signals ready: no R error, no traceback, no
   `shiny:error`. Measured 2026-07-20 at roughly a **50% failure rate on
@@ -353,11 +395,12 @@ freeze the user interface or leave misleading prior results visible.
 
 ### P1 — Public release readiness
 
-- [~] Add pkgdown configuration and publish documentation. **Config done,
-  publishing NOT done.** `_pkgdown.yml` added and `pkgdown::build_site()`
-  completes; the site has not been deployed anywhere, and `_pkgdown.yml` is
-  `.Rbuildignore`d so it does not trip the top-level-files check. Remaining
-  work is choosing a host (GitHub Pages) and wiring a workflow.
+- [x] Add pkgdown configuration and publish documentation.
+- Evidence: `_pkgdown.yml` (`.Rbuildignore`d so it does not trip the
+  top-level-files check), `.github/workflows/pkgdown.yaml`, and a `gh-pages`
+  branch publishing to <https://lennon-li.github.io/ONgeoR/>, which is the URL
+  carried in `DESCRIPTION`. Deployment is automated on push to `main`.
+- **But the published site is currently stale — see the open CI item below.**
 - [x] Add GitHub issue templates, including a structured data-source request.
 - Evidence: three templates incl. data-source-request, PR #5 (`1eab55e`).
 - [x] Review package title and description for CRAN-style software-name and API
@@ -384,42 +427,59 @@ run a documented workflow, and report a source or software problem.
 Expansion is demand-driven. Do not begin these items until the v0.3 acceptance
 gates above are satisfied.
 
-- [ ] **Statistics Canada census subdivisions** — preferred first new source;
-  add a registry entry, provenance, retrieval implementation, live
-  simplification/pagination validation, tests, and documentation.
+- [x] **Statistics Canada census subdivisions** — shipped, and wider than the
+  original item: fourteen 2021 census geographies are registered
+  (`census_pr_2021` … `census_fsa_2021`), `census_csd_2021` being the
+  subdivisions asked for here. Covered by `tests/testthat/test-census.R`; the
+  two live checks are `skip_on_cran()` + `skip_if_offline()`.
 - [ ] **Additional sources** — transit and environmental layers, ordered by a
   documented user need rather than source availability alone.
 - [ ] **Nearest-neighbour performance** — replace the full distance matrix with
   a spatial-indexed approach only when realistic benchmarks show the current
-  implementation is inadequate.
-- [ ] **Raster linking** — implement through the existing `link()` seam only
-  after a concrete use case and validation dataset are defined; add `terra`
-  deliberately rather than pre-emptively.
-- [ ] **`build_intersection()` fails on bundled HIVE Level 1/2 cells**
-  (found 2026-07-31 while writing offline examples) — the plain call a user
-  would reach for first,
-  `build_intersection(retrieve_hive(), retrieve_phu_simple())`, aborts with
-  `TopologyException: Ring edge missing at 7114018.0463455105
-  1111545.2334546207`. Both layers are bundled, so this reproduces offline
-  with no network. **All 1629 HIVE geometries pass `sf::st_is_valid()`**, and
-  the failing coordinates are projected metres, so the degeneracy appears
-  after the internal `st_transform()` — suspect the `st_simplify(dTolerance =
-  100)` step in `data-raw/hive.R` leaving self-touching rings on the large
-  Level 1/2 cells that survive validity checks in EPSG:4326 but not
-  reprojection. Level 3 (1313 cells) intersects cleanly in ~0.2s. The
-  `build_intersection`/`summarise_by_target`/`build_link`/`build_crosswalk`
-  examples subset to Level 3 — that keeps the examples honest but **works by
-  avoiding the broken path**, so closing this item must not be inferred from
-  green examples.
+  implementation is inadequate. `nearest()` aborts with
+  `ongeor_nearest_too_large` above 10 million distances rather than trying.
+- [x] **Raster linking** — shipped through the existing `link()` seam;
+  `terra` is a declared import, `map_layers()` draws a `SpatRaster`, and
+  raster-to-raster linking is refused explicitly. Note that
+  `DECISIONS.md` still describes raster as a future seam rather than an
+  active workstream: the seam is implemented, not extended.
+- [x] **`build_intersection()` fails on bundled HIVE Level 1/2 cells**
+  (found 2026-07-31) — fixed 2026-08-03 by `data-raw/hive_make_valid.R`, which
+  repairs only the 8 cells that were invalid under planar GEOS (one "Hole lies
+  outside shell", seven "Nested shells") with `MakeValid` in EPSG:3347, leaving
+  every other cell byte-identical. Do not route the grid through an s2-based
+  rebuild; a previous attempt moved every vertex by up to ~2 degrees.
+- Evidence (re-verified 2026-08-21 against the installed package, offline):
+  `build_intersection(retrieve_hive(), retrieve_phu_simple())` returns 1,917
+  rows over all 1,629 cells and 29 PHUs, with no `TopologyException`. This is
+  the plain full-grid call, not the Level 3 subset the examples use, so it does
+  not close by way of green examples.
+
+### Open — infrastructure
+
+- [ ] **pkgdown CI on `main` exceeded its 30-minute limit and was cancelled**
+  (found 2026-08-21). Run
+  [32275659041](https://github.com/lennon-li/ONgeoR/actions/runs/32275659041)
+  for `bcc868e` was killed at 30m6s by the job timeout. The published site is
+  therefore stale at `b33311d` and does not document `retrieve_postal_points()`.
+  **The cause is not established**: the immediately preceding pkgdown runs took
+  2m33s and 2m43s, and `R-CMD-check` for the same commit passed in 11m27s on
+  all three platforms, so this is specific to the pkgdown job. One occurrence,
+  so runner flakiness or a dependency-cache miss is not ruled out and must not
+  be excluded by assertion. Next step is to re-run the workflow and read the
+  step timings before blaming any commit.
+
+### Open — ONgeoRapp-owned, listed here only until moved
+
 - [ ] **Surface source unavailability explicitly in the app** (Lennon,
   2026-07-31) — when a layer cannot be retrieved, ONgeoRapp must say so in the
   UI, naming the source and the reason, so a user reads "the data service is
   not answering" rather than concluding the app is broken. `retrieve_*()`
   already raises a classed `ongeor_retrieval_error` with an informative
   message (`R/utils.R:297`); the gap is that the app does not surface it
-  distinctly from any other failure. Note this is an **ONgeoRapp** change with
-  an ONgeoR-side contract: keep the condition class stable and make sure the
-  message names the source. Prompted by finding that asgard cannot reach
+  distinctly from any other failure. The **ONgeoR-side** obligation is the only
+  part this repo owns: keep the condition class stable and keep the message
+  naming the source. Prompted by finding that asgard cannot reach
   `ws.lioservices.lrc.gov.on.ca` at all, which is exactly the situation a user
   would misread as a broken app.
 
@@ -427,14 +487,22 @@ gates above are satisfied.
 
 These are data-governance or scope questions, not implementation tasks.
 
-- **Postal-code resolution** — design decided 2026-07-16 (no PCCF required):
-  `resolve_postal()` on free centroids with an optional BYO-PCCF seam, output
-  feeding the normal linking verbs. Centroid source pending one decision:
-  GeoNames (0.27 km median deviation) vs the OPCC project's NAR-derived open
-  centroids (100% SLI coverage, ~0 km median; OPCC M2 correspondence table
-  closed 2026-07-18). Awaiting Lennon's go. **Deliberately parked (2026-07-20,
-  Lennon)** — excluded from the v0.3 P1 cleanup pass; revisit when Lennon
-  picks a centroid source.
+- **Postal-code resolution** — **resolved and shipped.** The centroid-source
+  question ("GeoNames vs the OPCC NAR-derived open centroids") was settled in
+  favour of the OPCC release: `resolve_postal()` uses the M5 correspondence for
+  postal-to-DA, and `resolve_postal_points()` / `retrieve_postal_points()` use
+  the M1 centroids, both checksum-verified and cached. The BYO-PCCF seam was
+  not needed and was not built.
+- **ON-Marg redistribution** — settled. The PHO workbook licence forbids
+  modification, so ONgeoR fetches it at runtime against a pinned SHA-256 and
+  keeps it in session memory only: never bundled, never cached to disk, never
+  altered, and a checksum mismatch aborts. Lennon confirmed on 2026-08-19 that
+  he holds permission to expose ON-Marg through the hosted app; that permission
+  does not change the handling, which is how the licence term is honoured
+  rather than a workaround for the permission.
+- **`retrieve_monitoring_stations*` naming** — open, and needs Lennon. CRAN
+  acceptance freezes the public API, so decide before submission whether the
+  shipped names stay.
 
 ## Task discipline
 

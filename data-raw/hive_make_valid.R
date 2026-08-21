@@ -5,7 +5,8 @@
 # "Nested shells" (A-5, AZ-63, BI-61, BM-58, BY-47, SD-359, KD-324),
 # artifacts of the hierarchical aggregation. They make build_intersection()
 # abort with TopologyException on Level 1/2 cells once the layer is
-# transformed to a planar CRS (see TODO.md item 4).
+# transformed to a planar CRS (see the build_intersection item under "v0.4"
+# in ROADMAP.md; this script is what closed it).
 #
 # Repair is surgical: only the invalid cells are touched, with planar GEOS
 # MakeValid in EPSG:3347 (the CRS build_intersection() uses), keeping only

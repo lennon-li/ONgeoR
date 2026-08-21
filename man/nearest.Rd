@@ -12,7 +12,8 @@ columns (assumed CRS 4326 / WGS 84).}
 
 \item{target}{An \code{sf} object of candidate geometries.}
 
-\item{k}{Integer. Number of nearest targets to return per source. Defaults
+\item{k}{Integer. Number of nearest targets to return per source. Must be a
+single positive whole number, or \code{Inf} to return every target. Defaults
 to \code{1}. If a source has fewer than \code{k} targets available, all are returned.}
 
 \item{max_dist_km}{Numeric or \code{NULL}. If set, drop targets farther than this

@@ -190,3 +190,40 @@ test_that("nearest aborts before allocating an oversized distance matrix", {
   expect_match(conditionMessage(error), "dense distance-matrix", fixed = TRUE)
   expect_match(conditionMessage(error), "ROADMAP", fixed = TRUE)
 })
+
+test_that("nearest rejects a k that is not a positive whole number", {
+  facilities <- make_synthetic_facilities()
+  points <- data.frame(point_id = 1, lon = -79.000, lat = 43.000)
+
+  # k = 0 is the dangerous one: the old code produced an empty result and no
+  # condition at all, so a caller reading "no matches found" could not tell a
+  # genuinely empty search from a mis-specified one.
+  error <- expect_error(
+    nearest(points, facilities, k = 0),
+    class = "ongeor_invalid_k"
+  )
+  expect_match(conditionMessage(error), "positive whole number", fixed = TRUE)
+
+  expect_error(nearest(points, facilities, k = -1), class = "ongeor_invalid_k")
+  expect_error(nearest(points, facilities, k = 2.5), class = "ongeor_invalid_k")
+  expect_error(nearest(points, facilities, k = NA), class = "ongeor_invalid_k")
+  expect_error(
+    nearest(points, facilities, k = NA_integer_),
+    class = "ongeor_invalid_k"
+  )
+  expect_error(nearest(points, facilities, k = c(1, 2)), class = "ongeor_invalid_k")
+  expect_error(nearest(points, facilities, k = "2"), class = "ongeor_invalid_k")
+  expect_error(nearest(points, facilities, k = NULL), class = "ongeor_invalid_k")
+  expect_error(nearest(points, facilities, k = -Inf), class = "ongeor_invalid_k")
+})
+
+test_that("nearest accepts the documented k forms", {
+  facilities <- make_synthetic_facilities()
+  points <- data.frame(point_id = 1, lon = -79.000, lat = 43.000)
+
+  # Inf is documented as "every target"; an integer and a whole double are the
+  # two ways a caller normally spells a count.
+  expect_equal(nrow(nearest(points, facilities, k = Inf)), 3)
+  expect_equal(nrow(nearest(points, facilities, k = 2L)), 2)
+  expect_equal(nrow(nearest(points, facilities, k = 2)), 2)
+})

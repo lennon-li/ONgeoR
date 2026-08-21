@@ -58,7 +58,38 @@ cache_read_meta <- function(key) {
     return(NULL)
   }
 
-  tryCatch(yaml::read_yaml(yaml_path), error = function(cnd) NULL)
+  cache_read_sidecar(yaml_path)
+}
+
+# Read one sidecar by path, returning NULL rather than aborting.
+#
+# A sidecar truncated by a crash or a full disk is exactly the state in which
+# the user reaches for clear_cache() and list_cache(). Both used to call
+# yaml::read_yaml() bare, so a single damaged file aborted the whole call and
+# the two tools that diagnose and repair a broken cache failed precisely when
+# the cache was broken.
+cache_read_sidecar <- function(path) {
+  tryCatch(yaml::read_yaml(path), error = function(cnd) NULL)
+}
+
+# Warn about sidecars that could not be parsed, naming them so the user can
+# act. `remedy` completes the sentence with the way out for the caller.
+warn_unreadable_sidecars <- function(sidecars, remedy) {
+  if (length(sidecars) == 0) {
+    return(invisible(NULL))
+  }
+
+  rlang::warn(
+    paste0(
+      length(sidecars), " cached entr",
+      if (length(sidecars) == 1) "y has" else "ies have",
+      " an unreadable sidecar: ",
+      paste(basename(sidecars), collapse = ", "), ". ", remedy
+    ),
+    class = "ongeor_unreadable_sidecar"
+  )
+
+  invisible(NULL)
 }
 
 cache_age_days <- function(meta, now = Sys.time()) {
@@ -145,14 +176,30 @@ clear_cache <- function(source_id = NULL) {
     # to NULL), they are served indefinitely. That happened on 2026-08-06 when
     # phu_boundaries was renamed to record the post-2025 vintage, stranding
     # cached pre-2025 responses. The service URL is the stable identity.
-    sidecars <- sidecars[vapply(sidecars, function(sidecar) {
-      meta <- yaml::read_yaml(sidecar)
+    metas <- lapply(sidecars, cache_read_sidecar)
+    unreadable <- vapply(metas, is.null, logical(1))
+    # An unreadable sidecar cannot be attributed to a source, so a targeted
+    # clear leaves it alone rather than guessing. Say so, and name the way out.
+    warn_unreadable_sidecars(
+      sidecars[unreadable],
+      paste(
+        "Source unattributable, so nothing was removed; call clear_cache()",
+        "with no arguments to clear the whole cache."
+      )
+    )
+
+    matches <- vapply(metas, function(meta) {
+      if (is.null(meta)) {
+        return(FALSE)
+      }
       if (!is.null(target_url) && !is.null(meta$source_url) &&
           identical(meta$source_url, target_url)) {
         return(TRUE)
       }
       identical(meta$source_name, target_name)
-    }, logical(1))]
+    }, logical(1))
+
+    sidecars <- sidecars[matches]
     keys <- sub("\\.yaml$", "", basename(sidecars))
     files <- as.vector(rbind(
       file.path(cache_dir, paste0(keys, ".rds")),
@@ -202,8 +249,16 @@ list_cache <- function() {
     ))
   }
 
-  rows <- lapply(sidecars, function(sidecar) {
-    meta <- yaml::read_yaml(sidecar)
+  metas <- lapply(sidecars, cache_read_sidecar)
+  # A damaged entry still occupies disk, so it is listed with NA metadata
+  # rather than dropped: hiding it would leave an unexplained gap between the
+  # cache directory and what list_cache() reports.
+  warn_unreadable_sidecars(
+    sidecars[vapply(metas, is.null, logical(1))],
+    "Listed with NA metadata."
+  )
+
+  rows <- Map(function(sidecar, meta) {
     key <- sub("\\.yaml$", "", basename(sidecar))
     rds_path <- file.path(cache_dir, paste0(key, ".rds"))
 
@@ -213,7 +268,7 @@ list_cache <- function() {
       age_days = round(cache_age_days(meta), 1),
       file_size_kb = round(file.size(rds_path) / 1024, 1)
     )
-  })
+  }, sidecars, metas)
 
   do.call(rbind, rows)
 }

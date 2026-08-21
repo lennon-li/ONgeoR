@@ -252,3 +252,87 @@ test_that("cache timestamps round-trip timezone-safely", {
     1
   )
 })
+
+test_that("clear_cache survives an unreadable sidecar and still clears the rest", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  phu <- make_cache_layer("MOH Public Health Unit Boundary")
+  cache_write("phu__abc12345", phu, list(
+    source_name = "MOH Public Health Unit Boundary",
+    source_url = get_source("phu_boundaries")$source_url,
+    where = "1=1",
+    simplify = FALSE,
+    retrieved_at = "2026-07-08 00:00:00 UTC"
+  ))
+
+  # A truncated sidecar is what a cache write interrupted by a crash or a full
+  # disk leaves behind. Reading it used to abort clear_cache() outright, so the
+  # one tool that repairs a damaged cache failed precisely when the cache was
+  # damaged.
+  saveRDS(phu, file.path(cache_dir, "broken__abc12345.rds"))
+  writeLines(
+    c("source_name: \"Ontario Health Region", "  simplify: [unclosed"),
+    file.path(cache_dir, "broken__abc12345.yaml")
+  )
+
+  expect_warning(
+    expect_message(
+      removed <- clear_cache("phu_boundaries"),
+      "Removed 1 cached entry"
+    ),
+    "broken__abc12345.yaml"
+  )
+
+  expect_equal(removed, 2)
+  expect_false(file.exists(file.path(cache_dir, "phu__abc12345.rds")))
+  # The unreadable entry cannot be attributed to a source, so a targeted clear
+  # must leave it alone rather than guess. clear_cache() with no argument is
+  # the documented way out, and the warning says so.
+  expect_true(file.exists(file.path(cache_dir, "broken__abc12345.rds")))
+})
+
+test_that("clear_cache with no source id removes an unreadable sidecar too", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  saveRDS(make_cache_layer(), file.path(cache_dir, "broken__abc12345.rds"))
+  writeLines(
+    "source_name: \"unterminated",
+    file.path(cache_dir, "broken__abc12345.yaml")
+  )
+
+  expect_message(removed <- clear_cache(), "Removed 1 cached entry")
+  expect_equal(removed, 2)
+  expect_equal(list.files(cache_dir), character())
+})
+
+test_that("list_cache reports an unreadable sidecar instead of aborting", {
+  cache_dir <- use_temp_cache()
+  on.exit(unlink(cache_dir, recursive = TRUE), add = TRUE)
+
+  layer <- make_cache_layer()
+  cache_write("phu__abc12345", layer, list(
+    source_name = "MOH Public Health Unit Boundary",
+    source_url = "https://example.com/phu",
+    where = "1=1",
+    simplify = FALSE,
+    retrieved_at = "2026-07-08 00:00:00 UTC"
+  ))
+  saveRDS(layer, file.path(cache_dir, "broken__abc12345.rds"))
+  writeLines(
+    "source_name: \"unterminated",
+    file.path(cache_dir, "broken__abc12345.yaml")
+  )
+
+  expect_warning(listed <- list_cache(), "broken__abc12345.yaml")
+
+  expect_s3_class(listed, "tbl_df")
+  expect_equal(nrow(listed), 2)
+  # The damaged entry stays visible: it still occupies disk, and hiding it
+  # would leave the user with an unexplained gap between the cache directory
+  # and what list_cache() reports.
+  expect_true(any(is.na(listed$source_name)))
+  expect_true(all(listed$file_size_kb > 0))
+  expect_true(is.na(listed$age_days[is.na(listed$source_name)]))
+})

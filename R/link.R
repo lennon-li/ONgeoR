@@ -134,6 +134,31 @@ link <- function(source, target,
   result
 }
 
+# Validate nearest()'s `k` before it reaches seq_len().
+#
+# Unvalidated, k = 0 was the damaging case: seq_len(0) selects no targets, so
+# every source contributed zero rows and nearest() returned an empty tibble
+# with no error and no warning. "No matches found" and "you asked for zero
+# matches" are different answers, and the caller could not tell them apart.
+# A fractional k truncated silently, and a negative, NA, or non-numeric k
+# surfaced as an seq_len() error naming an argument the caller never passed.
+# Inf stays legal: it is the documented way to spell a pure radius search.
+validate_k <- function(k) {
+  ok <- is.numeric(k) && length(k) == 1L && !is.na(k) && k >= 1 &&
+    (is.infinite(k) || k == trunc(k))
+  if (!ok) {
+    rlang::abort(
+      paste(
+        "`k` must be a single positive whole number, or `Inf` to return",
+        "every target."
+      ),
+      class = "ongeor_invalid_k"
+    )
+  }
+
+  invisible(k)
+}
+
 #' Find the nearest targets to each source geometry
 #'
 #' For each source geometry, returns the `k` nearest targets in ascending
@@ -143,7 +168,8 @@ link <- function(source, target,
 #' @param source An `sf` object of points, or a `data.frame` with `lon`/`lat`
 #'   columns (assumed CRS 4326 / WGS 84).
 #' @param target An `sf` object of candidate geometries.
-#' @param k Integer. Number of nearest targets to return per source. Defaults
+#' @param k Integer. Number of nearest targets to return per source. Must be a
+#'   single positive whole number, or `Inf` to return every target. Defaults
 #'   to `1`. If a source has fewer than `k` targets available, all are returned.
 #' @param max_dist_km Numeric or `NULL`. If set, drop targets farther than this
 #'   distance (km). Defaults to `NULL` (no cap). A source with no target in
@@ -162,6 +188,7 @@ link <- function(source, target,
 #'
 #' @export
 nearest <- function(source, target, k = 1, max_dist_km = NULL) {
+  validate_k(k)
   if (inherits(source, "data.frame") && !inherits(source, "sf")) {
     source <- sf::st_as_sf(source, coords = c("lon", "lat"), crs = 4326)
   }

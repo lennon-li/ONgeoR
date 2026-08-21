@@ -1,5 +1,24 @@
 # ONgeoR 0.4.0
 
+- `nearest()` now validates `k`. It must be a single positive whole number, or
+  `Inf` to return every target; anything else aborts with condition class
+  `ongeor_invalid_k`. Previously `k = 0` returned an empty result with no error
+  and no warning, so a caller could not distinguish "no target was near enough"
+  from "you asked for zero matches"; a fractional `k` truncated silently, and a
+  negative, `NA`, or non-numeric `k` surfaced as a `seq_len()` error naming an
+  argument the caller never passed.
+
+- `clear_cache()` and `list_cache()` no longer abort on a corrupt cache
+  sidecar. A sidecar truncated by a crash or a full disk used to make both
+  functions fail outright, which meant the two tools for diagnosing and
+  repairing a damaged cache stopped working precisely when the cache was
+  damaged. Unreadable sidecars now raise a warning of class
+  `ongeor_unreadable_sidecar` that names the files. `clear_cache(source_id)`
+  leaves an entry it cannot attribute to a source in place and points at
+  `clear_cache()` with no arguments as the way to remove it; `list_cache()`
+  reports it with `NA` metadata rather than hiding it, since it still occupies
+  disk.
+
 - Add `retrieve_onmarg()`, `add_onmarg()`, and `onmarg_geographies()` for the
   2021 Ontario Marginalization Index (ON-Marg). `add_onmarg()` attaches the
   four dimension scores, and the quintiles where they are published, to an

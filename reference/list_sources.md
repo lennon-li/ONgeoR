@@ -19,7 +19,7 @@ with columns `source_id`, `name`, `geography_type`, and `feature_count`.
 
 ``` r
 list_sources()
-#> # A tibble: 44 × 4
+#> # A tibble: 45 × 4
 #>    source_id              name                      geography_type feature_count
 #>    <chr>                  <chr>                     <chr>                  <int>
 #>  1 phu_boundaries         MOH Public Health Unit B… boundary                  29
@@ -32,5 +32,5 @@ list_sources()
 #>  8 moh_service_locations  MOH Service Location      facility               11625
 #>  9 conservation_authority Conservation Authority A… boundary                  36
 #> 10 orwn_station           ORWN Station              facility                 671
-#> # ℹ 34 more rows
+#> # ℹ 35 more rows
 ```

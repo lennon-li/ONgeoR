@@ -2,6 +2,32 @@
 
 ## ONgeoR 0.4.0
 
+- [`nearest()`](https://lennon-li.github.io/ONgeoR/reference/nearest.md)
+  now validates `k`. It must be a single positive whole number, or `Inf`
+  to return every target; anything else aborts with condition class
+  `ongeor_invalid_k`. Previously `k = 0` returned an empty result with
+  no error and no warning, so a caller could not distinguish “no target
+  was near enough” from “you asked for zero matches”; a fractional `k`
+  truncated silently, and a negative, `NA`, or non-numeric `k` surfaced
+  as a [`seq_len()`](https://rdrr.io/r/base/seq.html) error naming an
+  argument the caller never passed.
+
+- [`clear_cache()`](https://lennon-li.github.io/ONgeoR/reference/clear_cache.md)
+  and
+  [`list_cache()`](https://lennon-li.github.io/ONgeoR/reference/list_cache.md)
+  no longer abort on a corrupt cache sidecar. A sidecar truncated by a
+  crash or a full disk used to make both functions fail outright, which
+  meant the two tools for diagnosing and repairing a damaged cache
+  stopped working precisely when the cache was damaged. Unreadable
+  sidecars now raise a warning of class `ongeor_unreadable_sidecar` that
+  names the files. `clear_cache(source_id)` leaves an entry it cannot
+  attribute to a source in place and points at
+  [`clear_cache()`](https://lennon-li.github.io/ONgeoR/reference/clear_cache.md)
+  with no arguments as the way to remove it;
+  [`list_cache()`](https://lennon-li.github.io/ONgeoR/reference/list_cache.md)
+  reports it with `NA` metadata rather than hiding it, since it still
+  occupies disk.
+
 - Add
   [`retrieve_onmarg()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_onmarg.md),
   [`add_onmarg()`](https://lennon-li.github.io/ONgeoR/reference/add_onmarg.md),
@@ -42,6 +68,16 @@
   [`build_intersection()`](https://lennon-li.github.io/ONgeoR/reference/build_intersection.md)
   output back onto the layer geometry it came from; downstream callers
   previously had to reach for the internal.
+
+- Add
+  [`retrieve_postal_points()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_postal_points.md),
+  which returns the whole OPCC M1 centroid release as an EPSG:4326 POINT
+  layer (299,782 postal codes with coordinates) rather than resolving a
+  supplied list of codes. It takes the same optional EPSG:4326 `bbox` as
+  [`retrieve_census()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_census.md),
+  which is the practical way to use it: the province-wide layer is too
+  large to draw or join in one piece. The layer is registered as source
+  id `postal_points`.
 
 - Add
   [`resolve_postal_points()`](https://lennon-li.github.io/ONgeoR/reference/resolve_postal_points.md)

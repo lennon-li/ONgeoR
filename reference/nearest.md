@@ -23,9 +23,10 @@ nearest(source, target, k = 1, max_dist_km = NULL)
 
 - k:
 
-  Integer. Number of nearest targets to return per source. Defaults to
-  `1`. If a source has fewer than `k` targets available, all are
-  returned.
+  Integer. Number of nearest targets to return per source. Must be a
+  single positive whole number, or `Inf` to return every target.
+  Defaults to `1`. If a source has fewer than `k` targets available, all
+  are returned.
 
 - max_dist_km:
 

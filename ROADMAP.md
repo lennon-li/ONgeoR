@@ -140,8 +140,9 @@ loss if the server caps pages below `resultRecordCount`.
 `weighted` match rule exposed in the app; app help modal, vignette, and
 roxygen tell the same five-rule story again.
 
-`run_app()` checks all app dependencies (`shiny`, `bslib`, `DT`,
-`promises`, `future`) up front.
+[`run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md)
+checks all app dependencies (`shiny`, `bslib`, `DT`, `promises`,
+`future`) up front.
 
 README/ROADMAP staleness: raster linking described as shipped, all
 eleven registry sources listed, Statistics Canada marked planned,

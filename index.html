@@ -95,8 +95,7 @@
 <li>Retrieves 2021 Statistics Canada census cartographic boundaries with <code><a href="reference/retrieve_census.html">retrieve_census()</a></code>, filtered to Ontario server-side, with optional bounding-box narrowing for the finer geographies</li>
 <li>Draws interactive leaflet maps with <code><a href="reference/map_layers.html">map_layers()</a></code> and nearest-match maps with <code><a href="reference/map_nearest.html">map_nearest()</a></code>
 </li>
-<li>A point-and-click Shiny app is provided by the companion package <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>
-</li>
+<li>A point-and-click Shiny app is bundled with ONgeoR; its source is maintained in the separate <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a> repository</li>
 </ul>
 <p>See <a href="ROADMAP.html">ROADMAP.md</a> for planned additional sources and performance work.</p>
 </div>
@@ -272,7 +271,7 @@
 <div class="section level2">
 <h2 id="shiny-app">Shiny app<a class="anchor" aria-label="anchor" href="#shiny-app"></a>
 </h2>
-<p>The point-and-click app lives in its own package, <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link"><strong>ONgeoRapp</strong></a>. It is running live at <a href="https://biostats-ongeor.share.connect.posit.cloud/" class="external-link uri">https://biostats-ongeor.share.connect.posit.cloud/</a> – no install, no R required. Pick the points you have, pick the boundaries you want them joined to, click <strong>Preview on map</strong>, then <strong>Join</strong>. No R code required.</p>
+<p>The point-and-click app is bundled with ONgeoR. Its source is also maintained in the separate <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link"><strong>ONgeoRapp</strong></a> repository. It is running live at <a href="https://biostats-ongeor.share.connect.posit.cloud/" class="external-link uri">https://biostats-ongeor.share.connect.posit.cloud/</a> – no install, no R required. Pick the points you have, pick the boundaries you want them joined to, click <strong>Preview on map</strong>, then <strong>Join</strong>. No R code required.</p>
 <p>What comes out is the part worth caring about:</p>
 <table class="table">
 <colgroup>
@@ -309,9 +308,10 @@ ONgeoRapp: PHU boundaries and MOH service locations previewed before joining.
 </p>
 </div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"github::lennon-li/ONgeoRapp"</span><span class="op">)</span></span>
-<span><span class="fu">ONgeoRapp</span><span class="fu">::</span><span class="fu">run_app</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>It was split out so that ONgeoR itself stays a lean data-and-linking package.</p>
+<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"github::lennon-li/ONgeoR"</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lennon-li/ONgeoR" class="external-link">ONgeoR</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>The app source is maintained separately in <a href="https://github.com/lennon-li/ONgeoRapp" class="external-link">ONgeoRapp</a>, but the package remains self-contained: installing ONgeoR is all that is required to launch the app.</p>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>

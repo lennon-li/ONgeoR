@@ -83,6 +83,8 @@ Resolve records by identifier or name.
 
 Draw interactive Leaflet maps.
 
+- [`run_app()`](https://lennon-li.github.io/ONgeoR/reference/run_app.md)
+  : Launch the ONgeoR Shiny app
 - [`map_layers()`](https://lennon-li.github.io/ONgeoR/reference/map_layers.md)
   : Map one or more layers on an interactive leaflet map
 - [`map_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/map_crosswalk.md)

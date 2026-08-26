@@ -88,7 +88,7 @@
 <li><label><input type="checkbox" checked>Cache <code>retrieved_at</code> metadata written in UTC (was local time parsed as UTC, inflating cache ages by the UTC offset), with a timezone round-trip test.</label></li>
 <li><label><input type="checkbox" checked>Pagination advances by rows actually returned, not requested page size, and aborts on an empty truncated page — guards against silent feature loss if the server caps pages below <code>resultRecordCount</code>.</label></li>
 <li><label><input type="checkbox" checked><code>weighted</code> match rule exposed in the app; app help modal, vignette, and roxygen tell the same five-rule story again.</label></li>
-<li><label><input type="checkbox" checked><code>run_app()</code> checks all app dependencies (<code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>promises</code>, <code>future</code>) up front.</label></li>
+<li><label><input type="checkbox" checked><code><a href="reference/run_app.html">run_app()</a></code> checks all app dependencies (<code>shiny</code>, <code>bslib</code>, <code>DT</code>, <code>promises</code>, <code>future</code>) up front.</label></li>
 <li><label><input type="checkbox" checked>README/ROADMAP staleness: raster linking described as shipped, all eleven registry sources listed, Statistics Canada marked planned, shiny-app vignette linked, source count corrected.</label></li>
 <li>Evidence: suite 568 pass / 0 fail / 0 skip after changes (2026-07-19); baseline before changes 471 pass / 0 fail. Implementation: venQ-supervised worker packets for the mechanical fixes plus direct edits for multi-file changes; full trial log in the agent memory repo.</li>
 </ul><p>Residual (non-blocking). Status as of the 2026-08-21 audit:</p>

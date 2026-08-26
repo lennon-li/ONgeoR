@@ -7,8 +7,8 @@ figures:
   dev: grDevices::png
   dpi: 96
 
-# The app is a separate package (ONgeoRapp) and deliberately does not ship in
-# this tarball, so the only way a reader of these docs finds it is a link.
+# The app source is maintained in the separate ONgeoRapp repository, while the
+# installable ONgeoR package bundles it and exposes `run_app()`.
 # `structure.right` is restated in full because overriding it drops pkgdown's
 # defaults, which are [search, github].
 navbar:
@@ -76,6 +76,7 @@ reference:
   - title: "Map"
     desc: "Draw interactive Leaflet maps."
     contents:
+      - run_app
       - map_layers
       - map_crosswalk
       - map_nearest

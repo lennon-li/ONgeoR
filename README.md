@@ -98,8 +98,8 @@ constant maintenance.
   bounding-box narrowing for the finer geographies
 - Draws interactive leaflet maps with `map_layers()` and nearest-match
   maps with `map_nearest()`
-- A point-and-click Shiny app is provided by the companion package
-  [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp)
+- A point-and-click Shiny app is bundled with ONgeoR; its source is maintained
+  in the separate [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp) repository
 
 See [ROADMAP.md](ROADMAP.md) for planned additional sources and
 performance work.
@@ -202,9 +202,9 @@ from the same matrix that drives the Shiny app.
 
 ## Shiny app
 
-The point-and-click app lives in its own package,
-[**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp). It is running
-live at <https://biostats-ongeor.share.connect.posit.cloud/> --
+The point-and-click app is bundled with ONgeoR. Its source is also maintained
+in the separate [**ONgeoRapp**](https://github.com/lennon-li/ONgeoRapp)
+repository. It is running live at <https://biostats-ongeor.share.connect.posit.cloud/> --
 no install, no R required. Pick the points you have, pick the boundaries
 you want them joined to, click **Preview on map**, then **Join**. No R
 code required.
@@ -233,12 +233,14 @@ joining.
 </div>
 
 ``` r
-pak::pkg_install("github::lennon-li/ONgeoRapp")
-ONgeoRapp::run_app()
+pak::pkg_install("github::lennon-li/ONgeoR")
+library(ONgeoR)
+run_app()
 ```
 
-It was split out so that ONgeoR itself stays a lean data-and-linking
-package.
+The app source is maintained separately in
+[ONgeoRapp](https://github.com/lennon-li/ONgeoRapp), but the package remains
+self-contained: installing ONgeoR is all that is required to launch the app.
 
 ## Documentation
 

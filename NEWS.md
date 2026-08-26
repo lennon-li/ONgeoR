@@ -90,11 +90,10 @@
   `build_nearest_layers()`, and `build_nearest_pairs()` now use the bundled
   station layer and execute during `R CMD check`.
 
-- The Shiny app moves to its own package,
-  [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp). `run_app()` is no longer
-  exported from ONgeoR; install ONgeoRapp and call `ONgeoRapp::run_app()`.
-  Nothing else changed — the app only ever used exported functions, so no
-  linking, retrieval, or crosswalk behaviour is affected.
+- `run_app()` launches the bundled Shiny app. The app source is also maintained
+  in the separate [ONgeoRapp](https://github.com/lennon-li/ONgeoRapp) repository
+  for development and deployment; ONgeoR itself has no dependency on that
+  repository.
 - `Suggests` drops `shiny`, `bslib`, `DT`, `shinytest2`, `chromote`, `future`,
   `later`, and `promises`, which moved with the app. This also removes the
   standing "detritus in the temp directory" `R CMD check` NOTE, which came from

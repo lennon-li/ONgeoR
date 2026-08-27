@@ -2,6 +2,9 @@
 
 ## ONgeoR 0.4.0
 
+- Add no-key Esri Light Gray Canvas and Satellite (Hybrid) basemaps to
+  the Shiny app.
+
 - [`nearest()`](https://lennon-li.github.io/ONgeoR/reference/nearest.md)
   now validates `k`. It must be a single positive whole number, or `Inf`
   to return every target; anything else aborts with condition class

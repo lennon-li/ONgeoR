@@ -20,9 +20,10 @@ Expected; this is the package's first submission to CRAN.
 ## Notes for the reviewer
 
 - The package retrieves most data at run time from public Ontario government
-  REST endpoints (Land Information Ontario). It bundles three small offline
+  REST endpoints (Land Information Ontario). It bundles four small offline
   layers used for documentation and tests, so no example requires network
-  access and the full example set completes in about 19 seconds.
+  access; the full example set completes in about 12 seconds, or 26 seconds
+  including `--run-donttest`.
 - No example writes to the user's filesystem. Nothing touches
   `tools::R_user_dir()`; the run-time cache is created only when a user calls a
   retrieval function themselves.

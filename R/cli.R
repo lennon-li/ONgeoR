@@ -217,6 +217,49 @@ render_reproducer_script <- function(from_ids, to_ids, output_dir,
   )
 }
 
+#' Render a reproducible R script for a raster `link()` run
+#'
+#' Reproduces the linked-values table a raster source or target run produces
+#' through [link()]. Unlike [render_reproducer_script()], there is no
+#' crosswalk to rebuild: a raster pairing has no per-target summary, only the
+#' row-per-cell (or row-per-point) table `link()` returns directly.
+#'
+#' @param from_id Character scalar source id passed as `link()`'s `source`.
+#' @param to_id Character scalar source id passed as `link()`'s `target`.
+#' @param output_dir Character scalar output directory.
+#' @param predicate Character. Spatial predicate passed to [link()]. Defaults
+#'   to `"within"`, matching the app's raster-pairing behavior.
+#'
+#' @return A character vector containing valid R code.
+#'
+#' @examples
+#' render_link_reproducer_script("synthetic_air_quality", "hive", "output")
+#'
+#' @family app support interfaces
+#' @export
+render_link_reproducer_script <- function(from_id, to_id, output_dir,
+                                          predicate = "within") {
+  from_call <- source_retrieve_call(from_id)
+  to_call <- source_retrieve_call(to_id)
+
+  paste0(
+    "library(ONgeoR)\n\n",
+    "from_id <- ", deparse_chr(from_id), "\n",
+    "to_id <- ", deparse_chr(to_id), "\n",
+    "predicate <- ", deparse_chr(predicate), "\n",
+    "output_dir <- ", deparse_chr(output_dir), "\n\n",
+    "from_layer <- ", from_call, "\n",
+    "to_layer <- ", to_call, "\n\n",
+    "linked <- link(from_layer, to_layer, predicate = predicate)\n\n",
+    "dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)\n",
+    "write.csv(linked, file.path(output_dir, \"linked.csv\"), row.names = FALSE)\n",
+    "writeLines(\n",
+    "  ONgeoR:::render_link_reproducer_script(from_id, to_id, output_dir, predicate = predicate),\n",
+    "  file.path(output_dir, \"reproduce.R\")\n",
+    ")\n"
+  )
+}
+
 #' Render a postal-code reproducer script
 #'
 #' @param input_file Character scalar path to the user's input file.
@@ -308,4 +351,25 @@ source_retrieve_call <- function(source_id) {
 
 deparse_chr <- function(x) {
   paste(deparse(x), collapse = "")
+}
+
+#' The `link()` geometry kind ("raster", "polygon", or "point") a registered
+#' source resolves to, read from the registry rather than fetched data - so
+#' callers can decide `link()` argument order before retrieving anything.
+#' `NA` for an id the registry does not carry a `geography_type` for (e.g.
+#' an uploaded file, which has no source id at all).
+#'
+#' @keywords internal
+#' @noRd
+source_geometry_kind <- function(source_id) {
+  valid_ids <- list_sources()$source_id
+  if (!source_id %in% valid_ids) {
+    return(NA_character_)
+  }
+  switch(get_source(source_id)$geography_type,
+    raster = "raster",
+    boundary = "polygon",
+    facility = "point",
+    NA_character_
+  )
 }

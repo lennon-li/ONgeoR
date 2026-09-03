@@ -7,22 +7,44 @@ shiny_fixture_registry <- function() {
   )
 }
 
-shiny_fixture_metadata <- function(source_id) {
-  registry <- shiny_fixture_registry()
-  row <- registry[registry$source_id == source_id, , drop = FALSE]
-  if (nrow(row) != 1L) {
-    rlang::abort(sprintf("Unknown fixture source '%s'.", source_id))
-  }
-
-  list(
-    name = row$name[[1]],
-    service_layer = source_id,
-    geography_type = row$geography_type[[1]],
-    feature_count = row$feature_count[[1]],
-    key_fields = list(id = "fixture_id", name = "fixture_name"),
-    license = "test fixture",
-    source_url = "https://example.test/ongeor-fixture"
+# Adds a raster source to shiny_fixture_registry()'s rows, for the tests that
+# specifically exercise a raster source/target pairing. Kept separate from
+# the base fixture so unrelated tests (e.g. the source/target picker tests)
+# do not have to account for a "Rasters" optgroup they never asked for.
+shiny_fixture_registry_with_raster <- function() {
+  rbind(
+    shiny_fixture_registry(),
+    tibble::tibble(
+      source_id = "raster_layer", name = "Raster layer",
+      geography_type = "raster", feature_count = 16L
+    )
   )
+}
+
+shiny_fixture_metadata <- function(source_id) {
+  shiny_fixture_metadata_from(shiny_fixture_registry())(source_id)
+}
+
+# Factory so a test can mock get_source() against a different registry (e.g.
+# shiny_fixture_registry_with_raster()) while keeping the single-argument
+# `function(source_id)` signature ONgeoR::get_source() is called with.
+shiny_fixture_metadata_from <- function(registry) {
+  function(source_id) {
+    row <- registry[registry$source_id == source_id, , drop = FALSE]
+    if (nrow(row) != 1L) {
+      rlang::abort(sprintf("Unknown fixture source '%s'.", source_id))
+    }
+
+    list(
+      name = row$name[[1]],
+      service_layer = source_id,
+      geography_type = row$geography_type[[1]],
+      feature_count = row$feature_count[[1]],
+      key_fields = list(id = "fixture_id", name = "fixture_name"),
+      license = "test fixture",
+      source_url = "https://example.test/ongeor-fixture"
+    )
+  }
 }
 
 shiny_fixture_layers <- function() {
@@ -30,7 +52,12 @@ shiny_fixture_layers <- function() {
   list(
     base_polygon = fixture_polygons(),
     overlay_point = fixture_points(),
-    other_polygon = overlap$from
+    other_polygon = overlap$from,
+    raster_layer = terra::rast(
+      nrows = 4, ncols = 4,
+      xmin = -80, xmax = -79, ymin = 43, ymax = 44,
+      crs = "EPSG:4326", vals = seq_len(16)
+    )
   )
 }
 

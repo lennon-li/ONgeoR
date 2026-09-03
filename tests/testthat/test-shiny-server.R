@@ -1720,6 +1720,62 @@ test_that("Shapes download stays disabled for a raster target", {
   })
 })
 
+test_that("preview then Link on a raster pairing offers a working reproducer script", {
+  skip_if_not_installed("shiny")
+  skip_if_not_installed("bslib")
+
+  # Overlaps fixture_points()' 0-3 lon / 0-1 lat extent (unlike the -80/-79
+  # raster fixture used elsewhere in this file, which exists only to test
+  # pack/unpack and palette rendering in isolation), so the real link() call
+  # below actually matches points into cells instead of returning all-NA.
+  raster <- terra::rast(
+    nrows = 2, ncols = 3, xmin = 0, xmax = 3, ymin = 0, ymax = 1,
+    crs = "EPSG:4326", vals = 1:6
+  )
+  registry <- shiny_fixture_registry_with_raster()
+  points <- fixture_points()
+
+  testthat::local_mocked_bindings(
+    list_sources = function() registry,
+    get_source = shiny_fixture_metadata_from(registry),
+    retrieve_source = function(source_id, ...) {
+      switch(source_id, raster_layer = raster, overlay_point = points)
+    },
+    .package = "ONgeoR"
+  )
+  server <- load_shiny_server()
+  use_sequential_futures()
+
+  shiny::testServer(server, {
+    session$setInputs(
+      base_layer = "raster_layer",
+      overlay_source = "overlay_point",
+      preview_btn = 1
+    )
+    expect_identical(wait_for_extended_task(preview_task, session), "success")
+
+    session$setInputs(confirm_join_btn = 1)
+    expect_identical(wait_for_extended_task(build_task, session), "success")
+
+    expect_s3_class(cw_result$linked, "data.frame")
+    expect_gt(nrow(cw_result$linked), 0)
+
+    downloads <- rendered_html(output$link_downloads_ui)
+    expect_match(downloads, "id=\"dl_cw_script\"", fixed = TRUE)
+
+    script <- readLines(output$dl_cw_script)
+    # A raster + point pairing reduces to cell polygons receiving the point,
+    # so the script's link() call runs point-into-raster: from is the point
+    # source, to is the raster target (see raster_link_from_to()'s "raster +
+    # point" branch).
+    expect_true(any(grepl('retrieve_source("overlay_point")', script, fixed = TRUE)))
+    expect_true(any(grepl('retrieve_source("raster_layer")', script, fixed = TRUE)))
+    expect_true(any(grepl(
+      "link(from_layer, to_layer, predicate = predicate)", script, fixed = TRUE
+    )))
+  })
+})
+
 test_that("downloads render as a uniform four-button two-column grid", {
   env <- load_shiny_app_env()
   items <- list(

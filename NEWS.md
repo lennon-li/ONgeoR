@@ -1,5 +1,24 @@
 # ONgeoR 0.4.0
 
+- Add `render_link_reproducer_script()` and wire it into the app's Script
+  download for a raster source/target run. Previously the Script download
+  stayed disabled for any run involving a raster layer, because
+  `render_reproducer_script()` only knew how to rebuild a `build_crosswalk()`
+  run; a raster pairing has no crosswalk, only the row-per-cell table
+  `link()` returns directly. The app now picks the right script generator
+  from whether the run produced a crosswalk or a linked table, and a new
+  `raster_link_from_to()` helper mirrors the join task's raster
+  source/target reduction rule from registry `geography_type` alone, so the
+  script generates without refetching either layer.
+
+- `load_source_registry()` (backing `list_sources()`, `get_source()`, and
+  every source-driven lookup) is now memoized on `sources.yaml`'s
+  modification time, cutting a measured 2.8 ms/parse repeated across every
+  call site to one parse per distinct file state. A `data-raw` edit to the
+  registry (e.g. under `devtools::load_all()`) still invalidates the cache
+  immediately, since it re-checks the file's mtime on every call rather than
+  caching for the life of the R session.
+
 - Rename `retrieve_monitoring_stations_simple()` to
   `retrieve_monitoring_stations_bundled()` (and registry source id
   `monitoring_stations_simple` to `monitoring_stations_bundled`) before the

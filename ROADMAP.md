@@ -126,12 +126,22 @@ Residual (non-blocking). Status as of the 2026-08-21 audit:
   with class `ongeor_unreadable_sidecar`. A targeted clear leaves an
   unattributable entry in place and names the way out; `list_cache()` reports
   it with `NA` metadata rather than hiding it.
-- [ ] Registry YAML re-read on every `load_source_registry()` call
+- [x] Registry YAML re-read on every `load_source_registry()` call
   (memoization). Measured 2026-08-21 at 2.8 ms per parse across four call
-  sites; `registry_entry_for()` pays it once per layer. Real but small, and a
-  memo has to be keyed so that a `data-raw` edit to `sources.yaml` cannot be
-  served stale.
-- [ ] Raster runs still have no reproducer story.
+  sites; `registry_entry_for()` pays it once per layer. Fixed 2026-09-03:
+  `registry_cache_get()` memoizes on the file's path and modification time,
+  so a `data-raw` edit (e.g. under `devtools::load_all()`) invalidates the
+  cache immediately rather than requiring a session restart or serving
+  stale data indefinitely.
+- [x] Raster runs still have no reproducer story. Fixed 2026-09-03:
+  `render_link_reproducer_script()` rebuilds the row-per-cell table a raster
+  source/target run produces through `link()` (there is no crosswalk to
+  rebuild for a raster pairing), and the app's Script download now picks
+  between it and `render_reproducer_script()` based on whether the run
+  produced `linked` or `crosswalk`. The correct `link()` argument order is
+  recovered from registry `geography_type` via a new `raster_link_from_to()`
+  app helper that mirrors the join task's raster reduction rule, so the
+  script generates without refetching either layer.
 - [ ] **ONgeoRapp-owned:** app "Use my own file" controls are inert
   placeholders — hide or implement. Move to that repo's queue.
 

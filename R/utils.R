@@ -674,6 +674,29 @@ provenance_attr <- function(x, which) {
   if (is.null(val)) NA else val
 }
 
+#' @keywords internal
+#' @noRd
+registry_cache_env <- new.env(parent = emptyenv())
+
+#' Return `loader()`'s result, cached against `path`'s modification time
+#'
+#' A cache entry is reused only while the file's `mtime` is unchanged, so a
+#' `data-raw` edit to the underlying file (e.g. under `devtools::load_all()`)
+#' invalidates it instead of being served stale.
+#'
+#' @keywords internal
+#' @noRd
+registry_cache_get <- function(path, loader, cache_env = registry_cache_env) {
+  mtime <- file.info(path)$mtime
+  cached <- cache_env[[path]]
+  if (!is.null(cached) && identical(cached$mtime, mtime)) {
+    return(cached$data)
+  }
+  data <- loader()
+  cache_env[[path]] <- list(mtime = mtime, data = data)
+  data
+}
+
 #' Load the bundled source registry
 #'
 #' @return A named list of source metadata, keyed by source id.
@@ -684,5 +707,5 @@ load_source_registry <- function() {
   if (!nzchar(registry_path)) {
     rlang::abort("Could not locate inst/extdata/sources.yaml in the ONgeoR package.")
   }
-  yaml::read_yaml(registry_path)$sources
+  registry_cache_get(registry_path, function() yaml::read_yaml(registry_path)$sources)
 }

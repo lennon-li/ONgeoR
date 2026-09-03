@@ -1546,6 +1546,33 @@ furniture_layer <- function(id) {
 
 # PHU_simple ships in inst/extdata and renders at app load with no network
 # call. It is suppressed when either live PHU vintage is actually drawn.
+# Mirrors the raster join's from/to reduction rule in the future_promise
+# join task below (a raster SOURCE reduces to cell-centroid points; a raster
+# TARGET reduces to cell polygons), but from registry geography_type rather
+# than a retrieved object, so the reproducer script can be generated without
+# refetching either layer. Returns NULL when either id has no registry
+# geometry kind (e.g. an uploaded file, which has no source id at all).
+raster_link_from_to <- function(base_id, overlay_id) {
+  base_kind <- ONgeoR:::source_geometry_kind(base_id)
+  overlay_kind <- ONgeoR:::source_geometry_kind(overlay_id)
+  if (is.na(base_kind) || is.na(overlay_kind)) {
+    return(NULL)
+  }
+  if ("polygon" %in% c(base_kind, overlay_kind)) {
+    if (identical(base_kind, "raster")) {
+      list(from = base_id, to = overlay_id)
+    } else {
+      list(from = overlay_id, to = base_id)
+    }
+  } else {
+    if (identical(base_kind, "raster")) {
+      list(from = overlay_id, to = base_id)
+    } else {
+      list(from = base_id, to = overlay_id)
+    }
+  }
+}
+
 furniture_layers <- function(selected_ids = character()) {
   layers <- list()
   if (!any(c("phu_boundaries", "phu_boundaries_pre2025") %in% selected_ids)) {
@@ -3283,17 +3310,32 @@ server <- function(input, output, session) {
     filename = function() "reproduce.R",
     content = function(file) {
       req(input$base_layer, input$overlay_source)
-      # Mirror the build task's universal direction rule (overlay is always
-      # `from`, base always `to`). Containment linking has no rule to choose,
-      # so the script records build_crosswalk()'s default (within). Only
-      # build_crosswalk runs offer this script - see link_downloads_ui.
-      writeLines(
-        ONgeoR::render_reproducer_script(
-          input$overlay_source, input$base_layer, ".",
-          method = "within"
-        ),
-        file
-      )
+      if (!is.null(cw_result$linked)) {
+        # Raster run: mirror the join task's raster from/to reduction rule
+        # (see the future_promise raster branch) using registry
+        # geography_type instead of the retrieved object, so the script
+        # generates without refetching either layer.
+        direction <- raster_link_from_to(input$base_layer, input$overlay_source)
+        req(direction)
+        writeLines(
+          ONgeoR::render_link_reproducer_script(
+            direction$from, direction$to, ".",
+            predicate = "within"
+          ),
+          file
+        )
+      } else {
+        # Mirror the build task's universal direction rule (overlay is always
+        # `from`, base always `to`). Containment linking has no rule to
+        # choose, so the script records build_crosswalk()'s default (within).
+        writeLines(
+          ONgeoR::render_reproducer_script(
+            input$overlay_source, input$base_layer, ".",
+            method = "within"
+          ),
+          file
+        )
+      }
     }
   )
 
@@ -3315,12 +3357,13 @@ server <- function(input, output, session) {
           ready = shapes_ready),
         list(id = "dl_cw_map", label = "Map", title = "map.html",
           ready = !is.null(cw_result$base_sf)),
-        # reproduce.R renders a build_crosswalk script only. Raster runs
-        # produce a linked values table through link(), and intersection /
-        # nearest runs produce tables the script cannot rebuild, so it stays
-        # disabled for all of those (a populated pairs table marks the latter).
+        # reproduce.R renders a build_crosswalk or link() script. Intersection
+        # / nearest runs produce tables neither script can rebuild, so it
+        # stays disabled for those (a populated pairs table marks them), and
+        # for an uploaded overlay, which has no source id to re-retrieve.
         list(id = "dl_cw_script", label = "Script", title = "reproduce.R",
-          ready = has_rows(cw_result$crosswalk) && is.null(cw_result$pairs) &&
+          ready = (has_rows(cw_result$crosswalk) || has_rows(cw_result$linked)) &&
+            is.null(cw_result$pairs) &&
             !identical(effective_overlay_id(), "postal_upload") &&
             !identical(effective_overlay_id(), "own_upload"))
       )),

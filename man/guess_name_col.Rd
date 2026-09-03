@@ -26,6 +26,7 @@ Other app support interfaces:
 \code{\link[=build_nearest_layers]{build_nearest_layers()}},
 \code{\link[=extract_polygon_collection]{extract_polygon_collection()}},
 \code{\link[=layer_id_col]{layer_id_col()}},
+\code{\link[=render_link_reproducer_script]{render_link_reproducer_script()}},
 \code{\link[=render_postal_reproducer_script]{render_postal_reproducer_script()}},
 \code{\link[=render_reproducer_script]{render_reproducer_script()}}
 }

@@ -855,8 +855,8 @@ test_that("retrieve_monitoring_stations paginates when the page is truncated", {
   expect_equal(stations$OGF_ID, 1:3)
 })
 
-test_that("retrieve_monitoring_stations_simple returns an sf object of POINT geometry", {
-  stations <- retrieve_monitoring_stations_simple()
+test_that("retrieve_monitoring_stations_bundled returns an sf object of POINT geometry", {
+  stations <- retrieve_monitoring_stations_bundled()
 
   expect_s3_class(stations, "sf")
   expect_true(all(
@@ -870,8 +870,8 @@ test_that("retrieve_monitoring_stations_simple returns an sf object of POINT geo
 # without the ones attached at read time every crosswalk built against this
 # layer reported to_source / source_url_to / retrieved_at as NA - while the
 # other three bundled retrievers reported them correctly.
-test_that("retrieve_monitoring_stations_simple attaches provenance", {
-  stations <- retrieve_monitoring_stations_simple()
+test_that("retrieve_monitoring_stations_bundled attaches provenance", {
+  stations <- retrieve_monitoring_stations_bundled()
 
   expect_equal(
     attr(stations, "source_name"),
@@ -895,7 +895,7 @@ test_that("all bundled retrievers agree on carrying provenance", {
     hive = retrieve_hive(),
     phu_simple = retrieve_phu_simple(),
     phu_pre2025 = retrieve_phu_pre2025(),
-    monitoring = retrieve_monitoring_stations_simple()
+    monitoring = retrieve_monitoring_stations_bundled()
   )
   for (nm in names(layers)) {
     for (a in c("source_name", "source_url", "retrieved_at")) {
@@ -928,7 +928,7 @@ test_that("retrieve_source dispatches the pre-2025 PHU snapshot", {
 })
 
 test_that("bundled monitoring stations survive subsetting", {
-  stations <- retrieve_monitoring_stations_simple()
+  stations <- retrieve_monitoring_stations_bundled()
   subset <- stations[stations$DATA_COLLECTION_METHOD == "Auto", ]
   expect_s3_class(sf::st_geometry(subset), "sfc")
 })

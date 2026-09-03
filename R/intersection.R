@@ -194,7 +194,7 @@ build_intersection <- function(source, target, min_overlap = 0) {
 #'   `share_of_target`, `share_of_source` are `NA`.
 #'
 #' @examples
-#' stations <- retrieve_monitoring_stations_simple()
+#' stations <- retrieve_monitoring_stations_bundled()
 #' build_nearest_pairs(stations[1:20, ], stations[21:25, ])
 #'
 #' @export

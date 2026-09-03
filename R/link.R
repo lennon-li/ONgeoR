@@ -38,7 +38,7 @@
 #'   including the raster sampling paths this function delegates to.
 #'
 #' @examples
-#' stations <- retrieve_monitoring_stations_simple()[1:20, ]
+#' stations <- retrieve_monitoring_stations_bundled()[1:20, ]
 #' link(stations, retrieve_phu_simple())
 #'
 #' @export
@@ -183,7 +183,7 @@ validate_k <- function(k) {
 #'   `ROADMAP.md`.
 #'
 #' @examples
-#' stations <- retrieve_monitoring_stations_simple()[1:5, ]
+#' stations <- retrieve_monitoring_stations_bundled()[1:5, ]
 #' nearest(stations, retrieve_hive()[1:50, ], k = 3)
 #'
 #' @export

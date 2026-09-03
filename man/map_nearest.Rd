@@ -28,7 +28,7 @@ are drawn. If no target is within \code{max_dist_km}, the returned map contains
 the source points without target or connector layers.
 }
 \examples{
-stations <- retrieve_monitoring_stations_simple()[1:5, ]
+stations <- retrieve_monitoring_stations_bundled()[1:5, ]
 map_nearest(stations, retrieve_hive()[1:50, ], k = 3)
 
 }

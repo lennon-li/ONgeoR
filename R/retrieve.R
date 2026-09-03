@@ -655,11 +655,11 @@ phu_pre2025_data_path <- function() {
 #'   snapshot instant of the bundled data, not the time of the call.
 #'
 #' @examples
-#' stations <- retrieve_monitoring_stations_simple()
+#' stations <- retrieve_monitoring_stations_bundled()
 #' nrow(stations)
 #'
 #' @export
-retrieve_monitoring_stations_simple <- function() {
+retrieve_monitoring_stations_bundled <- function() {
   path <- monitoring_stations_data_path()
   if (!nzchar(path)) {
     rlang::abort(
@@ -674,7 +674,7 @@ retrieve_monitoring_stations_simple <- function() {
   # of its own. Attaching them here rather than regenerating the binary keeps
   # the shipped .rds byte-identical. Without this, every crosswalk built
   # against this layer reported to_source / source_url_to / retrieved_at as NA.
-  source <- get_source("monitoring_stations_simple")
+  source <- get_source("monitoring_stations_bundled")
   attr(result, "source_name") <- source$name
   attr(result, "source_url") <- source$source_url
   attr(result, "retrieved_at") <- monitoring_stations_snapshot_time()

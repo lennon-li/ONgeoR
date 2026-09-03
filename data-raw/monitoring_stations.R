@@ -37,7 +37,7 @@
 #
 # Provenance: this script writes a plain saveRDS(), so the .rds carries no
 # source_name / source_url / retrieved_at attributes (hive.rds and the
-# phu_simple*.rds files do). retrieve_monitoring_stations_simple() attaches
+# phu_simple*.rds files do). retrieve_monitoring_stations_bundled() attaches
 # them at read time from sources.yaml plus the 2023-06-23T10:55:20Z snapshot
 # instant, so do NOT add them here - two sources of truth for the same three
 # attributes is how they drifted out of a crosswalk in the first place.

@@ -29,7 +29,7 @@ matched targets, and constructs one connector line per match. This supports
 custom map renderers that need the same layers as \code{\link[=map_nearest]{map_nearest()}}.
 }
 \examples{
-stations <- retrieve_monitoring_stations_simple()
+stations <- retrieve_monitoring_stations_bundled()
 build_nearest_layers(stations[1:3, ], stations[4:10, ])
 
 }

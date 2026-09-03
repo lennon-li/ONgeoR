@@ -45,7 +45,7 @@ retrieve_source <- function(source_id, refresh = FALSE, max_age = NULL) {
     conservation_authority = retrieve_conservation_authority(refresh = refresh),
     orwn_station = retrieve_orwn_station(refresh = refresh),
     monitoring_stations = retrieve_monitoring_stations(refresh = refresh),
-    monitoring_stations_simple = retrieve_monitoring_stations_simple(),
+    monitoring_stations_bundled = retrieve_monitoring_stations_bundled(),
     postal_points = retrieve_postal_points(refresh = refresh),
     {
       valid_ids <- list_sources()$source_id
@@ -285,7 +285,7 @@ source_retrieve_call <- function(source_id) {
     conservation_authority = "retrieve_conservation_authority()",
     orwn_station = "retrieve_orwn_station()",
     monitoring_stations = "retrieve_monitoring_stations()",
-    monitoring_stations_simple = "retrieve_monitoring_stations_simple()",
+    monitoring_stations_bundled = "retrieve_monitoring_stations_bundled()",
     postal_points = "retrieve_postal_points()",
     synthetic_air_quality = "retrieve_synthetic_raster()",
     hive = "retrieve_hive()",

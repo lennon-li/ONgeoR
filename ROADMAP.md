@@ -500,9 +500,15 @@ These are data-governance or scope questions, not implementation tasks.
   he holds permission to expose ON-Marg through the hosted app; that permission
   does not change the handling, which is how the licence term is honoured
   rather than a workaround for the permission.
-- **`retrieve_monitoring_stations*` naming** — open, and needs Lennon. CRAN
-  acceptance freezes the public API, so decide before submission whether the
-  shipped names stay.
+- **`retrieve_monitoring_stations*` naming** — resolved and shipped. Lennon
+  decided 2026-09-03: `retrieve_monitoring_stations_simple()` renamed to
+  `retrieve_monitoring_stations_bundled()` (registry source id
+  `monitoring_stations_simple` -> `monitoring_stations_bundled`), because
+  `_simple` elsewhere in this package (`retrieve_phu_simple()`) means
+  "generalized geometry from the same live source," while this function meant
+  "static bundled snapshot, different schema, frozen at 2023-06-23" — an
+  unrelated axis the shared suffix misleadingly implied. `bundled` matches the
+  name already used for the source in `sources.yaml`.
 
 ## Task discipline
 

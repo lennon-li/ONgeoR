@@ -57,7 +57,7 @@ A bundled offline subset of the monitoring-station network ships with the
 package, so point layers are available without any retrieval:
 
 ```{r bundled-stations}
-stations_simple <- retrieve_monitoring_stations_simple()
+stations_simple <- retrieve_monitoring_stations_bundled()
 nrow(stations_simple)
 ```
 

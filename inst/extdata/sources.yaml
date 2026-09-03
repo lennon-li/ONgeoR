@@ -129,7 +129,7 @@ sources:
     license: "Author-maintained (custom)"
     source_url: "builtin://ongeor/hive"
 
-  monitoring_stations_simple:
+  monitoring_stations_bundled:
     name: "Monitoring Station Point (bundled snapshot)"
     geography_type: "facility"
     # Frozen GeoHub-export snapshot (all records dated 2023-06-23T10:55:20Z).

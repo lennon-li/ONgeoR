@@ -70,7 +70,7 @@ map_layers <- function(..., colors = NULL) {
 #'   matches; and `table`, the tibble returned by [nearest()].
 #'
 #' @examples
-#' stations <- retrieve_monitoring_stations_simple()
+#' stations <- retrieve_monitoring_stations_bundled()
 #' build_nearest_layers(stations[1:3, ], stations[4:10, ])
 #'
 #' @family app support interfaces
@@ -149,7 +149,7 @@ build_nearest_layers <- function(source, target, k = 1, max_dist_km = NULL) {
 #' @return A `leaflet` htmlwidget.
 #'
 #' @examples
-#' stations <- retrieve_monitoring_stations_simple()[1:5, ]
+#' stations <- retrieve_monitoring_stations_bundled()[1:5, ]
 #' map_nearest(stations, retrieve_hive()[1:50, ], k = 3)
 #'
 #' @export

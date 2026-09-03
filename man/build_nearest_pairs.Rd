@@ -22,7 +22,7 @@ Matches each target point to its single nearest source point. Returns the
 same column schema as \code{\link[=build_intersection]{build_intersection()}} so the two are row-bindable.
 }
 \examples{
-stations <- retrieve_monitoring_stations_simple()
+stations <- retrieve_monitoring_stations_bundled()
 build_nearest_pairs(stations[1:20, ], stations[21:25, ])
 
 }

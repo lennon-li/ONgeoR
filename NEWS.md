@@ -1,5 +1,15 @@
 # ONgeoR 0.4.0
 
+- Rename `retrieve_monitoring_stations_simple()` to
+  `retrieve_monitoring_stations_bundled()` (and registry source id
+  `monitoring_stations_simple` to `monitoring_stations_bundled`) before the
+  public API freezes at CRAN submission. `_simple` elsewhere in this package
+  (`retrieve_phu_simple()`) means "generalized geometry from the same live
+  source"; here it meant "static bundled snapshot, different schema, frozen
+  at 2023-06-23" — an unrelated axis that the shared suffix misleadingly
+  implied. `bundled` matches the name already used for this source in
+  `sources.yaml` ("Monitoring Station Point (bundled snapshot)").
+
 - Add no-key Esri Light Gray Canvas and Satellite (Hybrid) basemaps to the
   Shiny app.
 

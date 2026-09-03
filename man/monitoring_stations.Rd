@@ -7,7 +7,7 @@
 A bundled snapshot of Ontario water and weather monitoring station point
 locations from LIO layer \code{LIO_Open08/30}, shipped as
 \code{inst/extdata/monitoring_stations.rds} and accessed via
-\code{\link[=retrieve_monitoring_stations_simple]{retrieve_monitoring_stations_simple()}}. For up-to-date retrieval from the
+\code{\link[=retrieve_monitoring_stations_bundled]{retrieve_monitoring_stations_bundled()}}. For up-to-date retrieval from the
 live LIO service, use \code{\link[=retrieve_monitoring_stations]{retrieve_monitoring_stations()}} instead.
 }
 \details{
@@ -40,6 +40,6 @@ Open Government Licence - Ontario.
 }
 
 \seealso{
-\code{\link[=retrieve_monitoring_stations_simple]{retrieve_monitoring_stations_simple()}}
+\code{\link[=retrieve_monitoring_stations_bundled]{retrieve_monitoring_stations_bundled()}}
 }
 \keyword{internal}

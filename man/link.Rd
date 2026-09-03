@@ -44,7 +44,7 @@ targets via the package's raster linking model (rasters are reduced to
 vector geometries and delegated to the vector join path).
 }
 \examples{
-stations <- retrieve_monitoring_stations_simple()[1:20, ]
+stations <- retrieve_monitoring_stations_bundled()[1:20, ]
 link(stations, retrieve_phu_simple())
 
 }

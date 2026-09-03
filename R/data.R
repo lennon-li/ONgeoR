@@ -39,7 +39,7 @@ NULL
 #' A bundled snapshot of Ontario water and weather monitoring station point
 #' locations from LIO layer `LIO_Open08/30`, shipped as
 #' `inst/extdata/monitoring_stations.rds` and accessed via
-#' [retrieve_monitoring_stations_simple()]. For up-to-date retrieval from the
+#' [retrieve_monitoring_stations_bundled()]. For up-to-date retrieval from the
 #' live LIO service, use [retrieve_monitoring_stations()] instead.
 #'
 #' @details
@@ -67,7 +67,7 @@ NULL
 #' @section Licence:
 #' Open Government Licence - Ontario.
 #'
-#' @seealso [retrieve_monitoring_stations_simple()]
+#' @seealso [retrieve_monitoring_stations_bundled()]
 #' @name monitoring_stations
 #' @keywords internal
 NULL

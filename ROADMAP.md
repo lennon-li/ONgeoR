@@ -400,7 +400,10 @@ freeze the user interface or leave misleading prior results visible.
   top-level-files check), `.github/workflows/pkgdown.yaml`, and a `gh-pages`
   branch publishing to <https://lennon-li.github.io/ONgeoR/>, which is the URL
   carried in `DESCRIPTION`. Deployment is automated on push to `main`.
-- **But the published site is currently stale — see the open CI item below.**
+- Site is current as of 2026-09-03: run
+  [33791092310](https://github.com/lennon-li/ONgeoR/actions/runs/33791092310)
+  for `e7727db` (the monitoring-stations rename) succeeded in 2m36s. See the
+  resolved infrastructure item below for the timeout this closes out.
 - [x] Add GitHub issue templates, including a structured data-source request.
 - Evidence: three templates incl. data-source-request, PR #5 (`1eab55e`).
 - [x] Review package title and description for CRAN-style software-name and API
@@ -455,19 +458,26 @@ gates above are satisfied.
   the plain full-grid call, not the Level 3 subset the examples use, so it does
   not close by way of green examples.
 
-### Open — infrastructure
+### Resolved — infrastructure
 
-- [ ] **pkgdown CI on `main` exceeded its 30-minute limit and was cancelled**
-  (found 2026-08-21). Run
+- [x] **pkgdown CI on `main` exceeded its 30-minute limit and was cancelled**
+  (found 2026-08-21) — did not recur. Run
   [32275659041](https://github.com/lennon-li/ONgeoR/actions/runs/32275659041)
-  for `bcc868e` was killed at 30m6s by the job timeout. The published site is
-  therefore stale at `b33311d` and does not document `retrieve_postal_points()`.
-  **The cause is not established**: the immediately preceding pkgdown runs took
-  2m33s and 2m43s, and `R-CMD-check` for the same commit passed in 11m27s on
-  all three platforms, so this is specific to the pkgdown job. One occurrence,
-  so runner flakiness or a dependency-cache miss is not ruled out and must not
-  be excluded by assertion. Next step is to re-run the workflow and read the
-  step timings before blaming any commit.
+  for `bcc868e` was killed at 30m6s by the job timeout, leaving the published
+  site stale at `b33311d`. **The cause was never established** — the
+  immediately preceding pkgdown runs took 2m33s and 2m43s, and
+  `R-CMD-check` for the same commit passed in 11m27s on all three platforms,
+  so it was specific to the pkgdown job with only one occurrence.
+  Re-checked 2026-09-03: four pkgdown runs since then
+  (`32991078204` … `33082082837`, one per subsequent push) all completed
+  in 2-3 minutes, including the run for `55d98bc` — the commit immediately
+  before this repo's monitoring-stations rename — so the site was already
+  current, contradicting the earlier "stale" note above written before this
+  check. A fifth run,
+  [33791092310](https://github.com/lennon-li/ONgeoR/actions/runs/33791092310)
+  for `e7727db`, was triggered fresh and also succeeded in 2m36s. Treated as
+  a one-off runner flake (unresolved but not reproducing) rather than a
+  standing infrastructure problem; reopen if it recurs.
 
 ### Open — ONgeoRapp-owned, listed here only until moved
 

@@ -2,6 +2,18 @@
 
 ## ONgeoR 0.4.0
 
+- Rename `retrieve_monitoring_stations_simple()` to
+  [`retrieve_monitoring_stations_bundled()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_bundled.md)
+  (and registry source id `monitoring_stations_simple` to
+  `monitoring_stations_bundled`) before the public API freezes at CRAN
+  submission. `_simple` elsewhere in this package
+  ([`retrieve_phu_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_phu_simple.md))
+  means “generalized geometry from the same live source”; here it meant
+  “static bundled snapshot, different schema, frozen at 2023-06-23” — an
+  unrelated axis that the shared suffix misleadingly implied. `bundled`
+  matches the name already used for this source in `sources.yaml`
+  (“Monitoring Station Point (bundled snapshot)”).
+
 - Add no-key Esri Light Gray Canvas and Satellite (Hybrid) basemaps to
   the Shiny app.
 
@@ -105,14 +117,12 @@
   for Ontario water and weather monitoring stations (LIO_Open08/30),
   with live retrieval automatically paginated across pages of 2,000
   features, and a bundled offline subset
-  [`retrieve_monitoring_stations_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_simple.md)
-  (2,407 stations, a frozen 2023-06-23 GeoHub snapshot). The bundled
-  layer is the first bundled point layer, so point-in-polygon examples
-  now run offline.
+  `retrieve_monitoring_stations_simple()` (2,407 stations, a frozen
+  2023-06-23 GeoHub snapshot). The bundled layer is the first bundled
+  point layer, so point-in-polygon examples now run offline.
 
-- Fix missing provenance on
-  [`retrieve_monitoring_stations_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_simple.md).
-  It was the only bundled retriever returning no `source_name` /
+- Fix missing provenance on `retrieve_monitoring_stations_simple()`. It
+  was the only bundled retriever returning no `source_name` /
   `source_url` / `retrieved_at` attributes, because its `.rds` was
   written by a plain [`saveRDS()`](https://rdrr.io/r/base/readRDS.html)
   while the others carry the attributes in the file. Every crosswalk

@@ -74,7 +74,7 @@ match <code><a href="build_intersection.html">build_intersection()</a></code>; <
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">stations</span> <span class="op">&lt;-</span> <span class="fu"><a href="retrieve_monitoring_stations_simple.html">retrieve_monitoring_stations_simple</a></span><span class="op">(</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">stations</span> <span class="op">&lt;-</span> <span class="fu"><a href="retrieve_monitoring_stations_bundled.html">retrieve_monitoring_stations_bundled</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">build_nearest_pairs</span><span class="op">(</span><span class="va">stations</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">20</span>, <span class="op">]</span>, <span class="va">stations</span><span class="op">[</span><span class="fl">21</span><span class="op">:</span><span class="fl">25</span>, <span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 5 × 26</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   interaction_id       target_id target_name target_source source_id source_name</span>

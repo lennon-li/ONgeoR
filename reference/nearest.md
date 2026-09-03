@@ -48,7 +48,7 @@ at this scale. See the nearest-neighbour performance item in
 ## Examples
 
 ``` r
-stations <- retrieve_monitoring_stations_simple()[1:5, ]
+stations <- retrieve_monitoring_stations_bundled()[1:5, ]
 nearest(stations, retrieve_hive()[1:50, ], k = 3)
 #> # A tibble: 15 × 13
 #>      OGF_ID STATION_NAME STATION_IDENT NETWORK_NAME DATA_COLLECTION_METHOD  rank

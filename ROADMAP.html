@@ -239,7 +239,7 @@
 <li>
 <strong>ON-Marg redistribution</strong> — settled. The PHO workbook licence forbids modification, so ONgeoR fetches it at runtime against a pinned SHA-256 and keeps it in session memory only: never bundled, never cached to disk, never altered, and a checksum mismatch aborts. Lennon confirmed on 2026-08-19 that he holds permission to expose ON-Marg through the hosted app; that permission does not change the handling, which is how the licence term is honoured rather than a workaround for the permission.</li>
 <li>
-<strong><code>retrieve_monitoring_stations*</code> naming</strong> — open, and needs Lennon. CRAN acceptance freezes the public API, so decide before submission whether the shipped names stay.</li>
+<strong><code>retrieve_monitoring_stations*</code> naming</strong> — resolved and shipped. Lennon decided 2026-09-03: <code>retrieve_monitoring_stations_simple()</code> renamed to <code><a href="reference/retrieve_monitoring_stations_bundled.html">retrieve_monitoring_stations_bundled()</a></code> (registry source id <code>monitoring_stations_simple</code> -&gt; <code>monitoring_stations_bundled</code>), because <code>_simple</code> elsewhere in this package (<code><a href="reference/retrieve_phu_simple.html">retrieve_phu_simple()</a></code>) means “generalized geometry from the same live source,” while this function meant “static bundled snapshot, different schema, frozen at 2023-06-23” — an unrelated axis the shared suffix misleadingly implied. <code>bundled</code> matches the name already used for the source in <code>sources.yaml</code>.</li>
 </ul></div>
 <div class="section level2">
 <h2 id="task-discipline">Task discipline<a class="anchor" aria-label="anchor" href="#task-discipline"></a></h2>

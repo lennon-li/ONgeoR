@@ -65,7 +65,7 @@ function delegates to.
 ## Examples
 
 ``` r
-stations <- retrieve_monitoring_stations_simple()[1:20, ]
+stations <- retrieve_monitoring_stations_bundled()[1:20, ]
 link(stations, retrieve_phu_simple())
 #> # A tibble: 20 × 16
 #>     OGF_ID.x STATION_NAME      STATION_IDENT NETWORK_NAME DATA_COLLECTION_METHOD

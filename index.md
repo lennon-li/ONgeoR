@@ -187,7 +187,7 @@ facilities <- nearest(points, retrieve_moh_service_locations(), k = 3)
 airport <- resolve(retrieve_airport(), "CYYZ")
 
 # Ontario water and weather monitoring stations (bundled, works offline)
-stations <- retrieve_monitoring_stations_simple()
+stations <- retrieve_monitoring_stations_bundled()
 
 # Resolve postal codes to dissemination areas (first call downloads the
 # correspondence table and caches it)

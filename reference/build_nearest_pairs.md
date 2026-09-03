@@ -33,7 +33,7 @@ with one row per target feature. Fixed columns match
 ## Examples
 
 ``` r
-stations <- retrieve_monitoring_stations_simple()
+stations <- retrieve_monitoring_stations_bundled()
 build_nearest_pairs(stations[1:20, ], stations[21:25, ])
 #> # A tibble: 5 × 26
 #>   interaction_id       target_id target_name target_source source_id source_name

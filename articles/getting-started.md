@@ -82,7 +82,7 @@ the package, so point layers are available without any retrieval:
 
 ``` r
 
-stations_simple <- retrieve_monitoring_stations_simple()
+stations_simple <- retrieve_monitoring_stations_bundled()
 nrow(stations_simple)
 #> [1] 2407
 ```

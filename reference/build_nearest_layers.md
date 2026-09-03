@@ -51,7 +51,7 @@ Other app support interfaces:
 ## Examples
 
 ``` r
-stations <- retrieve_monitoring_stations_simple()
+stations <- retrieve_monitoring_stations_bundled()
 build_nearest_layers(stations[1:3, ], stations[4:10, ])
 #> $source
 #> Simple feature collection with 3 features and 5 fields

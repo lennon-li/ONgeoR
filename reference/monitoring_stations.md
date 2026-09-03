@@ -3,7 +3,7 @@
 A bundled snapshot of Ontario water and weather monitoring station point
 locations from LIO layer `LIO_Open08/30`, shipped as
 `inst/extdata/monitoring_stations.rds` and accessed via
-[`retrieve_monitoring_stations_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_simple.md).
+[`retrieve_monitoring_stations_bundled()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_bundled.md).
 For up-to-date retrieval from the live LIO service, use
 [`retrieve_monitoring_stations()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations.md)
 instead.
@@ -53,4 +53,4 @@ Open Government Licence - Ontario.
 
 ## See also
 
-[`retrieve_monitoring_stations_simple()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_simple.md)
+[`retrieve_monitoring_stations_bundled()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_bundled.md)

@@ -104,6 +104,7 @@ reference:
     desc: "Generate reproducible R scripts from a linking run."
     contents:
       - render_reproducer_script
+      - render_link_reproducer_script
       - render_postal_reproducer_script
 
   - title: "Data"

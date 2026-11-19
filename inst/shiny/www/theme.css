@@ -11,6 +11,13 @@
   --series-1: #2a78d6;
   --series-2: #1baf7a;
   --status-good: #0ca30c;
+  /* Sidebar tint: a cool blue-teal wash drawn from the logo, kept light
+     enough that the green/blue slot accents still carry the meaning. */
+  --sidebar-top: #e3eef8;
+  --sidebar-bottom: #f3f7f9;
+  --sidebar-border: rgba(42, 120, 214, 0.18);
+  --tint-base: rgba(42, 120, 214, 0.07);
+  --tint-overlay: rgba(27, 175, 122, 0.08);
 }
 
 body {
@@ -29,6 +36,42 @@ body {
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+/* Colour pass for the control panel. Declared after the shared .sidebar/.card
+   rule so the tint wins on the sidebar only; cards elsewhere stay neutral. */
+.bslib-sidebar-layout > .sidebar {
+  background: linear-gradient(180deg, var(--sidebar-top) 0%,
+    var(--sidebar-bottom) 260px, var(--sidebar-bottom) 100%);
+  border-color: var(--sidebar-border);
+}
+
+/* On the tinted panel, the grey --page input fill reads as muddy; white
+   fields separate cleanly from the wash and the slot cards. */
+.sidebar .form-select,
+.sidebar .form-control,
+.sidebar .selectize-input {
+  background: #fff;
+}
+
+/* The slot cards narrow the picker, so long wrapped labels (e.g. "MOH Public
+   Health Unit Boundary (post-2025, 29 PHUs)") would otherwise run under the
+   dropdown caret. Reserve room for it. */
+.sidebar .selectize-control.single .selectize-input {
+  padding-right: 30px;
+}
+
+.sidebar hr {
+  border-color: var(--sidebar-border);
+  opacity: 1;
+}
+
+.sidebar-section-title {
+  color: #2266bb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .form-select,
@@ -153,15 +196,18 @@ body {
    overlay/target), echoed in the matching accordion panel title dot below. */
 .slot-block {
   border-left: 3px solid transparent;
+  border-radius: 0 8px 8px 0;
   margin-bottom: 10px;
-  padding-left: 10px;
+  padding: 10px 10px 4px;
 }
 
 .slot-base {
+  background: var(--tint-base);
   border-left-color: var(--series-1);
 }
 
 .slot-overlay {
+  background: var(--tint-overlay);
   border-left-color: var(--series-2);
 }
 
@@ -204,7 +250,7 @@ body {
 }
 
 .accordion-button {
-  background: var(--page);
+  background: #fff;
   border-radius: 8px;
   color: var(--text-secondary);
   font-size: 12px;

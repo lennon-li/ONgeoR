@@ -1,5 +1,11 @@
 # ONgeoR 0.4.0
 
+- The app's control panel now carries a light colour treatment: a soft blue
+  wash behind the sidebar, tinted green/blue cards for the target and source
+  pickers (matching their existing accent stripes), white input fields, and a
+  coloured Downloads heading. Long source labels no longer run under the
+  dropdown caret.
+
 - Add `render_link_reproducer_script()` and wire it into the app's Script
   download for a raster source/target run. Previously the Script download
   stayed disabled for any run involving a raster layer, because

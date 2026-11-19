@@ -1834,7 +1834,7 @@ ui <- bslib::page_fillable(
         )
       ),
       tags$hr(),
-      tags$strong("Downloads"),
+      tags$strong(class = "sidebar-section-title", "Downloads"),
       uiOutput("link_downloads_ui")
     ),
     bslib::navset_tab(

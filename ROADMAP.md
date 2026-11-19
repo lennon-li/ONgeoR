@@ -142,8 +142,10 @@ Residual (non-blocking). Status as of the 2026-08-21 audit:
   recovered from registry `geography_type` via a new `raster_link_from_to()`
   app helper that mirrors the join task's raster reduction rule, so the
   script generates without refetching either layer.
-- [ ] **ONgeoRapp-owned:** app "Use my own file" controls are inert
-  placeholders — hide or implement. Move to that repo's queue.
+- [x] App "Use my own file" controls are no longer inert placeholders: the
+  target-layer upload is implemented (`overlay_upload_own` /
+  `overlay_own_file` in `inst/shiny/app_impl.R`) and covered by
+  `test-target-upload.R`. Closed 2026-11-19.
 
 ### P0 — Reconcile project state
 
@@ -249,7 +251,8 @@ not a second implementation of package algorithms.
 - Evidence: added to `test-shiny-server.R` (2026-07-20); suite 609 pass /
   0 fail, `R CMD check --as-cran` 0 errors / 0 warnings.
 - [x] Browser coverage of basemap switching incl. `None`.
-- Evidence: `test-app-smoke.R` drives all five basemap options in headless
+- Evidence: `test-app-smoke.R` drives every basemap option in the layer
+  control in headless
   Chrome (`None` asserted tile-less). **Runs offline and ungated as of
   2026-07-20**: 22 assertions, 0 failures, 0 skips.
   `R CMD check --as-cran`: 0 errors, 0 warnings, 1 NOTE.
@@ -268,11 +271,11 @@ not a second implementation of package algorithms.
   and drawing it as an always-on map furniture layer, so the widget exists at
   app load with no preview and no retrieval. The gate and the preview/modal
   scaffolding it required are deleted.
-- [ ] **OPEN, ONgeoRapp-owned since the app split: browser-suite startup
-  timeouts, cause UNKNOWN.** The app and its browser suite no longer live in
-  this repo; this entry is kept intact because it carries a retraction that
-  must travel with the item, and should be moved to ONgeoRapp's queue rather
-  than worked from here. `AppDriver`
+- [ ] **OPEN: browser-suite startup timeouts, cause UNKNOWN.** The app
+  source and its browser smoke (`test-app-smoke.R`) live in this repo under
+  `inst/shiny/` and are mirrored to ONgeoRapp by its app-parity check, so the
+  item is worked from here. Kept intact because it carries a retraction that
+  must travel with it. `AppDriver`
   intermittently reports "app failed to start up within N seconds". The app
   starts normally and never signals ready: no R error, no traceback, no
   `shiny:error`. Measured 2026-07-20 at roughly a **50% failure rate on
@@ -489,10 +492,10 @@ gates above are satisfied.
   a one-off runner flake (unresolved but not reproducing) rather than a
   standing infrastructure problem; reopen if it recurs.
 
-### Open — ONgeoRapp-owned, listed here only until moved
+### Open — app (shared with ONgeoRapp; land in ONgeoR first)
 
 - [ ] **Surface source unavailability explicitly in the app** (Lennon,
-  2026-07-31) — when a layer cannot be retrieved, ONgeoRapp must say so in the
+  2026-07-31) — when a layer cannot be retrieved, the app must say so in the
   UI, naming the source and the reason, so a user reads "the data service is
   not answering" rather than concluding the app is broken. `retrieve_*()`
   already raises a classed `ongeor_retrieval_error` with an informative

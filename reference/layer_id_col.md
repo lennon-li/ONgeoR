@@ -36,6 +36,7 @@ Other app support interfaces:
 [`build_nearest_layers()`](https://lennon-li.github.io/ONgeoR/reference/build_nearest_layers.md),
 [`extract_polygon_collection()`](https://lennon-li.github.io/ONgeoR/reference/extract_polygon_collection.md),
 [`guess_name_col()`](https://lennon-li.github.io/ONgeoR/reference/guess_name_col.md),
+[`render_link_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_link_reproducer_script.md),
 [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md),
 [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
 

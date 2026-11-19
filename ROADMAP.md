@@ -175,14 +175,29 @@ reports it with `NA` metadata rather than hiding it.
 
 Registry YAML re-read on every `load_source_registry()` call
 (memoization). Measured 2026-08-21 at 2.8 ms per parse across four call
-sites; `registry_entry_for()` pays it once per layer. Real but small,
-and a memo has to be keyed so that a `data-raw` edit to `sources.yaml`
-cannot be served stale.
+sites; `registry_entry_for()` pays it once per layer. Fixed 2026-09-03:
+`registry_cache_get()` memoizes on the file’s path and modification
+time, so a `data-raw` edit (e.g. under `devtools::load_all()`)
+invalidates the cache immediately rather than requiring a session
+restart or serving stale data indefinitely.
 
-Raster runs still have no reproducer story.
+Raster runs still have no reproducer story. Fixed 2026-09-03:
+[`render_link_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_link_reproducer_script.md)
+rebuilds the row-per-cell table a raster source/target run produces
+through [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
+(there is no crosswalk to rebuild for a raster pairing), and the app’s
+Script download now picks between it and
+[`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
+based on whether the run produced `linked` or `crosswalk`. The correct
+[`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
+argument order is recovered from registry `geography_type` via a new
+`raster_link_from_to()` app helper that mirrors the join task’s raster
+reduction rule, so the script generates without refetching either layer.
 
-**ONgeoRapp-owned:** app “Use my own file” controls are inert
-placeholders — hide or implement. Move to that repo’s queue.
+App “Use my own file” controls are no longer inert placeholders: the
+target-layer upload is implemented (`overlay_upload_own` /
+`overlay_own_file` in `inst/shiny/app_impl.R`) and covered by
+`test-target-upload.R`. Closed 2026-11-19.
 
 ### P0 — Reconcile project state
 
@@ -343,9 +358,9 @@ Evidence: added to `test-shiny-server.R` (2026-07-20); suite 609 pass /
 
 Browser coverage of basemap switching incl. `None`.
 
-Evidence: `test-app-smoke.R` drives all five basemap options in headless
-Chrome (`None` asserted tile-less). **Runs offline and ungated as of
-2026-07-20**: 22 assertions, 0 failures, 0 skips.
+Evidence: `test-app-smoke.R` drives every basemap option in the layer
+control in headless Chrome (`None` asserted tile-less). **Runs offline
+and ungated as of 2026-07-20**: 22 assertions, 0 failures, 0 skips.
 `R CMD check --as-cran`: 0 errors, 0 warnings, 1 NOTE.
 
 The “detritus in the temp directory - com.google.Chrome.\*” NOTE was
@@ -365,15 +380,15 @@ KB) and drawing it as an always-on map furniture layer, so the widget
 exists at app load with no preview and no retrieval. The gate and the
 preview/modal scaffolding it required are deleted.
 
-**OPEN, ONgeoRapp-owned since the app split: browser-suite startup
-timeouts, cause UNKNOWN.** The app and its browser suite no longer live
-in this repo; this entry is kept intact because it carries a retraction
-that must travel with the item, and should be moved to ONgeoRapp’s queue
-rather than worked from here. `AppDriver` intermittently reports “app
-failed to start up within N seconds”. The app starts normally and never
-signals ready: no R error, no traceback, no `shiny:error`. Measured
-2026-07-20 at roughly a **50% failure rate on unchanged code**, same
-commit and same machine.
+**OPEN: browser-suite startup timeouts, cause UNKNOWN.** The app source
+and its browser smoke (`test-app-smoke.R`) live in this repo under
+`inst/shiny/` and are mirrored to ONgeoRapp by its app-parity check, so
+the item is worked from here. Kept intact because it carries a
+retraction that must travel with it. `AppDriver` intermittently reports
+“app failed to start up within N seconds”. The app starts normally and
+never signals ready: no R error, no traceback, no `shiny:error`.
+Measured 2026-07-20 at roughly a **50% failure rate on unchanged code**,
+same commit and same machine.
 
 Five mechanisms proposed and each **falsified by measurement**:
 map-layer payload size (2.19 vs 1.46 MB), feature count (34 -\> 1629
@@ -655,10 +670,10 @@ for `e7727db`, was triggered fresh and also succeeded in 2m36s. Treated
 as a one-off runner flake (unresolved but not reproducing) rather than a
 standing infrastructure problem; reopen if it recurs.
 
-### Open — ONgeoRapp-owned, listed here only until moved
+### Open — app (shared with ONgeoRapp; land in ONgeoR first)
 
 **Surface source unavailability explicitly in the app** (Lennon,
-2026-07-31) — when a layer cannot be retrieved, ONgeoRapp must say so in
+2026-07-31) — when a layer cannot be retrieved, the app must say so in
 the UI, naming the source and the reason, so a user reads “the data
 service is not answering” rather than concluding the app is broken.
 `retrieve_*()` already raises a classed `ongeor_retrieval_error` with an

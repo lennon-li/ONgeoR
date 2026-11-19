@@ -127,6 +127,13 @@ Generate reproducible R scripts from a linking run.
 
 - [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
   : Render a reproducible R script for a CLI run
+
+- [`render_link_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_link_reproducer_script.md)
+  :
+
+  Render a reproducible R script for a raster
+  [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md) run
+
 - [`render_postal_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_postal_reproducer_script.md)
   : Render a postal-code reproducer script
 

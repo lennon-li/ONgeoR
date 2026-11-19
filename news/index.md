@@ -2,6 +2,38 @@
 
 ## ONgeoR 0.4.0
 
+- The app’s control panel now carries a light colour treatment: a soft
+  blue wash behind the sidebar, tinted green/blue cards for the target
+  and source pickers (matching their existing accent stripes), white
+  input fields, and a coloured Downloads heading. Long source labels no
+  longer run under the dropdown caret.
+
+- Add
+  [`render_link_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_link_reproducer_script.md)
+  and wire it into the app’s Script download for a raster source/target
+  run. Previously the Script download stayed disabled for any run
+  involving a raster layer, because
+  [`render_reproducer_script()`](https://lennon-li.github.io/ONgeoR/reference/render_reproducer_script.md)
+  only knew how to rebuild a
+  [`build_crosswalk()`](https://lennon-li.github.io/ONgeoR/reference/build_crosswalk.md)
+  run; a raster pairing has no crosswalk, only the row-per-cell table
+  [`link()`](https://lennon-li.github.io/ONgeoR/reference/link.md)
+  returns directly. The app now picks the right script generator from
+  whether the run produced a crosswalk or a linked table, and a new
+  `raster_link_from_to()` helper mirrors the join task’s raster
+  source/target reduction rule from registry `geography_type` alone, so
+  the script generates without refetching either layer.
+
+- `load_source_registry()` (backing
+  [`list_sources()`](https://lennon-li.github.io/ONgeoR/reference/list_sources.md),
+  [`get_source()`](https://lennon-li.github.io/ONgeoR/reference/get_source.md),
+  and every source-driven lookup) is now memoized on `sources.yaml`’s
+  modification time, cutting a measured 2.8 ms/parse repeated across
+  every call site to one parse per distinct file state. A `data-raw`
+  edit to the registry (e.g. under `devtools::load_all()`) still
+  invalidates the cache immediately, since it re-checks the file’s mtime
+  on every call rather than caching for the life of the R session.
+
 - Rename `retrieve_monitoring_stations_simple()` to
   [`retrieve_monitoring_stations_bundled()`](https://lennon-li.github.io/ONgeoR/reference/retrieve_monitoring_stations_bundled.md)
   (and registry source id `monitoring_stations_simple` to
